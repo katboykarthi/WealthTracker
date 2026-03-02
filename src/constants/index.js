@@ -31,9 +31,9 @@ export const LIABILITY_TYPES = [
 ];
 
 export const NAV_ITEMS = [
-  { section: "OVERVIEW", items: [{ id: "dashboard", label: "Dashboard", icon: "⊞" }] },
+  { section: "Overview", items: [{ id: "dashboard", label: "Dashboard", icon: "⊞" }] },
   {
-    section: "WEALTH",
+    section: "Wealth",
     items: [
       { id: "assets", label: "Assets", icon: "🏛" },
       { id: "liabilities", label: "Liabilities", icon: "💳" },
@@ -41,18 +41,26 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    section: "PLAN",
+    section: "Plan",
     items: [
+      { id: "essentials", label: "Essentials", icon: "🛠️" },
       { id: "goals", label: "Goals", icon: "🎯" },
       { id: "allocation", label: "Allocation", icon: "🕐" },
     ],
   },
   {
-    section: "MONEY",
+    section: "Money",
     items: [
       { id: "income", label: "Income", icon: "💼" },
       { id: "expenses", label: "Expenses", icon: "🛒" },
       { id: "insights", label: "Insights", icon: "📊" },
+    ],
+  },
+  {
+    section: "Data",
+    items: [
+      { id: "import", label: "Import", icon: "⬆️" },
+      { id: "settings", label: "Settings", icon: "⚙️" },
     ],
   },
 ];

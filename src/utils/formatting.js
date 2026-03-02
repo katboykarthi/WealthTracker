@@ -1,6 +1,6 @@
 // Formatting utilities for currency, dates, and numbers
 
-import { CURRENCIES } from '../constants/currencies';
+import { CURRENCIES } from '../constants';
 
 /**
  * Formats amount as currency string with appropriate scaling
