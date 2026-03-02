@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
+// Mobile detection hook
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  return isMobile;
+}
+
 const CURRENCIES = [
   { code: "INR", symbol: "₹", name: "Indian Rupee" },
   { code: "USD", symbol: "$", name: "US Dollar" },
@@ -526,7 +539,7 @@ function OnboardingStep3({ onFinish }) {
 
 // ── DASHBOARD ────────────────────────────────────────────────────────────────
 
-function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAddAsset }) {
+function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAddAsset, isMobile }) {
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
   const totalLiabilities = liabilities.reduce((s, l) => s + l.value, 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -548,25 +561,25 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
   const topHoldings = [...assets].sort((a, b) => b.value - a.value).slice(0, 5);
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 1100 }}>
+    <div style={{ padding: isMobile ? "16px 16px" : "28px 32px", maxWidth: 1100, paddingBottom: isMobile ? 80 : 0 }}>
       {/* Net Worth Hero */}
       <div
         style={{
           background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 50%, #bbf7d0 100%)",
           borderRadius: 20,
-          padding: "28px 32px",
+          padding: isMobile ? "20px 16px" : "28px 32px",
           marginBottom: 20,
           border: "1px solid #bbf7d0",
           position: "relative",
         }}
       >
-        <div style={{ color: "#64748b", fontSize: 12, fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>
+        <div style={{ color: "#64748b", fontSize: isMobile ? 10 : 12, fontWeight: 600, letterSpacing: 1, marginBottom: 8 }}>
           NET WORTH · {c.symbol} {currency}
         </div>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 52, color: "#14532d", fontWeight: 700 }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: isMobile ? 36 : 52, color: "#14532d", fontWeight: 700 }}>
           {c.symbol}{netWorth.toLocaleString()}
         </div>
-        <div style={{ position: "absolute", top: 28, right: 32, textAlign: "right" }}>
+        <div style={{ position: isMobile ? "static" : "absolute", top: 28, right: 32, textAlign: isMobile ? "left" : "right", marginTop: isMobile ? 12 : 0 }}>
           <div style={{ color: "#94a3b8", fontSize: 13 }}>{today}</div>
           <button
             onClick={onSnapshot}
@@ -593,26 +606,27 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
             background: "#eff6ff",
             border: "1px solid #bfdbfe",
             borderRadius: 12,
-            padding: "14px 20px",
+            padding: isMobile ? "12px 14px" : "14px 20px",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMobile ? 10 : 14,
             marginBottom: 20,
+            flexDirection: isMobile ? "column" : "row",
           }}
         >
           <span style={{ fontSize: 24 }}>📊</span>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, textAlign: isMobile ? "center" : "left" }}>
             <strong style={{ color: "#1e40af" }}>Add your first asset</strong>{" "}
             <span style={{ color: "#3b82f6" }}>Start tracking your net worth by adding an asset.</span>
           </div>
-          <button onClick={onAddAsset} style={{ ...btnStyle, padding: "8px 20px", fontSize: 13 }}>
+          <button onClick={onAddAsset} style={{ ...btnStyle, padding: "8px 20px", fontSize: 13, whiteSpace: "nowrap" }}>
             Add Asset
           </button>
         </div>
       )}
 
       {/* Summary Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
         <SummaryCard icon="🏛" label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" />
         <SummaryCard icon="💳" label="TOTAL LIABILITIES" value={formatCurrency(totalLiabilities, currency)} sub={`${liabilities.length} active loans`} color="#ef4444" negative />
         <SummaryCard
@@ -625,7 +639,7 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
       </div>
 
       {/* Charts Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 16, marginBottom: 20 }}>
         <div style={cardStyle}>
           <div style={{ fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>Net Worth Over Time</div>
           {snapshots.length < 2 ? (
@@ -635,7 +649,7 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
               <div style={{ fontSize: 13, marginTop: 4 }}>Take your first snapshot to see the trend</div>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={isMobile ? 150 : 180}>
               <LineChart data={snapshots}>
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v, currency)} />
@@ -652,9 +666,9 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
             <div style={{ textAlign: "center", paddingTop: 40, color: "#94a3b8", fontSize: 13 }}>Add assets to see allocation</div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={130}>
+              <ResponsiveContainer width="100%" height={isMobile ? 100 : 130}>
                 <PieChart>
-                  <Pie data={allocationData} dataKey="value" cx="50%" cy="50%" outerRadius={55} innerRadius={30}>
+                  <Pie data={allocationData} dataKey="value" cx="50%" cy="50%" outerRadius={isMobile ? 40 : 55} innerRadius={isMobile ? 20 : 30}>
                     {allocationData.map((d, i) => (<Cell key={i} fill={d.color} />))}
                   </Pie>
                   <Tooltip formatter={(v) => formatCurrency(v, currency)} />
@@ -675,7 +689,7 @@ function Dashboard({ assets, liabilities, currency, snapshots, onSnapshot, onAdd
       </div>
 
       {/* Bottom Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16 }}>
         <div style={cardStyle}>
           <div style={{ fontWeight: 700, color: "#1e293b", marginBottom: 12 }}>Top Holdings</div>
           {topHoldings.length === 0 ? (
@@ -1145,6 +1159,7 @@ const labelStyle = {
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const isMobile = useIsMobile();
   const [phase, setPhase] = useState("onboarding"); // onboarding | app
   const [onboardStep, setOnboardStep] = useState(1);
   const [currency, setCurrency] = useState("INR");
@@ -1197,7 +1212,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (activeNav) {
-      case "dashboard": return <Dashboard assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} onAddAsset={() => setActiveNav("assets")} />;
+      case "dashboard": return <Dashboard assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} onAddAsset={() => setActiveNav("assets")} isMobile={isMobile} />;
       case "assets": return <AssetsPage assets={assets} currency={currency} onAdd={addAsset} onDelete={deleteAsset} />;
       case "liabilities": return <LiabilitiesPage liabilities={liabilities} currency={currency} onAdd={addLiability} onDelete={deleteLiability} />;
       case "networth": return <NetWorthPage assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} />;
@@ -1215,69 +1230,89 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", background: bg, color: textColor }}>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", background: bg, color: textColor, flexDirection: isMobile ? "column" : "row" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-      {/* Sidebar */}
-      <div style={{ width: 220, background: sidebarBg, borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto" }}>
-        {/* Logo */}
-        <div style={{ padding: "24px 20px 16px", borderBottom: "1px solid #f1f5f9" }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "#16a34a" }}>Karthick Wealth</div>
-        </div>
+      {/* Sidebar - Hidden on mobile, show as bottom nav */}
+      <div style={{ 
+        width: isMobile ? "100%" : 220, 
+        background: sidebarBg, 
+        borderRight: isMobile ? "none" : "1px solid #e2e8f0",
+        borderTop: isMobile ? "1px solid #e2e8f0" : "none",
+        display: "flex", 
+        flexDirection: isMobile ? "row" : "column", 
+        flexShrink: 0, 
+        overflowY: isMobile ? "hidden" : "auto",
+        overflowX: isMobile ? "auto" : "hidden",
+        position: isMobile ? "fixed" : "static",
+        bottom: isMobile ? 0 : "auto",
+        left: 0,
+        right: 0,
+        zIndex: isMobile ? 100 : "auto",
+        height: isMobile ? "auto" : "100vh",
+      }}>
+        {/* Logo - Hide on mobile */}
+        {!isMobile && (
+          <div style={{ padding: "24px 20px 16px", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: "#16a34a" }}>
+              Karthick Wealth
+            </div>
+          </div>
+        )}
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: "12px 0" }}>
-          {NAV_ITEMS.map(({ section, items }) => (
-            <div key={section} style={{ marginBottom: 8 }}>
-              <div style={{ padding: "8px 20px 4px", fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: 1 }}>{section}</div>
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveNav(item.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    width: "100%",
-                    padding: "9px 20px",
-                    background: activeNav === item.id ? "#f0fdf4" : "none",
-                    border: "none",
-                    borderRight: activeNav === item.id ? "3px solid #16a34a" : "3px solid transparent",
-                    color: activeNav === item.id ? "#16a34a" : "#64748b",
-                    fontWeight: activeNav === item.id ? 700 : 500,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
+        <nav style={{ flex: 1, padding: isMobile ? "0" : "12px 0", display: "flex", flexDirection: isMobile ? "row" : "column", overflowX: isMobile ? "auto" : "visible" }}>
+          {NAV_ITEMS.reduce((acc, section) => [...acc, ...section.items], []).slice(0, 6).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: isMobile ? "center" : "flex-start",
+                gap: isMobile ? 0 : 10,
+                width: isMobile ? "auto" : "100%",
+                padding: isMobile ? "12px 16px" : "9px 20px",
+                background: activeNav === item.id ? (isMobile ? "none" : "#f0fdf4") : "none",
+                border: "none",
+                borderRight: isMobile ? "none" : activeNav === item.id ? "3px solid #16a34a" : "3px solid transparent",
+                borderBottom: isMobile ? activeNav === item.id ? "3px solid #16a34a" : "3px solid transparent" : "none",
+                color: activeNav === item.id ? "#16a34a" : "#64748b",
+                fontWeight: activeNav === item.id ? 700 : 500,
+                cursor: "pointer",
+                textAlign: "center",
+                fontSize: 14,
+                fontFamily: "inherit",
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
+              {!isMobile && item.label}
+            </button>
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div style={{ borderTop: "1px solid #f1f5f9", padding: "12px 0" }}>
-          <button onClick={() => setDarkMode(!darkMode)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 20px", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
-            <span>{darkMode ? "☀️" : "🌙"}</span>
-            Dark mode
-          </button>
-        </div>
+        {/* Bottom - Hide on mobile */}
+        {!isMobile && (
+          <div style={{ borderTop: "1px solid #f1f5f9", padding: "12px 0" }}>
+            <button onClick={() => setDarkMode(!darkMode)} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 20px", background: "none", border: "none", color: "#64748b", cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>
+              <span>{darkMode ? "☀️" : "🌙"}</span>
+              Dark mode
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Main */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", paddingBottom: isMobile ? 60 : 0 }}>
         {/* Header */}
-        <div style={{ background: sidebarBg, borderBottom: "1px solid #e2e8f0", padding: "0 32px", display: "flex", alignItems: "center", justifyContent: "flex-end", height: 56, flexShrink: 0 }}>
+        <div style={{ background: sidebarBg, borderBottom: "1px solid #e2e8f0", padding: isMobile ? "0 16px" : "0 32px", display: "flex", alignItems: "center", justifyContent: isMobile ? "space-between" : "flex-end", height: 56, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 14 }}>
               {userName[0]}
             </div>
-            <span style={{ fontWeight: 600, color: textColor }}>{userName}</span>
+            {!isMobile && <span style={{ fontWeight: 600, color: textColor }}>{userName}</span>}
           </div>
         </div>
 
