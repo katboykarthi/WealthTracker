@@ -220,7 +220,7 @@ async function parseHdfcStatementFile(file) {
   return parseHdfcStatementCsv(csvText);
 }
 
-function OnboardingStep1({ onNext, currency, setCurrency }) {
+function OnboardingStep1({ onNext }) {
   return (
     <div style={{ textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ fontSize: 56, marginBottom: 16 }}>🌿</div>
@@ -232,7 +232,7 @@ function OnboardingStep1({ onNext, currency, setCurrency }) {
         <em>Just you and your data.</em>
       </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 40 }}>
-        {["🔒 Private & Secure", "🌍 Multi-Currency", "📊 Track Everything"].map((f) => (
+        {["🔒 Private & Secure", "🇮🇳 INR Focused", "📊 Track Everything"].map((f) => (
           <span
             key={f}
             style={{
@@ -248,31 +248,6 @@ function OnboardingStep1({ onNext, currency, setCurrency }) {
             {f}
           </span>
         ))}
-      </div>
-      <div style={{ background: "var(--bg-light, #f8fafc)", borderRadius: 16, padding: 24, marginBottom: 32, textAlign: "left" }}>
-        <label style={{ display: "block", fontWeight: 600, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>
-          Choose your base currency
-        </label>
-        <select
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            borderRadius: 10,
-            border: "1.5px solid var(--border, var(--border, #e2e8f0))",
-            fontSize: 15,
-            color: "var(--input-text, #1e293b)",
-            background: "var(--input-bg, #fff)",
-            outline: "none",
-          }}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.symbol} {c.name} ({c.code})
-            </option>
-          ))}
-        </select>
       </div>
       <button onClick={onNext} style={btnStyle}>
         Get Started
@@ -458,7 +433,6 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
   const type = ASSET_TYPES.find((t) => t.id === typeId) || ASSET_TYPES[0];
   const [name, setName] = useState(editData?.name || "");
   const [value, setValue] = useState(editData?.value || "");
-  const [currency, setCurrency] = useState(editData?.currency || "INR");
   const [notes, setNotes] = useState(editData?.notes || "");
 
   const handleSave = () => {
@@ -477,7 +451,7 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
       typeId, 
       name: sanitizedName, 
       value: sanitizedValue, 
-      currency, 
+      currency: "INR", 
       notes: sanitizedNotes, 
       icon: type.icon, 
       color: type.color, 
@@ -501,25 +475,15 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-          <div>
-            <label style={labelStyle}>Currency</label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Current Value</label>
-            <input
-              style={inputStyle}
-              type="number"
-              placeholder="0"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
-          </div>
+        <div>
+          <label style={labelStyle}>Current Value (INR)</label>
+          <input
+            style={inputStyle}
+            type="number"
+            placeholder="0"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+          />
         </div>
         <div>
           <label style={labelStyle}>Notes (optional)</label>
@@ -543,7 +507,6 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
   const [typeId, setTypeId] = useState(editData?.typeId || "home_loan");
   const [name, setName] = useState(editData?.name || "");
   const [value, setValue] = useState(editData?.value || "");
-  const [currency, setCurrency] = useState(editData?.currency || "INR");
   const [interest, setInterest] = useState(editData?.interest || "");
 
   const type = LIABILITY_TYPES.find((t) => t.id === typeId) || LIABILITY_TYPES[0];
@@ -564,7 +527,7 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
       typeId, 
       name: sanitizedName, 
       value: sanitizedValue, 
-      currency, 
+      currency: "INR", 
       interest: sanitizedInterest >= 0 ? sanitizedInterest : 0, 
       icon: type.icon, 
       label: type.label 
@@ -587,17 +550,9 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
           <label style={labelStyle}>Name</label>
           <input style={inputStyle} placeholder="e.g. HDFC Home Loan" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
-          <div>
-            <label style={labelStyle}>Currency</label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} style={inputStyle}>
-              {CURRENCIES.map((c) => (<option key={c.code} value={c.code}>{c.symbol} {c.code}</option>))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Outstanding Amount</label>
-            <input style={inputStyle} type="number" placeholder="0" value={value} onChange={(e) => setValue(e.target.value)} />
-          </div>
+        <div>
+          <label style={labelStyle}>Outstanding Amount (INR)</label>
+          <input style={inputStyle} type="number" placeholder="0" value={value} onChange={(e) => setValue(e.target.value)} />
         </div>
         <div>
           <label style={labelStyle}>Interest Rate (% p.a.)</label>
@@ -1298,95 +1253,6 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImport }) {
   );
 }
 
-// -- ESSENTIALS PAGE ---------------------------------------------------------
-
-function EssentialsPage({ assets, liabilities, expenses, currency }) {
-  const monthlyBurn = expenses.reduce((s, e) => s + e.amount, 0);
-  const emergencyTarget = monthlyBurn > 0 ? monthlyBurn * 6 : 500000;
-  const emergencyCurrent = assets
-    .filter((a) => a.typeId === "cash" || a.typeId === "fd")
-    .reduce((s, a) => s + a.value, 0);
-  const emergencyProgress = emergencyTarget > 0 ? Math.min((emergencyCurrent / emergencyTarget) * 100, 100) : 0;
-
-  const totalLiabilities = liabilities.reduce((s, l) => s + l.value, 0);
-  const estimatedTermCover = assets.reduce((s, a) => s + a.value, 0) * 0.45;
-  const termCoverTarget = Math.max(totalLiabilities * 3, 10000000); // 1Cr minimum guideline
-  const termCovered = estimatedTermCover >= termCoverTarget;
-
-  const healthCover = 1000000;
-  const healthCoverTarget = 1000000;
-  const healthCovered = healthCover >= healthCoverTarget;
-
-  const essentials = [
-    {
-      title: "Term Insurance",
-      status: termCovered ? "Covered" : "Needs attention",
-      statusColor: termCovered ? "var(--primary, #16a34a)" : "var(--warning, #f59e0b)",
-      detail: `${formatCurrency(estimatedTermCover, currency)} / ${formatCurrency(termCoverTarget, currency)} target`,
-      icon: "🛡️",
-    },
-    {
-      title: "Health Cover",
-      status: healthCovered ? "Covered" : "Needs attention",
-      statusColor: healthCovered ? "var(--primary, #16a34a)" : "var(--warning, #f59e0b)",
-      detail: `${formatCurrency(healthCover, currency)} family cover`,
-      icon: "❤️",
-    },
-    {
-      title: "Emergency Fund",
-      status: emergencyProgress >= 100 ? "Covered" : "Needs attention",
-      statusColor: emergencyProgress >= 100 ? "var(--primary, #16a34a)" : "var(--warning, #f59e0b)",
-      detail: `${formatCurrency(emergencyCurrent, currency)} / ${formatCurrency(emergencyTarget, currency)} needed`,
-      icon: "💧",
-    },
-  ];
-
-  return (
-    <div style={{ padding: "28px 32px", maxWidth: 980 }}>
-      <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Essentials</h2>
-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Check if your financial safety net is complete.</p>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
-        {essentials.map((item) => (
-          <div key={item.title} style={cardStyle}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 14 }}>{item.title}</div>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: item.statusColor, marginBottom: 6 }}>{item.status}</div>
-            <div style={{ fontSize: 12, color: "var(--muted, #64748b)" }}>{item.detail}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ ...cardStyle, marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>Emergency Fund Progress</div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <span style={{ fontSize: 13, color: "var(--muted, #64748b)" }}>Current</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-color, #1e293b)" }}>{formatCurrency(emergencyCurrent, currency)}</span>
-        </div>
-        <div style={{ background: "var(--muted-bg, #f1f5f9)", borderRadius: 100, height: 10 }}>
-          <div style={{ width: `${emergencyProgress}%`, height: "100%", borderRadius: 100, background: emergencyProgress >= 100 ? "var(--primary, #16a34a)" : "var(--warning, #f59e0b)" }} />
-        </div>
-        <div style={{ fontSize: 12, color: "var(--muted, #64748b)", marginTop: 8 }}>
-          {emergencyProgress.toFixed(1)}% of six-month buffer ({formatCurrency(emergencyTarget, currency)} target)
-        </div>
-      </div>
-
-      <div style={cardStyle}>
-        <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 10 }}>Suggested next step</div>
-        <div style={{ fontSize: 13, color: "var(--muted, #64748b)", lineHeight: 1.6 }}>
-          {emergencyProgress < 100
-            ? "Increase liquid reserves (cash/FD) first, then optimize long-term investments."
-            : termCovered
-            ? "Safety basics look good. Continue tracking monthly and review insurance once a year."
-            : "Review term insurance coverage to keep family liabilities protected."}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // -- ALLOCATION PAGE ---------------------------------------------------------
 
 function AllocationPage({ assets, currency }) {
@@ -1468,44 +1334,7 @@ function AllocationPage({ assets, currency }) {
   );
 }
 
-// -- IMPORT PAGE -------------------------------------------------------------
-
-function ImportPage() {
-  return (
-    <div style={{ padding: "28px 32px", maxWidth: 980 }}>
-      <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Import Data</h2>
-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Bring your financial data from broker exports or CSV files.</p>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-        <div style={cardStyle}>
-          <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 8 }}>Broker CSV Import</div>
-          <div style={{ fontSize: 13, color: "var(--muted, #64748b)", lineHeight: 1.6, marginBottom: 14 }}>
-            Upload holdings from brokers like Zerodha/Groww in CSV format. Data stays on your device.
-          </div>
-          <button style={{ ...btnStyle, width: "100%" }}>Upload CSV</button>
-        </div>
-        <div style={cardStyle}>
-          <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 8 }}>Manual Template</div>
-          <div style={{ fontSize: 13, color: "var(--muted, #64748b)", lineHeight: 1.6, marginBottom: 14 }}>
-            Download the sample template, fill asset/liability rows, and import in one shot.
-          </div>
-          <button style={{ ...btnStyle, width: "100%", background: "var(--muted-bg, #f1f5f9)", color: "var(--muted, #64748b)" }}>Download Template</button>
-        </div>
-      </div>
-
-      <div style={cardStyle}>
-        <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 10 }}>Import Checklist</div>
-        <div style={{ display: "grid", gap: 8, fontSize: 13, color: "var(--muted, #64748b)" }}>
-          <div>1. Keep columns as: type, name, value, currency, notes.</div>
-          <div>2. Use numeric values only (no commas inside amounts).</div>
-          <div>3. Validate totals after import in the Assets/Liabilities pages.</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NetWorthPage({ assets, liabilities, currency, snapshots, onSnapshot }) {
+function NetWorthPage({ assets, liabilities, currency, snapshots, onSnapshot, isMobile }) {
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
   const totalLiabilities = liabilities.reduce((s, l) => s + l.value, 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -1516,7 +1345,7 @@ function NetWorthPage({ assets, liabilities, currency, snapshots, onSnapshot }) 
       <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Net Worth</h2>
       <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Track your wealth journey over time</p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
         <SummaryCard icon="🏛" label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" />
         <SummaryCard icon="💳" label="TOTAL LIABILITIES" value={formatCurrency(totalLiabilities, currency)} sub={`${liabilities.length} debts`} color="#ef4444" negative />
         <SummaryCard icon="✨" label="NET WORTH" value={formatCurrency(netWorth, currency)} sub="Assets minus Liabilities" color="#3b82f6" />
@@ -1733,15 +1562,14 @@ const labelStyle = sharedLabelStyle;
 export default function App() {
   const isMobile = useIsMobile();
   const [phase, setPhase] = useState("onboarding"); // onboarding | app
-  const [onboardStep, setOnboardStep] = useState(1);
-  const [currency, setCurrency] = useState("INR");
+  const currency = "INR";
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [activeNav, setActiveNav] = useState("dashboard");
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
   const [userName] = useState("Karthick");
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [mobileMenuSection, setMobileMenuSection] = useState(null);
@@ -1767,6 +1595,9 @@ export default function App() {
   const bg = darkMode ? "#0f172a" : "#f8fafc";
   const sidebarBg = darkMode ? "#1e293b" : "#fff";
   const textColor = darkMode ? "var(--text-color, #e2e8f0)" : "#1e293b";
+  const onboardingBg = darkMode
+    ? "linear-gradient(135deg, #020617 0%, #0b1220 48%, #111827 100%)"
+    : onboardingGradient;
 
   // Expose theme tokens via CSS variables so inline styles adapt to dark mode
   useEffect(() => {
@@ -1835,8 +1666,9 @@ export default function App() {
       <div
         style={{
           minHeight: "100dvh",
-          background: onboardingGradient,
+          background: onboardingBg,
           display: "flex",
+          position: "relative",
           alignItems: isMobile ? "flex-start" : "center",
           justifyContent: "center",
           fontFamily,
@@ -1845,6 +1677,29 @@ export default function App() {
         }}
       >
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <button
+          onClick={() => setDarkMode(!darkMode)}
+          style={{
+            position: "absolute",
+            top: isMobile ? 10 : 16,
+            right: isMobile ? 10 : 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            border: "1px solid var(--border, #e2e8f0)",
+            background: "var(--card-bg, #fff)",
+            color: "var(--text-color, #1e293b)",
+            borderRadius: 999,
+            padding: "8px 12px",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            zIndex: 2,
+          }}
+        >
+          <span>{darkMode ? "☀️" : "🌙"}</span>
+          <span>{darkMode ? "Light" : "Dark"}</span>
+        </button>
         <div
           style={{
             width: "100%",
@@ -1856,19 +1711,7 @@ export default function App() {
             margin: isMobile ? "8px 0 24px" : 0,
           }}
         >
-          {onboardStep === 1 && (
-            <OnboardingStep1 onNext={() => setOnboardStep(2)} currency={currency} setCurrency={setCurrency} />
-          )}
-          {onboardStep === 2 && (
-            <OnboardingStep2
-              onNext={() => setOnboardStep(3)}
-              onSkip={() => setOnboardStep(3)}
-              onAddAsset={addAsset}
-            />
-          )}
-          {onboardStep === 3 && (
-            <OnboardingStep3 onFinish={() => setPhase("app")} />
-          )}
+          <OnboardingStep1 onNext={() => setPhase("app")} />
         </div>
       </div>
     );
@@ -1879,14 +1722,12 @@ export default function App() {
       case "dashboard": return <Dashboard assets={assets} liabilities={liabilities} incomes={incomes} expenses={expenses} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} onAddAsset={() => setActiveNav("assets")} isMobile={isMobile} />;
       case "assets": return <AssetsPage assets={assets} currency={currency} onAdd={addAsset} onDelete={deleteAsset} />;
       case "liabilities": return <LiabilitiesPage liabilities={liabilities} currency={currency} onAdd={addLiability} onDelete={deleteLiability} />;
-      case "networth": return <NetWorthPage assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} />;
-      case "essentials": return <EssentialsPage assets={assets} liabilities={liabilities} expenses={expenses} currency={currency} />;
+      case "networth": return <NetWorthPage assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={takeSnapshot} isMobile={isMobile} />;
       case "goals": return <GoalsPage assets={assets} currency={currency} />;
       case "allocation": return <AllocationPage assets={assets} currency={currency} />;
       case "income": return <IncomePage incomes={incomes} currency={currency} onAdd={addIncome} onDelete={deleteIncome} onImport={importIncomeEntries} />;
       case "expenses": return <ExpensesPage expenses={expenses} currency={currency} onAdd={addExpense} onDelete={deleteExpense} onImport={importExpenseEntries} />;
       case "insights": return <InsightsPage assets={assets} liabilities={liabilities} currency={currency} />;
-      case "import": return <ImportPage />;
       case "settings":
         return (
           <div style={{ padding: "28px 32px", maxWidth: 900 }}>
@@ -1902,20 +1743,6 @@ export default function App() {
                   <span>{darkMode ? "Dark Mode" : "Light Mode"}</span>
                   <span>{darkMode ? "🌙" : "☀️"}</span>
                 </button>
-              </div>
-              <div style={cardStyle}>
-                <div style={{ fontWeight: 600, marginBottom: 12, color: "var(--text-color, #1e293b)" }}>Currency</div>
-                <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  style={{ ...inputStyle, width: "100%" }}
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.symbol} {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>

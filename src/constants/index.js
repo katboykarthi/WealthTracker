@@ -43,7 +43,6 @@ export const NAV_ITEMS = [
   {
     section: "Plan",
     items: [
-      { id: "essentials", label: "Essentials", icon: "🛠️" },
       { id: "goals", label: "Goals", icon: "🎯" },
       { id: "allocation", label: "Allocation", icon: "🕐" },
     ],
@@ -62,7 +61,6 @@ export const NAV_ITEMS = [
 
 
     items: [
-      { id: "import", label: "Import", icon: "⬆️" },
       { id: "settings", label: "Settings", icon: "⚙️" },
     ],
   },
@@ -82,6 +80,6 @@ export const SECURITY_SETTINGS = {
   MAX_INPUT_LENGTH: 255,
   MIN_VALUE: 0,
   MAX_VALUE: 999999999999,
-  ALLOWED_CURRENCIES: ["INR", "USD", "EUR", "GBP", "JPY"],
+  ALLOWED_CURRENCIES: ["INR"],
   SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
 };
