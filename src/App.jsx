@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { applyTheme, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, buttonStyles, fontFamily, serifFontFamily, heroGradient, onboardingGradient } from "./styles";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import * as XLSX from "xlsx";
 import { CURRENCIES, ASSET_TYPES, LIABILITY_TYPES, NAV_ITEMS, GOAL_ICONS } from "./constants";
 import { formatCurrency } from "./utils/formatting";
 import { sanitizeInput } from "./utils/security";
@@ -16,6 +17,207 @@ function useIsMobile() {
   }, []);
   
   return isMobile;
+}
+
+function parseCsvRow(row) {
+  const cells = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < row.length; i += 1) {
+    const char = row[i];
+    const next = row[i + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function normalizeHeader(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findHeaderIndex(headers, candidates) {
+  return headers.findIndex((header) =>
+    candidates.some((candidate) => header === candidate || header.includes(candidate))
+  );
+}
+
+function parseAmountValue(rawValue) {
+  if (rawValue == null) return 0;
+
+  let value = String(rawValue).trim();
+  if (!value) return 0;
+
+  let sign = 1;
+
+  if (/^\(.*\)$/.test(value)) {
+    sign = -1;
+    value = value.slice(1, -1);
+  }
+
+  if (/dr$/i.test(value)) {
+    sign = -1;
+    value = value.replace(/dr$/i, "");
+  } else if (/cr$/i.test(value)) {
+    sign = 1;
+    value = value.replace(/cr$/i, "");
+  }
+
+  value = value
+    .replace(/rs\.?/gi, "")
+    .replace(/inr/gi, "")
+    .replace(/,/g, "")
+    .replace(/[^\d.\-]/g, "")
+    .trim();
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+
+  return sign * Math.abs(parsed);
+}
+
+function parseHdfcStatementRows(rawRows) {
+  const rows = (rawRows || [])
+    .map((row) => (Array.isArray(row) ? row.map((cell) => String(cell ?? "").trim()) : []));
+
+  if (rows.length < 2) return [];
+
+  let headerRowIndex = -1;
+  for (let i = 0; i < Math.min(rows.length, 25); i += 1) {
+    const normalized = rows[i].map(normalizeHeader);
+    const hasDate = normalized.some((h) => h.includes("date") || h.includes("value dt") || h.includes("value date"));
+    const hasDescription = normalized.some((h) => h.includes("narration") || h.includes("description") || h.includes("particular"));
+    const hasAmount = normalized.some((h) => h.includes("withdrawal") || h.includes("deposit") || h.includes("debit") || h.includes("credit") || h === "amount");
+
+    if (hasDate && hasDescription && hasAmount) {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
+  if (headerRowIndex === -1) headerRowIndex = 0;
+
+  const headers = rows[headerRowIndex].map(normalizeHeader);
+
+  const dateIndex = findHeaderIndex(headers, ["date", "transaction date", "txn date", "value dt", "value date"]);
+  const narrationIndex = findHeaderIndex(headers, ["narration", "description", "particulars", "particular", "remarks", "details"]);
+  const withdrawalIndex = findHeaderIndex(headers, ["withdrawal amt", "withdrawal amount", "debit amount", "debit"]);
+  const depositIndex = findHeaderIndex(headers, ["deposit amt", "deposit amount", "credit amount", "credit"]);
+  const amountIndex = findHeaderIndex(headers, ["amount", "transaction amount", "txn amount", "amt"]);
+  const drCrIndex = findHeaderIndex(headers, ["dr/cr", "cr/dr", "dr cr", "cr dr", "type", "transaction type"]);
+
+  const entries = [];
+
+  for (let lineIndex = headerRowIndex + 1; lineIndex < rows.length; lineIndex += 1) {
+    const row = rows[lineIndex];
+    if (!row || !row.some((cell) => String(cell || "").trim().length > 0)) continue;
+
+    const narrationRaw = narrationIndex >= 0 ? row[narrationIndex] : "";
+    const dateRaw = dateIndex >= 0 ? row[dateIndex] : "";
+
+    const narration = sanitizeInput(narrationRaw || "Imported HDFC transaction", "text");
+    const date = sanitizeInput(dateRaw || "", "text");
+
+    let creditAmount = 0;
+    let debitAmount = 0;
+
+    if (depositIndex >= 0) {
+      creditAmount = Math.abs(parseAmountValue(row[depositIndex]));
+    }
+
+    if (withdrawalIndex >= 0) {
+      debitAmount = Math.abs(parseAmountValue(row[withdrawalIndex]));
+    }
+
+    if (creditAmount === 0 && debitAmount === 0 && amountIndex >= 0) {
+      const amountValue = parseAmountValue(row[amountIndex]);
+      const directionRaw = drCrIndex >= 0 ? String(row[drCrIndex] || "").toLowerCase() : "";
+
+      if (directionRaw.includes("dr") || directionRaw.includes("debit")) {
+        debitAmount = Math.abs(amountValue);
+      } else if (directionRaw.includes("cr") || directionRaw.includes("credit")) {
+        creditAmount = Math.abs(amountValue);
+      } else if (amountValue < 0) {
+        debitAmount = Math.abs(amountValue);
+      } else {
+        creditAmount = Math.abs(amountValue);
+      }
+    }
+
+    if (creditAmount > 0) {
+      entries.push({
+        type: "credit",
+        name: narration || "Imported credit",
+        amount: creditAmount,
+        date,
+      });
+    }
+
+    if (debitAmount > 0) {
+      entries.push({
+        type: "debit",
+        name: narration || "Imported debit",
+        amount: debitAmount,
+        date,
+      });
+    }
+  }
+
+  return entries;
+}
+
+function parseHdfcStatementCsv(csvText) {
+  const lines = String(csvText || "")
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((line) => line && line.trim().length > 0);
+
+  if (lines.length < 2) return [];
+
+  const rows = lines.map((line) => parseCsvRow(line));
+  return parseHdfcStatementRows(rows);
+}
+
+async function parseHdfcStatementFile(file) {
+  const fileName = String(file?.name || "").toLowerCase();
+  if (!file) return [];
+
+  if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
+    const fileBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(fileBuffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) return [];
+    const firstSheet = workbook.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
+    return parseHdfcStatementRows(rows);
+  }
+
+  const csvText = await file.text();
+  return parseHdfcStatementCsv(csvText);
 }
 
 function OnboardingStep1({ onNext, currency, setCurrency }) {
@@ -877,11 +1079,12 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
   );
 }
 
-function IncomePage({ incomes, currency, onAdd, onDelete }) {
+function IncomePage({ incomes, currency, onAdd, onDelete, onImport }) {
   const total = incomes.reduce((s, i) => s + i.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const importInputRef = useRef(null);
 
   const save = () => {
     const n = sanitizeInput(name, 'text');
@@ -891,6 +1094,40 @@ function IncomePage({ incomes, currency, onAdd, onDelete }) {
     setName(''); setAmount(''); setShowAdd(false);
   };
 
+  const handleCsvImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsedEntries = await parseHdfcStatementFile(file);
+      const creditEntries = parsedEntries.filter((entry) => entry.type === "credit" && entry.amount > 0);
+
+      if (creditEntries.length === 0) {
+        alert("No credit transactions found in this HDFC statement file.");
+        return;
+      }
+
+      const importedEntries = creditEntries.map((entry, index) => ({
+        id: Date.now() + index + Math.floor(Math.random() * 10000),
+        name: sanitizeInput(entry.name, "text") || "Imported income",
+        amount: sanitizeInput(entry.amount, "number"),
+        currency,
+      })).filter((entry) => entry.amount > 0);
+
+      if (importedEntries.length === 0) {
+        alert("No valid income rows could be imported from this file.");
+        return;
+      }
+
+      onImport(importedEntries);
+      alert(`Imported ${importedEntries.length} income entr${importedEntries.length === 1 ? "y" : "ies"} from HDFC statement.`);
+    } catch (error) {
+      alert("Unable to import this file. Please upload a valid HDFC statement (.csv/.xls/.xlsx).");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div style={{ padding: "28px 32px", maxWidth: 900 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -898,7 +1135,22 @@ function IncomePage({ incomes, currency, onAdd, onDelete }) {
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Income</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
-        <button onClick={() => setShowAdd(true)} style={btnStyle}>+ Add Income</button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleCsvImport}
+            style={{ display: "none" }}
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13 }}
+          >
+            Import HDFC Statement
+          </button>
+          <button onClick={() => setShowAdd(true)} style={btnStyle}>+ Add Income</button>
+        </div>
       </div>
 
       {showAdd && (
@@ -946,11 +1198,12 @@ function IncomePage({ incomes, currency, onAdd, onDelete }) {
   );
 }
 
-function ExpensesPage({ expenses, currency, onAdd, onDelete }) {
+function ExpensesPage({ expenses, currency, onAdd, onDelete, onImport }) {
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const importInputRef = useRef(null);
 
   const save = () => {
     const n = sanitizeInput(name, 'text');
@@ -960,6 +1213,40 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete }) {
     setName(''); setAmount(''); setShowAdd(false);
   };
 
+  const handleCsvImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsedEntries = await parseHdfcStatementFile(file);
+      const debitEntries = parsedEntries.filter((entry) => entry.type === "debit" && entry.amount > 0);
+
+      if (debitEntries.length === 0) {
+        alert("No debit transactions found in this HDFC statement file.");
+        return;
+      }
+
+      const importedEntries = debitEntries.map((entry, index) => ({
+        id: Date.now() + index + Math.floor(Math.random() * 10000),
+        name: sanitizeInput(entry.name, "text") || "Imported expense",
+        amount: sanitizeInput(entry.amount, "number"),
+        currency,
+      })).filter((entry) => entry.amount > 0);
+
+      if (importedEntries.length === 0) {
+        alert("No valid expense rows could be imported from this file.");
+        return;
+      }
+
+      onImport(importedEntries);
+      alert(`Imported ${importedEntries.length} expense entr${importedEntries.length === 1 ? "y" : "ies"} from HDFC statement.`);
+    } catch (error) {
+      alert("Unable to import this file. Please upload a valid HDFC statement (.csv/.xls/.xlsx).");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   return (
     <div style={{ padding: "28px 32px", maxWidth: 900 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -967,7 +1254,22 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete }) {
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Expenses</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
-        <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: '#ef4444' }}>+ Add Expense</button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleCsvImport}
+            style={{ display: "none" }}
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13 }}
+          >
+            Import HDFC Statement
+          </button>
+          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: '#ef4444' }}>+ Add Expense</button>
+        </div>
       </div>
 
       {showAdd && (
@@ -1471,6 +1773,8 @@ export default function App() {
   const deleteIncome = (id) => setIncomes((prev) => prev.filter((i) => i.id !== id));
   const addExpense = (ex) => setExpenses((prev) => [...prev, ex]);
   const deleteExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id));
+  const importIncomeEntries = (entries) => setIncomes((prev) => [...prev, ...entries]);
+  const importExpenseEntries = (entries) => setExpenses((prev) => [...prev, ...entries]);
 
   const takeSnapshot = () => {
     const total = assets.reduce((s, a) => s + a.value, 0) - liabilities.reduce((s, l) => s + l.value, 0);
@@ -1559,8 +1863,8 @@ export default function App() {
       case "essentials": return <EssentialsPage assets={assets} liabilities={liabilities} expenses={expenses} currency={currency} />;
       case "goals": return <GoalsPage assets={assets} currency={currency} />;
       case "allocation": return <AllocationPage assets={assets} currency={currency} />;
-      case "income": return <IncomePage incomes={incomes} currency={currency} onAdd={addIncome} onDelete={deleteIncome} />;
-      case "expenses": return <ExpensesPage expenses={expenses} currency={currency} onAdd={addExpense} onDelete={deleteExpense} />;
+      case "income": return <IncomePage incomes={incomes} currency={currency} onAdd={addIncome} onDelete={deleteIncome} onImport={importIncomeEntries} />;
+      case "expenses": return <ExpensesPage expenses={expenses} currency={currency} onAdd={addExpense} onDelete={deleteExpense} onImport={importExpenseEntries} />;
       case "insights": return <InsightsPage assets={assets} liabilities={liabilities} currency={currency} />;
       case "import": return <ImportPage />;
       case "settings":
