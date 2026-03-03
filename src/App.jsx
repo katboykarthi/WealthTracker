@@ -881,25 +881,6 @@ function Dashboard({ assets, liabilities, incomes, expenses, currency, snapshots
               <span style={{ color: "var(--muted, #64748b)" }}>Snapshots</span>
               <span style={{ color: "var(--text-color, #1e293b)", fontWeight: 700 }}>{snapshots.length}</span>
             </div>
-            <div style={{ paddingTop: 4, borderTop: "1px solid var(--border, #e2e8f0)" }}>
-              <div style={{ fontSize: 11, color: "var(--muted, #64748b)", marginBottom: 6 }}>Essentials Check</div>
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                  <span>Term Insurance</span>
-                  <span style={{ color: "var(--primary, #16a34a)", fontWeight: 700 }}>Covered</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                  <span>Health Cover</span>
-                  <span style={{ color: "var(--primary, #16a34a)", fontWeight: 700 }}>Covered</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
-                  <span>Emergency Fund</span>
-                  <span style={{ color: totalExpenses > 0 ? "var(--warning, #f59e0b)" : "var(--muted, #64748b)", fontWeight: 700 }}>
-                    {totalExpenses > 0 ? "Needs attention" : "Not set"}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1793,33 +1774,51 @@ export default function App() {
     const html = document.documentElement;
     const rootEl = document.getElementById("root");
 
-    // Lock page-level scrolling; only the main app pane should scroll.
-    html.style.height = "100%";
-    html.style.overflow = "hidden";
-    html.style.overscrollBehavior = "none";
+    // Lock page scroll only in the main app shell; onboarding should be scrollable.
+    if (phase === "app") {
+      html.style.height = "100%";
+      html.style.overflow = "hidden";
+      html.style.overscrollBehavior = "none";
 
-    document.body.style.height = "100%";
-    document.body.style.margin = "0";
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
+      document.body.style.height = "100%";
+      document.body.style.margin = "0";
+      document.body.style.overflow = "hidden";
+      document.body.style.overscrollBehavior = "none";
 
-    if (rootEl) {
-      rootEl.style.height = "100%";
-      rootEl.style.overflow = "hidden";
-      rootEl.style.overscrollBehavior = "none";
+      if (rootEl) {
+        rootEl.style.height = "100%";
+        rootEl.style.overflow = "hidden";
+        rootEl.style.overscrollBehavior = "none";
+      }
+    } else {
+      html.style.height = "";
+      html.style.overflow = "";
+      html.style.overscrollBehavior = "";
+
+      document.body.style.height = "";
+      document.body.style.margin = "0";
+      document.body.style.overflow = "";
+      document.body.style.overscrollBehavior = "";
+
+      if (rootEl) {
+        rootEl.style.height = "";
+        rootEl.style.overflow = "";
+        rootEl.style.overscrollBehavior = "";
+      }
     }
 
     // also apply to body for immediate background/text color
     document.body.style.background = bg;
     document.body.style.color = textColor;
-  }, [darkMode, bg, textColor]);
+  }, [darkMode, bg, textColor, phase]);
 
   useEffect(() => {
     if (!isMobile) setMobileMenuSection(null);
   }, [isMobile]);
 
   // Section-based mobile nav
-  const mobileSectionKeys = ["wealth", "plan", "money", "data"];
+  // include overview (Dashboard) at start; rename Other to Others
+  const mobileSectionKeys = ["overview", "wealth", "money"];
   const mobileNavSections = NAV_ITEMS.filter((section) =>
     mobileSectionKeys.includes(section.section.toLowerCase())
   );
@@ -1827,15 +1826,36 @@ export default function App() {
     (section) => !mobileSectionKeys.includes(section.section.toLowerCase())
   ).flatMap((section) => section.items);
   const mobileMenuItems =
-    mobileMenuSection === "Other"
+    mobileMenuSection === "Others"
       ? mobileOtherItems
       : mobileNavSections.find((section) => section.section === mobileMenuSection)?.items || [];
 
   if (phase === "onboarding") {
     return (
-      <div style={{ minHeight: "100dvh", background: onboardingGradient, display: "flex", alignItems: "center", justifyContent: "center", fontFamily, padding: 24 }}>
+      <div
+        style={{
+          minHeight: "100dvh",
+          background: onboardingGradient,
+          display: "flex",
+          alignItems: isMobile ? "flex-start" : "center",
+          justifyContent: "center",
+          fontFamily,
+          padding: isMobile ? "14px 12px 24px" : 24,
+          overflowY: "auto",
+        }}
+      >
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <div style={{ width: "100%", maxWidth: 640, background: "var(--card-bg, #fff)", borderRadius: 24, padding: "52px 48px", boxShadow: "0 24px 80px rgba(0,0,0,0.08)" }}>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 640,
+            background: "var(--card-bg, #fff)",
+            borderRadius: isMobile ? 16 : 24,
+            padding: isMobile ? "24px 16px" : "52px 48px",
+            boxShadow: "0 24px 80px rgba(0,0,0,0.08)",
+            margin: isMobile ? "8px 0 24px" : 0,
+          }}
+        >
           {onboardStep === 1 && (
             <OnboardingStep1 onNext={() => setOnboardStep(2)} currency={currency} setCurrency={setCurrency} />
           )}
@@ -1951,62 +1971,81 @@ export default function App() {
                 {mobileNavSections.map((section) => {
                   const isOpen = mobileMenuSection === section.section;
                   const isActive = section.items.some((item) => item.id === activeNav);
+                  const isOverview = section.section === "Overview";
+                  const iconMap = {
+                    overview: "📊",
+                    wealth: "💎",
+                    money: "💰",
+                  };
+                  const label =
+                    section.section === "Overview" ? "Dashboard" : section.section;
                   return (
                     <button
                       key={section.section}
-                      onClick={() => setMobileMenuSection(isOpen ? null : section.section)}
+                      onClick={() => {
+                        if (isOverview) {
+                          setActiveNav("dashboard");
+                          setMobileMenuSection(null);
+                        } else {
+                          setMobileMenuSection(isOpen ? null : section.section);
+                        }
+                      }}
                       style={{
                         flex: 1,
                         display: "flex",
+                        flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
-                        padding: "10px 6px",
+                        padding: "6px 4px",
                         background: "none",
                         border: "none",
                         borderBottom: isOpen || isActive ? "3px solid #16a34a" : "3px solid transparent",
                         color: isOpen || isActive ? "#16a34a" : "var(--muted, #64748b)",
                         fontWeight: isOpen || isActive ? 700 : 600,
                         cursor: "pointer",
-                        fontSize: 11,
+                        fontSize: 10,
                         fontFamily: "inherit",
-                        transition: "all 0.15s",
+                        transition: "all 0.25s ease",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {section.section}
+                      <span style={{fontSize: 18}}>{iconMap[section.section.toLowerCase()] || ""}</span>
+                      <span>{label}</span>
                     </button>
                   );
                 })}
                 <button
-                  onClick={() => setMobileMenuSection(mobileMenuSection === "Other" ? null : "Other")}
+                  onClick={() => setMobileMenuSection(mobileMenuSection === "Others" ? null : "Others")}
                   style={{
                     flex: 1,
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    padding: "10px 6px",
+                    padding: "6px 4px",
                     background: "none",
                     border: "none",
                     borderBottom:
-                      mobileMenuSection === "Other" || mobileOtherItems.some((item) => item.id === activeNav)
+                      mobileMenuSection === "Others" || mobileOtherItems.some((item) => item.id === activeNav)
                         ? "3px solid #16a34a"
                         : "3px solid transparent",
                     color:
-                      mobileMenuSection === "Other" || mobileOtherItems.some((item) => item.id === activeNav)
+                      mobileMenuSection === "Others" || mobileOtherItems.some((item) => item.id === activeNav)
                         ? "#16a34a"
                         : "var(--muted, #64748b)",
                     fontWeight:
-                      mobileMenuSection === "Other" || mobileOtherItems.some((item) => item.id === activeNav)
+                      mobileMenuSection === "Others" || mobileOtherItems.some((item) => item.id === activeNav)
                         ? 700
                         : 600,
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 10,
                     fontFamily: "inherit",
-                    transition: "all 0.15s",
+                    transition: "all 0.25s ease",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Other
+                  <span style={{fontSize: 18}}>⚙️</span>
+                  <span>Others</span>
                 </button>
               </>
             )
@@ -2087,7 +2126,7 @@ export default function App() {
             }}
           >
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted, #64748b)", letterSpacing: 0.4, marginBottom: 10, textTransform: "uppercase" }}>
-              {mobileMenuSection === "Other" ? "Other Menus" : `${mobileMenuSection} Menus`}
+              {mobileMenuSection === "Others" ? "Other Menus" : `${mobileMenuSection} Menus`}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {mobileMenuItems.map((item) => (

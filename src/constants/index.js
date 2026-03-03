@@ -85,4 +85,3 @@ export const SECURITY_SETTINGS = {
   ALLOWED_CURRENCIES: ["INR", "USD", "EUR", "GBP", "JPY"],
   SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
 };
-
