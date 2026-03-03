@@ -2,6 +2,33 @@
 
 A privacy-first, secure wealth tracker application built with React.
 
+## Google Login + Cloud Sync
+
+The app now supports:
+- Google sign-in (Gmail login) using Firebase Authentication
+- User-scoped cloud data storage in Firestore (`wealthtrackerUsers/{uid}`)
+
+### Firebase Setup
+1. Create a Firebase project.
+2. Enable **Authentication > Sign-in method > Google**.
+3. Create a **Firestore Database**.
+4. Copy `.env.example` to `.env.local` and fill in your Firebase keys.
+5. Run the app with `npm start`.
+6. Set Firestore rules so each signed-in user can access only their own document:
+
+```text
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /wealthtrackerUsers/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
+
+Without Firebase env values, the app will show a configuration message on the login screen.
+
 ## 🔒 Security Features
 
 ### Input Validation & Sanitization
@@ -19,7 +46,7 @@ Located in `utils/security.js`:
 - `validateDataIntegrity()` - Verifies data structure integrity
 
 ### Implementation Highlights
-1. **No External API Calls**: All data remains local on your device
+1. **Controlled Cloud Sync**: Data sync happens only with your configured Firebase project
 2. **No Tracking**: Complete privacy - no analytics or third-party services
 3. **Client-Side Only**: Entire application runs in the browser
 4. **Validated Data**: Every financial entry is validated before storage
@@ -99,7 +126,7 @@ WealthTracker/
 3. **Data Isolation**: All data stays on the user's device
 4. **Type Safety**: Strict type checking for numeric inputs
 5. **Error Handling**: Proper error messages without exposing sensitive info
-6. **No External API Calls**: Complete privacy preservation
+6. **Account-Scoped Sync**: Data is stored and loaded only for the logged-in Google user
 
 ## 📦 Dependencies
 
@@ -137,8 +164,8 @@ WealthTracker/
 ## 🛡️ Data Privacy
 
 Your wealth data:
-- ✅ Never leaves your device
-- ✅ Is never sent to external servers
+- ✅ Is linked to your Google login
+- ✅ Is stored in your Firebase Firestore project
 - ✅ Is not tracked or monitored
 - ✅ Is fully in your control
 

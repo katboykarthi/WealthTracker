@@ -1,10 +1,13 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { applyTheme, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, buttonStyles, fontFamily, serifFontFamily, heroGradient, onboardingGradient } from "./styles";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import { CURRENCIES, ASSET_TYPES, LIABILITY_TYPES, NAV_ITEMS, GOAL_ICONS } from "./constants";
 import { formatCurrency } from "./utils/formatting";
 import { sanitizeInput } from "./utils/security";
+import { auth, db, googleProvider, isFirebaseConfigured } from "./firebase";
 
 // Mobile detection hook
 function useIsMobile() {
@@ -218,6 +221,110 @@ async function parseHdfcStatementFile(file) {
 
   const csvText = await file.text();
   return parseHdfcStatementCsv(csvText);
+}
+
+function LoadingScreen({ title, detail }) {
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg, #f8fafc)",
+        color: "var(--text-color, #1e293b)",
+        fontFamily,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          background: "var(--card-bg, #fff)",
+          border: "1px solid var(--border, #e2e8f0)",
+          borderRadius: 16,
+          padding: "28px 22px",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⏳</div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{title}</div>
+        <div style={{ fontSize: 13, color: "var(--muted, #64748b)" }}>{detail}</div>
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin, busy, error, configError }) {
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg, #f8fafc)",
+        color: "var(--text-color, #1e293b)",
+        fontFamily,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 440,
+          background: "var(--card-bg, #fff)",
+          border: "1px solid var(--border, #e2e8f0)",
+          borderRadius: 18,
+          padding: "34px 26px",
+          textAlign: "center",
+          boxShadow: "0 12px 32px rgba(0,0,0,0.12)",
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🌿</div>
+        <h1 style={{ fontFamily: serifFontFamily, fontSize: 28, margin: "0 0 8px", color: "var(--heading-color, #1a2e1a)" }}>
+          Karthick Wealth Tracker
+        </h1>
+        <p style={{ margin: "0 0 22px", color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>
+          Sign in with Google to securely load and save your data from anywhere.
+        </p>
+        {configError ? (
+          <div
+            style={{
+              background: "var(--danger-bg, #fff5f5)",
+              border: "1px solid var(--error, #ef4444)",
+              borderRadius: 12,
+              padding: "12px 14px",
+              color: "var(--error, #ef4444)",
+              fontSize: 13,
+              textAlign: "left",
+            }}
+          >
+            {configError}
+          </div>
+        ) : (
+          <button
+            onClick={onLogin}
+            disabled={busy}
+            style={{
+              ...buttonStyles.primary,
+              width: "100%",
+              opacity: busy ? 0.8 : 1,
+              cursor: busy ? "not-allowed" : "pointer",
+            }}
+          >
+            {busy ? "Signing in..." : "Continue with Google"}
+          </button>
+        )}
+        {error && !configError && (
+          <div style={{ marginTop: 12, color: "var(--error, #ef4444)", fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function OnboardingStep1({ onNext }) {
@@ -1559,6 +1666,24 @@ const cardStyle = sharedCardStyle;
 const inputStyle = sharedInputStyle;
 const labelStyle = sharedLabelStyle;
 
+function getFirestoreErrorMessage(error, fallbackMessage) {
+  const code = String(error?.code || "").toLowerCase();
+
+  if (code.includes("permission-denied")) {
+    return "Cloud sync blocked by Firestore rules. Allow read/write for wealthtrackerUsers/{uid} where request.auth.uid == uid.";
+  }
+
+  if (code.includes("failed-precondition")) {
+    return "Firestore is not initialized. Create a Firestore database in Firebase Console.";
+  }
+
+  if (code.includes("unavailable")) {
+    return "Cloud sync unavailable. Check your internet connection and retry.";
+  }
+
+  return fallbackMessage;
+}
+
 export default function App() {
   const isMobile = useIsMobile();
   const [phase, setPhase] = useState("onboarding"); // onboarding | app
@@ -1570,9 +1695,17 @@ export default function App() {
   const [snapshots, setSnapshots] = useState([]);
   const [activeNav, setActiveNav] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(true);
-  const [userName] = useState("Karthick");
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [mobileMenuSection, setMobileMenuSection] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [cloudLoading, setCloudLoading] = useState(false);
+  const [cloudHydrated, setCloudHydrated] = useState(false);
+  const [signInBusy, setSignInBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [syncInProgress, setSyncInProgress] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const saveTimeoutRef = useRef(null);
 
   const addAsset = (a) => setAssets((prev) => [...prev, a]);
   const deleteAsset = (id) => setAssets((prev) => prev.filter((a) => a.id !== id));
@@ -1591,6 +1724,178 @@ export default function App() {
     setSnapshots((prev) => [...prev, { date: today, value: total }]);
     setActiveNav("networth");
   };
+
+  const userName = authUser?.displayName?.trim() || authUser?.email?.split("@")[0] || "User";
+
+  const resetTrackerState = () => {
+    setPhase("onboarding");
+    setAssets([]);
+    setLiabilities([]);
+    setIncomes([]);
+    setExpenses([]);
+    setSnapshots([]);
+    setActiveNav("dashboard");
+    setDarkMode(true);
+    setMobileMenuSection(null);
+    setLastSyncedAt(null);
+    setSyncInProgress(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!isFirebaseConfigured || !auth || !googleProvider) {
+      setAuthError("Firebase is not configured. Add values in .env.local (see .env.example).");
+      return;
+    }
+
+    try {
+      setSignInBusy(true);
+      setAuthError("");
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      setAuthError("Google sign-in failed. Please try again.");
+    } finally {
+      setSignInBusy(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!auth) return;
+    try {
+      await signOut(auth);
+      resetTrackerState();
+    } catch (error) {
+      setAuthError("Unable to sign out right now. Please retry.");
+    }
+  };
+
+  useEffect(() => {
+    if (!isFirebaseConfigured || !auth || !db) {
+      setAuthLoading(false);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setAuthUser(user);
+      setAuthLoading(false);
+      setAuthError("");
+
+      if (!user) {
+        setCloudHydrated(false);
+        setCloudLoading(false);
+        resetTrackerState();
+        return;
+      }
+
+      setCloudLoading(true);
+      try {
+        const userDocRef = doc(db, "wealthtrackerUsers", user.uid);
+        const snapshot = await getDoc(userDocRef);
+
+        if (snapshot.exists()) {
+          const cloud = snapshot.data();
+          setPhase(cloud.phase === "app" ? "app" : "onboarding");
+          setAssets(Array.isArray(cloud.assets) ? cloud.assets : []);
+          setLiabilities(Array.isArray(cloud.liabilities) ? cloud.liabilities : []);
+          setIncomes(Array.isArray(cloud.incomes) ? cloud.incomes : []);
+          setExpenses(Array.isArray(cloud.expenses) ? cloud.expenses : []);
+          setSnapshots(Array.isArray(cloud.snapshots) ? cloud.snapshots : []);
+          setActiveNav(typeof cloud.activeNav === "string" ? cloud.activeNav : "dashboard");
+          setDarkMode(typeof cloud.darkMode === "boolean" ? cloud.darkMode : true);
+          setLastSyncedAt(new Date().toISOString());
+        } else {
+          resetTrackerState();
+          await setDoc(
+            userDocRef,
+            {
+              phase: "onboarding",
+              assets: [],
+              liabilities: [],
+              incomes: [],
+              expenses: [],
+              snapshots: [],
+              activeNav: "dashboard",
+              darkMode: true,
+              profile: {
+                email: user.email || null,
+                displayName: user.displayName || null,
+              },
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+          setLastSyncedAt(new Date().toISOString());
+        }
+      } catch (error) {
+        console.error("Firestore load failed:", error);
+        setAuthError(getFirestoreErrorMessage(error, "Cloud read/write failed. Check Firestore setup and rules."));
+        resetTrackerState();
+      } finally {
+        setCloudLoading(false);
+        setCloudHydrated(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!authUser || !cloudHydrated || !db) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    let active = true;
+
+    saveTimeoutRef.current = setTimeout(() => {
+      const sync = async () => {
+        try {
+          if (active) setSyncInProgress(true);
+          const userDocRef = doc(db, "wealthtrackerUsers", authUser.uid);
+          await setDoc(
+            userDocRef,
+            {
+              phase,
+              assets,
+              liabilities,
+              incomes,
+              expenses,
+              snapshots,
+              activeNav,
+              darkMode,
+              profile: {
+                email: authUser.email || null,
+                displayName: authUser.displayName || null,
+              },
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+          if (active) {
+            setAuthError("");
+            setLastSyncedAt(new Date().toISOString());
+          }
+        } catch (error) {
+          console.error("Firestore sync failed:", error);
+          if (active) {
+            setAuthError(getFirestoreErrorMessage(error, "Cloud sync failed. Check Firestore rules or internet connection."));
+          }
+        } finally {
+          if (active) setSyncInProgress(false);
+        }
+      };
+
+      sync();
+    }, 300);
+
+    return () => {
+      active = false;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [authUser, cloudHydrated, phase, assets, liabilities, incomes, expenses, snapshots, activeNav, darkMode]);
 
   const bg = darkMode ? "#0f172a" : "#f8fafc";
   const sidebarBg = darkMode ? "#1e293b" : "#fff";
@@ -1660,6 +1965,38 @@ export default function App() {
     mobileMenuSection === "Others"
       ? mobileOtherItems
       : mobileNavSections.find((section) => section.section === mobileMenuSection)?.items || [];
+  const hasSyncMessage = Boolean(authError || syncInProgress || lastSyncedAt);
+  const syncStatusText = syncInProgress
+    ? "Syncing data to cloud..."
+    : authError || (lastSyncedAt
+      ? `Last synced at ${new Date(lastSyncedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`
+      : "Waiting for first cloud sync...");
+  const syncStatusColor = authError ? "#dc2626" : syncInProgress ? "#1d4ed8" : "var(--muted, #64748b)";
+  const syncStatusBg = authError ? "rgba(220, 38, 38, 0.12)" : syncInProgress ? "rgba(37, 99, 235, 0.12)" : "var(--muted-bg, #f1f5f9)";
+  const syncStatusBorder = authError ? "rgba(220, 38, 38, 0.35)" : syncInProgress ? "rgba(37, 99, 235, 0.35)" : "var(--border, #e2e8f0)";
+
+  if (authLoading) {
+    return <LoadingScreen title="Checking login..." detail="Verifying your Google session." />;
+  }
+
+  if (!isFirebaseConfigured) {
+    return (
+      <LoginScreen
+        onLogin={handleGoogleSignIn}
+        busy={signInBusy}
+        error={authError}
+        configError="Firebase config is missing. Create .env.local from .env.example and restart the app."
+      />
+    );
+  }
+
+  if (!authUser) {
+    return <LoginScreen onLogin={handleGoogleSignIn} busy={signInBusy} error={authError} />;
+  }
+
+  if (cloudLoading && !cloudHydrated) {
+    return <LoadingScreen title="Loading your data..." detail="Fetching your profile from cloud storage." />;
+  }
 
   if (phase === "onboarding") {
     return (
@@ -1711,6 +2048,22 @@ export default function App() {
             margin: isMobile ? "8px 0 24px" : 0,
           }}
         >
+          {hasSyncMessage && (
+            <div
+              style={{
+                marginBottom: 16,
+                border: `1px solid ${syncStatusBorder}`,
+                borderRadius: 10,
+                padding: "8px 10px",
+                fontSize: 12,
+                fontWeight: 600,
+                background: syncStatusBg,
+                color: syncStatusColor,
+              }}
+            >
+              {syncStatusText}
+            </div>
+          )}
           <OnboardingStep1 onNext={() => setPhase("app")} />
         </div>
       </div>
@@ -1998,22 +2351,55 @@ export default function App() {
             {!isMobile && <span style={{ fontWeight: 600, color: textColor }}>{userName}</span>}
           </div>
 
-          {/* Mobile dark mode toggle */}
-          {isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isMobile && (
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "var(--muted, #64748b)",
+                  fontSize: 18,
+                  cursor: "pointer",
+                }}
+                title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {darkMode ? "☀️" : "🌙"}
+              </button>
+            )}
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={handleSignOut}
               style={{
                 background: "none",
-                border: "none",
+                border: "1px solid var(--border, #e2e8f0)",
                 color: "var(--muted, #64748b)",
-                fontSize: 18,
+                borderRadius: 8,
+                padding: isMobile ? "6px 9px" : "6px 10px",
                 cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 600,
               }}
             >
-              {darkMode ? "☀️" : "🌙"}
+              Sign Out
             </button>
-          )}
+          </div>
         </div>
+        {hasSyncMessage && (
+          <div
+            style={{
+              margin: isMobile ? "8px 16px 0" : "10px 32px 0",
+              border: `1px solid ${syncStatusBorder}`,
+              borderRadius: 10,
+              padding: "8px 10px",
+              fontSize: 12,
+              fontWeight: 600,
+              background: syncStatusBg,
+              color: syncStatusColor,
+            }}
+          >
+            {syncStatusText}
+          </div>
+        )}
 
         {/* Page Content */}
         <div style={{ flex: 1, minHeight: 0 }}>{renderPage()}</div>
