@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/WealthTracker/static/js/main.d720ecb5.js",
+    "main.js": "/WealthTracker/static/js/main.e58c294d.js",
     "index.html": "/WealthTracker/index.html",
-    "main.d720ecb5.js.map": "/WealthTracker/static/js/main.d720ecb5.js.map"
+    "main.e58c294d.js.map": "/WealthTracker/static/js/main.e58c294d.js.map"
   },
   "entrypoints": [
-    "static/js/main.d720ecb5.js"
+    "static/js/main.e58c294d.js"
   ]
 }
