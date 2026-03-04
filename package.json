@@ -22,6 +22,8 @@
     "url": "https://github.com/katboykarthi/WealthTracker/issues"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "firebase": "^12.10.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
