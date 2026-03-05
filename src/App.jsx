@@ -691,7 +691,7 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
           />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
         <button onClick={onCancel} style={{ ...btnStyle, background: "#fff", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
         <button onClick={handleSave} style={{ ...btnStyle, flex: 2 }}>Save Asset</button>
       </div>
@@ -731,7 +731,7 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
   };
 
   return (
-    <div style={{ background: "#fff5f5", borderRadius: 14, padding: 20 }}>
+    <div style={{ background: "var(--bg-light, #f8fafc)", borderRadius: 14, padding: 20 }}>
       <h3 style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Add Liability</h3>
       <div style={{ display: "grid", gap: 12 }}>
         <div>
@@ -755,7 +755,7 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
           <input style={inputStyle} type="number" placeholder="e.g. 8.5" value={interest} onChange={(e) => setInterest(e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
         <button onClick={onCancel} style={{ ...btnStyle, background: "#fff", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
         <button onClick={handleSave} style={{ ...btnStyle, background: "#ef4444", flex: 2 }}>Save Liability</button>
       </div>
@@ -944,7 +944,7 @@ function Dashboard({
   const openAssetFromModal = () => {
     setShowAddModal(false);
     onToast?.(`Opening ${ASSET_TYPES.find((type) => type.id === selectedType)?.label || "asset"} flow.`, "info");
-    onAddAsset();
+    onAddAsset?.(selectedType);
   };
 
   return (
@@ -1259,7 +1259,8 @@ function SummaryCard({ icon, label, value, sub, color, negative }) {
   );
 }
 
-function AssetsPage({ assets, currency, onAdd, onDelete }) {
+function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
+  const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [selectedType, setSelectedType] = useState("stocks");
   const [pickingType, setPickingType] = useState(true);
@@ -1342,43 +1343,91 @@ function AssetsPage({ assets, currency, onAdd, onDelete }) {
     setSelectedAssetIds([]);
   };
 
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setPickingType(true);
+  };
+
+  useEffect(() => {
+    if (!openAssetComposerRequest) return;
+
+    const requestedType = ASSET_TYPES.some((type) => type.id === openAssetComposerRequest.typeId)
+      ? openAssetComposerRequest.typeId
+      : "stocks";
+
+    setSelectedType(requestedType);
+    setPickingType(false);
+    setShowAdd(true);
+    onConsumeAssetComposerRequest?.();
+  }, [openAssetComposerRequest, onConsumeAssetComposerRequest]);
+
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Assets</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(totalAssets, currency)}</p>
         </div>
-        <button onClick={() => { setShowAdd(true); setPickingType(true); }} style={btnStyle}>+ Add Asset</button>
-      </div>
+        <PageHeaderActions $isMobile={isMobile}>
+          <button
+            onClick={() => {
+              setShowAdd(true);
+              setPickingType(true);
+            }}
+            style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}
+          >
+            + Add Asset
+          </button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {showAdd && (
-        <div style={{ background: "var(--card-bg, #fff)", border: "1px solid var(--border, #e2e8f0)", borderRadius: 16, padding: 24, marginBottom: 24 }}>
-          {pickingType ? (
-            <>
-              <h3 style={{ fontWeight: 700, marginBottom: 16, color: "var(--text-color, #1e293b)" }}>Select asset type</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 16 }}>
-                {ASSET_TYPES.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => { setSelectedType(t.id); setPickingType(false); }}
-                    style={{ background: "var(--bg-light, #f8fafc)", border: "1.5px solid var(--border, #e2e8f0)", borderRadius: 10, padding: "12px 8px", cursor: "pointer", textAlign: "center", fontSize: 12, color: "var(--text-color, #334155)" }}
-                  >
-                    <div style={{ fontSize: 22, marginBottom: 4 }}>{t.icon}</div>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setShowAdd(false)} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "var(--muted, #64748b)" }}>Cancel</button>
-            </>
-          ) : (
-            <AddAssetForm
-              typeId={selectedType}
-              onSave={(a) => { onAdd(a); setShowAdd(false); }}
-              onCancel={() => setPickingType(true)}
-            />
-          )}
-        </div>
+        <ModalBackdrop onClick={closeAddModal}>
+          <ModalCard $maxWidth={pickingType ? 720 : 520} onClick={(event) => event.stopPropagation()}>
+            {pickingType ? (
+              <>
+                <ModalTitle>Select Asset Type</ModalTitle>
+                <ModalText>Choose the asset category first, then enter details in the same modal.</ModalText>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 8, marginBottom: 10 }}>
+                  {ASSET_TYPES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => {
+                        setSelectedType(t.id);
+                        setPickingType(false);
+                      }}
+                      style={{
+                        background: "var(--bg-light, #f8fafc)",
+                        border: "1.5px solid var(--border, #e2e8f0)",
+                        borderRadius: 10,
+                        padding: "10px 8px",
+                        cursor: "pointer",
+                        textAlign: "center",
+                        fontSize: 12,
+                        color: "var(--text-color, #334155)",
+                      }}
+                    >
+                      <div style={{ fontSize: 22, marginBottom: 4 }}>{t.icon}</div>
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+                <ModalActions>
+                  <SecondaryButton onClick={closeAddModal}>Cancel</SecondaryButton>
+                </ModalActions>
+              </>
+            ) : (
+              <AddAssetForm
+                typeId={selectedType}
+                onSave={(asset) => {
+                  onAdd(asset);
+                  closeAddModal();
+                }}
+                onCancel={() => setPickingType(true)}
+              />
+            )}
+          </ModalCard>
+        </ModalBackdrop>
       )}
 
       {assets.length === 0 ? (
@@ -1390,7 +1439,7 @@ function AssetsPage({ assets, currency, onAdd, onDelete }) {
       ) : (
         <>
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) minmax(140px, 180px) minmax(160px, 190px)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(140px, 180px) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -1409,7 +1458,7 @@ function AssetsPage({ assets, currency, onAdd, onDelete }) {
                 <option value="name_desc">Sort: Name Z-A</option>
               </Select>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedAssets}
                 disabled={selectedAssetIds.length === 0}
@@ -1483,11 +1532,12 @@ function AssetsPage({ assets, currency, onAdd, onDelete }) {
           )}
         </>
       )}
-    </div>
+    </PageSection>
   );
 }
 
 function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
+  const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("value_desc");
@@ -1566,22 +1616,29 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
   };
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Liabilities</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: <span style={{ color: "#ef4444" }}>{formatCurrency(total, currency)}</span></p>
         </div>
-        <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: "#ef4444" }}>+ Add Liability</button>
-      </div>
+        <PageHeaderActions $isMobile={isMobile}>
+          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: "#ef4444", width: isMobile ? "100%" : "auto" }}>+ Add Liability</button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {showAdd && (
-        <div style={{ marginBottom: 24 }}>
-          <AddLiabilityForm
-            onSave={(l) => { onAdd(l); setShowAdd(false); }}
-            onCancel={() => setShowAdd(false)}
-          />
-        </div>
+        <ModalBackdrop onClick={() => setShowAdd(false)}>
+          <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
+            <AddLiabilityForm
+              onSave={(liability) => {
+                onAdd(liability);
+                setShowAdd(false);
+              }}
+              onCancel={() => setShowAdd(false)}
+            />
+          </ModalCard>
+        </ModalBackdrop>
       )}
 
       {liabilities.length === 0 ? (
@@ -1593,7 +1650,7 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
       ) : (
         <>
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -1606,7 +1663,7 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
                 <option value="name_desc">Sort: Name Z-A</option>
               </Select>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedLiabilities}
                 disabled={selectedLiabilityIds.length === 0}
@@ -1677,11 +1734,12 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
           )}
         </>
       )}
-    </div>
+    </PageSection>
   );
 }
 
 function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImportExpense }) {
+  const isMobile = useIsMobile();
   const total = incomes.reduce((s, i) => s + i.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
@@ -1759,6 +1817,12 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
     setSelectedIncomeIds([]);
   };
 
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setName("");
+    setAmount("");
+  };
+
   const save = () => {
     const n = sanitizeInput(name, 'text');
     const a = sanitizeInput(amount, 'number');
@@ -1767,7 +1831,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
       return;
     }
     onAdd({ id: Date.now(), name: n, amount: a, currency });
-    setName(''); setAmount(''); setShowAdd(false);
+    closeAddModal();
   };
 
   const handleCsvImport = async (event) => {
@@ -1802,13 +1866,13 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
   };
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Income</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <PageHeaderActions $isMobile={isMobile}>
           <input
             ref={importInputRef}
             type="file"
@@ -1818,31 +1882,35 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
           />
           <button
             onClick={() => importInputRef.current?.click()}
-            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13 }}
+            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}
           >
             Import HDFC Statement
           </button>
-          <button onClick={() => setShowAdd(true)} style={btnStyle}>+ Add Income</button>
-        </div>
-      </div>
+          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Income</button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {showAdd && (
-        <div style={{ ...cardStyle, marginBottom: 20 }}>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Source</label>
-              <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary, Freelance" />
+        <ModalBackdrop onClick={closeAddModal}>
+          <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
+            <ModalTitle>Add Income</ModalTitle>
+            <ModalText>Record recurring or one-time income entries.</ModalText>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Source</label>
+                <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary, Freelance" />
+              </div>
+              <div>
+                <label style={labelStyle}>Amount</label>
+                <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
+                <button onClick={save} style={btnStyle}>Save</button>
+              </div>
             </div>
-            <div>
-              <label style={labelStyle}>Amount</label>
-              <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowAdd(false)} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)', flex: 1 }}>Cancel</button>
-              <button onClick={save} style={{ ...btnStyle, flex: 2 }}>Save</button>
-            </div>
-          </div>
-        </div>
+          </ModalCard>
+        </ModalBackdrop>
       )}
 
       {incomes.length === 0 ? (
@@ -1854,7 +1922,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
       ) : (
         <>
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -1867,7 +1935,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
                 <option value="name_desc">Sort: Name Z-A</option>
               </Select>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedIncomes}
                 disabled={selectedIncomeIds.length === 0}
@@ -1934,11 +2002,12 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
           )}
         </>
       )}
-    </div>
+    </PageSection>
   );
 }
 
 function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onImportExpense }) {
+  const isMobile = useIsMobile();
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
@@ -2016,6 +2085,12 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
     setSelectedExpenseIds([]);
   };
 
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setName("");
+    setAmount("");
+  };
+
   const save = () => {
     const n = sanitizeInput(name, 'text');
     const a = sanitizeInput(amount, 'number');
@@ -2024,7 +2099,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
       return;
     }
     onAdd({ id: Date.now(), name: n, amount: a, currency });
-    setName(''); setAmount(''); setShowAdd(false);
+    closeAddModal();
   };
 
   const handleCsvImport = async (event) => {
@@ -2059,13 +2134,13 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
   };
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Expenses</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <PageHeaderActions $isMobile={isMobile}>
           <input
             ref={importInputRef}
             type="file"
@@ -2075,31 +2150,35 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
           />
           <button
             onClick={() => importInputRef.current?.click()}
-            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13 }}
+            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}
           >
             Import HDFC Statement
           </button>
-          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: '#ef4444' }}>+ Add Expense</button>
-        </div>
-      </div>
+          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: '#ef4444', width: isMobile ? "100%" : "auto" }}>+ Add Expense</button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {showAdd && (
-        <div style={{ ...cardStyle, marginBottom: 20 }}>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Expense</label>
-              <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Groceries, Rent" />
+        <ModalBackdrop onClick={closeAddModal}>
+          <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
+            <ModalTitle>Add Expense</ModalTitle>
+            <ModalText>Track outgoing costs to monitor your monthly cashflow.</ModalText>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Expense</label>
+                <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Groceries, Rent" />
+              </div>
+              <div>
+                <label style={labelStyle}>Amount</label>
+                <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
+                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
+                <button onClick={save} style={{ ...btnStyle, background: "#ef4444" }}>Save</button>
+              </div>
             </div>
-            <div>
-              <label style={labelStyle}>Amount</label>
-              <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setShowAdd(false)} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)', flex: 1 }}>Cancel</button>
-              <button onClick={save} style={{ ...btnStyle, flex: 2 }}>Save</button>
-            </div>
-          </div>
-        </div>
+          </ModalCard>
+        </ModalBackdrop>
       )}
 
       {expenses.length === 0 ? (
@@ -2111,7 +2190,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
       ) : (
         <>
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -2124,7 +2203,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
                 <option value="name_desc">Sort: Name Z-A</option>
               </Select>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedExpenses}
                 disabled={selectedExpenseIds.length === 0}
@@ -2191,7 +2270,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
           )}
         </>
       )}
-    </div>
+    </PageSection>
   );
 }
 
@@ -2368,6 +2447,7 @@ function NetWorthPage({ assets, liabilities, currency, snapshots, onSnapshot, is
 }
 
 function GoalsPage({ assets, currency }) {
+  const isMobile = useIsMobile();
   const [goals, setGoals] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [name, setName] = useState("");
@@ -2378,6 +2458,12 @@ function GoalsPage({ assets, currency }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGoalIds, setSelectedGoalIds] = useState([]);
   const netWorth = assets.reduce((s, a) => s + a.value, 0);
+
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setName("");
+    setTarget("");
+  };
 
   const addGoal = () => {
     // Security: Validate and sanitize inputs
@@ -2390,7 +2476,7 @@ function GoalsPage({ assets, currency }) {
     }
     
     setGoals([...goals, { id: Date.now(), name: sanitizedName, target: sanitizedTarget, icon, current: netWorth }]);
-    setName(""); setTarget(""); setShowAdd(false);
+    closeAddModal();
   };
 
   const goalIcons = GOAL_ICONS; // use shared constant
@@ -2467,38 +2553,49 @@ function GoalsPage({ assets, currency }) {
   };
 
   return (
-    <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Financial Goals</h2>
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Set targets and track your progress</p>
         </div>
-        <button onClick={() => setShowAdd(true)} style={btnStyle}>+ New Goal</button>
-      </div>
+        <PageHeaderActions $isMobile={isMobile}>
+          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ New Goal</button>
+        </PageHeaderActions>
+      </PageHeader>
 
       {showAdd && (
-        <div style={{ ...cardStyle, marginBottom: 20 }}>
-          <h3 style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Create Goal</h3>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            {goalIcons.map((ic) => (
-              <button key={ic} onClick={() => setIcon(ic)} style={{ fontSize: 24, background: icon === ic ? "#f0fdf4" : "none", border: icon === ic ? "2px solid #16a34a" : "2px solid transparent", borderRadius: 8, padding: 6, cursor: "pointer" }}>{ic}</button>
-            ))}
-          </div>
-          <div style={{ display: "grid", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Goal Name</label>
-              <input style={inputStyle} placeholder="e.g. Buy a House, Emergency Fund" value={name} onChange={(e) => setName(e.target.value)} />
+        <ModalBackdrop onClick={closeAddModal}>
+          <ModalCard $maxWidth={560} onClick={(event) => event.stopPropagation()}>
+            <ModalTitle>Create Goal</ModalTitle>
+            <ModalText>Set a target and track progress against your current net worth.</ModalText>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              {goalIcons.map((goalIcon) => (
+                <button
+                  key={goalIcon}
+                  onClick={() => setIcon(goalIcon)}
+                  style={{ fontSize: 24, background: icon === goalIcon ? "#f0fdf4" : "none", border: icon === goalIcon ? "2px solid #16a34a" : "2px solid transparent", borderRadius: 8, padding: 6, cursor: "pointer" }}
+                >
+                  {goalIcon}
+                </button>
+              ))}
             </div>
-            <div>
-              <label style={labelStyle}>Target Amount ({currency})</label>
-              <input style={inputStyle} type="number" placeholder="e.g. 5000000" value={target} onChange={(e) => setTarget(e.target.value)} />
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Goal Name</label>
+                <input style={inputStyle} placeholder="e.g. Buy a House, Emergency Fund" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Target Amount ({currency})</label>
+                <input style={inputStyle} type="number" placeholder="e.g. 5000000" value={target} onChange={(e) => setTarget(e.target.value)} />
+              </div>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <button onClick={() => setShowAdd(false)} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "var(--muted, #64748b)", flex: 1 }}>Cancel</button>
-            <button onClick={addGoal} style={{ ...btnStyle, flex: 2 }}>Create Goal</button>
-          </div>
-        </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
+              <button onClick={closeAddModal} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "var(--muted, #64748b)" }}>Cancel</button>
+              <button onClick={addGoal} style={btnStyle}>Create Goal</button>
+            </div>
+          </ModalCard>
+        </ModalBackdrop>
       )}
 
       {goals.length === 0 ? (
@@ -2510,7 +2607,7 @@ function GoalsPage({ assets, currency }) {
       ) : (
         <>
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(220px, 1fr) minmax(170px, 210px)", gap: 8 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(170px, 210px)", gap: 8 }}>
               <Field
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -2525,7 +2622,7 @@ function GoalsPage({ assets, currency }) {
                 <option value="name_desc">Sort: Name Z-A</option>
               </Select>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+            <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedGoals}
                 disabled={selectedGoalIds.length === 0}
@@ -2597,7 +2694,7 @@ function GoalsPage({ assets, currency }) {
           )}
         </>
       )}
-    </div>
+    </PageSection>
   );
 }
 
@@ -2955,6 +3052,29 @@ const MainMenuTab = styled.button(({ $active }) => ({
   whiteSpace: "nowrap",
 }));
 
+const PageSection = styled.section(({ $isMobile }) => ({
+  padding: $isMobile ? "16px 12px" : "28px 32px",
+  maxWidth: 900,
+  width: "100%",
+  boxSizing: "border-box",
+}));
+
+const PageHeader = styled.div(({ $isMobile }) => ({
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: $isMobile ? "flex-start" : "center",
+  flexDirection: $isMobile ? "column" : "row",
+  gap: $isMobile ? 12 : 0,
+  marginBottom: 24,
+}));
+
+const PageHeaderActions = styled.div(({ $isMobile }) => ({
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+  width: $isMobile ? "100%" : "auto",
+}));
+
 const DashboardWrap = styled.div(({ $isMobile }) => ({
   padding: $isMobile ? "16px" : "20px 24px 24px",
   maxWidth: 1180,
@@ -3150,11 +3270,13 @@ const Select = styled.select({
 const TableWrap = styled.div({
   border: "1px solid var(--border, #e2e8f0)",
   borderRadius: 10,
-  overflow: "hidden",
+  overflowX: "auto",
+  overflowY: "hidden",
 });
 
 const DataTable = styled.table({
   width: "100%",
+  minWidth: 640,
   borderCollapse: "collapse",
   tableLayout: "fixed",
 });
@@ -3271,16 +3393,18 @@ const ModalBackdrop = styled.div({
   padding: 16,
 });
 
-const ModalCard = styled.div({
+const ModalCard = styled.div(({ $maxWidth = 460 }) => ({
   width: "100%",
-  maxWidth: 460,
+  maxWidth: $maxWidth,
+  maxHeight: "min(92dvh, 720px)",
   borderRadius: 14,
   border: "1px solid var(--border, #e2e8f0)",
   background: "var(--card-bg, #fff)",
   padding: 16,
+  overflowY: "auto",
   boxShadow: "0 24px 48px rgba(2, 6, 23, 0.24)",
   animation: `${surfaceIn} 180ms ease`,
-});
+}));
 
 const ModalTitle = styled.h2({
   margin: "0 0 6px",
@@ -3299,6 +3423,7 @@ const ModalActions = styled.div({
   display: "flex",
   justifyContent: "flex-end",
   gap: 8,
+  flexWrap: "wrap",
   marginTop: 12,
 });
 
@@ -3407,6 +3532,7 @@ export default function App() {
   const [sectionSelection, setSectionSelection] = useState({});
   const [mobileProfileMenuOpen, setMobileProfileMenuOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const [assetComposerRequest, setAssetComposerRequest] = useState(null);
   const [authUser, setAuthUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [cloudLoading, setCloudLoading] = useState(false);
@@ -3443,6 +3569,12 @@ export default function App() {
 
   const pushToast = (message, type = "info") => {
     setToast({ id: Date.now(), message, type });
+  };
+
+  const openAssetComposer = (typeId = "stocks") => {
+    const resolvedTypeId = ASSET_TYPES.some((type) => type.id === typeId) ? typeId : "stocks";
+    setAssetComposerRequest({ token: Date.now(), typeId: resolvedTypeId });
+    setActiveNav("assets");
   };
 
   useEffect(() => {
@@ -3554,6 +3686,7 @@ export default function App() {
     setSyncInProgress(false);
     setSectionSelection({});
     setMobileProfileMenuOpen(false);
+    setAssetComposerRequest(null);
   };
 
   const handleGoogleSignIn = async () => {
@@ -3908,13 +4041,23 @@ export default function App() {
             currency={currency}
             snapshots={snapshots}
             onSnapshot={() => takeSnapshot(false)}
-            onAddAsset={() => setActiveNav("assets")}
+            onAddAsset={openAssetComposer}
             isMobile={isMobile}
             onToast={pushToast}
             onNavigate={setActiveNav}
           />
         );
-      case "assets": return <AssetsPage assets={assets} currency={currency} onAdd={addAsset} onDelete={deleteAsset} />;
+      case "assets":
+        return (
+          <AssetsPage
+            assets={assets}
+            currency={currency}
+            onAdd={addAsset}
+            onDelete={deleteAsset}
+            openAssetComposerRequest={assetComposerRequest}
+            onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
+          />
+        );
       case "liabilities": return <LiabilitiesPage liabilities={liabilities} currency={currency} onAdd={addLiability} onDelete={deleteLiability} />;
       case "networth": return <NetWorthPage assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={() => takeSnapshot(true)} isMobile={isMobile} />;
       case "goals": return <GoalsPage assets={assets} currency={currency} />;
