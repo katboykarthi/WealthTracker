@@ -1340,9 +1340,9 @@ function Dashboard({
     </DashboardWrap>
   );
 }
-function SummaryCard({ icon, label, value, sub, color, negative }) {
-  return (
-    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
+function SummaryCard({ icon, label, value, sub, color, negative, animated = false }) {
+  const content = (
+    <>
       <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
         {icon}
       </div>
@@ -1351,6 +1351,16 @@ function SummaryCard({ icon, label, value, sub, color, negative }) {
         <div style={{ fontFamily: serifFontFamily, fontSize: TYPE_SCALE.h1, fontWeight: 700, color: negative ? "var(--error)" : "var(--text-color)" }}>{value}</div>
         <div style={{ fontSize: TYPE_SCALE.meta, color: "#94a3b8", marginTop: 2 }}>{sub}</div>
       </div>
+    </>
+  );
+
+  if (animated) {
+    return <PanelCard style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>{content}</PanelCard>;
+  }
+
+  return (
+    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
+      {content}
     </div>
   );
 }
@@ -2505,13 +2515,13 @@ function AllocationPage({ assets, currency }) {
       <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Understand diversification across asset classes and currencies.</p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
-        <SummaryCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" />
-        <SummaryCard icon={"\u{1F9E9}"} label="ASSET CLASSES" value={`${grouped.length}`} sub="Diversified buckets" color="#3b82f6" />
-        <SummaryCard icon={"\u{1F30D}"} label="CURRENCIES" value={`${currenciesTracked || 1}`} sub="Tracked across holdings" color="#8b5cf6" />
+        <SummaryCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" animated />
+        <SummaryCard icon={"\u{1F9E9}"} label="ASSET CLASSES" value={`${grouped.length}`} sub="Diversified buckets" color="#3b82f6" animated />
+        <SummaryCard icon={"\u{1F30D}"} label="CURRENCIES" value={`${currenciesTracked || 1}`} sub="Tracked across holdings" color="#8b5cf6" animated />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-        <div style={cardStyle}>
+        <PanelCard>
           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>Allocation Mix</div>
           {grouped.length === 0 ? (
             <div style={{ textAlign: "center", color: "var(--muted, #64748b)", padding: "36px 0" }}>Add assets to view allocation.</div>
@@ -2541,9 +2551,9 @@ function AllocationPage({ assets, currency }) {
               </div>
             </>
           )}
-        </div>
+        </PanelCard>
 
-        <div style={cardStyle}>
+        <PanelCard>
           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>By Value</div>
           {grouped.length === 0 ? (
             <div style={{ color: "var(--muted, #64748b)", fontSize: 13 }}>No allocation data available.</div>
@@ -2561,10 +2571,10 @@ function AllocationPage({ assets, currency }) {
                       <div style={{ height: "100%", borderRadius: 99, background: item.color, width: `${totalAssets > 0 ? (item.value / totalAssets) * 100 : 0}%` }} />
                     </div>
                   </div>
-                ))}
+              ))}
             </div>
           )}
-        </div>
+        </PanelCard>
       </div>
     </div>
   );
@@ -2940,6 +2950,7 @@ function InsightsPage({ assets, liabilities, currency }) {
           value={formatCurrency(netWorth, currency)}
           sub="Assets minus Liabilities"
           color="#3b82f6"
+          animated
         />
         <SummaryCard
           icon={"\u2696\uFE0F"}
@@ -2947,18 +2958,19 @@ function InsightsPage({ assets, liabilities, currency }) {
           value={`${debtRatio.toFixed(1)}%`}
           sub={debtRatio < 20 ? "Excellent" : debtRatio < 40 ? "Good" : debtRatio < 60 ? "Moderate" : "High"}
           color={debtRatio < 30 ? "#16a34a" : "#ef4444"}
+          animated
         />
       </div>
 
       <div style={{ display: "grid", gap: 14 }}>
         {insights.map((ins, i) => (
-          <div key={i} style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
+          <PanelCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both" }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ins.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{ins.icon}</div>
             <div>
               <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 4 }}>{ins.title}</div>
               <div style={{ color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>{ins.desc}</div>
             </div>
-          </div>
+          </PanelCard>
         ))}
       </div>
     </div>
@@ -3236,7 +3248,7 @@ const MainHeader = styled.header(({ $isMobile }) => ({
   margin: $isMobile ? 0 : "0 20px",
   borderRadius: 24,
   boxSizing: "border-box",
-  overflow: "hidden",
+  overflow: $isMobile ? "visible" : "hidden",
   isolation: "isolate",
   transition: "transform 220ms ease",
   "&::before": {
