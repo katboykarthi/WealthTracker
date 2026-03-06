@@ -1,9 +1,10 @@
 ﻿import { useState, useEffect, useRef, useMemo } from "react";
 import styled from "@emotion/styled";
-import { keyframes } from "@emotion/react";
+import { keyframes, css, Global } from "@emotion/react";
 import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { applyTheme, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, buttonStyles, fontFamily, serifFontFamily, heroGradient, onboardingGradient } from "./styles";
+import { gsap } from "gsap";
+import { applyTheme, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, buttonStyles, fontFamily, serifFontFamily, heroGradient } from "./styles";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import { CURRENCIES, ASSET_TYPES, LIABILITY_TYPES, NAV_ITEMS, GOAL_ICONS } from "./constants";
@@ -12,6 +13,12 @@ import { sanitizeInput } from "./utils/security";
 import { auth, db, googleProvider, isFirebaseConfigured } from "./firebase";
 
 const TOAST_EVENT_NAME = "wealthtracker:toast";
+const MOBILE_NAV_COLORS = ["#38bdf8", "#22d3ee", "#0ea5e9", "#7dd3fc", "#0284c7", "#14b8a6"];
+
+const btnStyle = buttonStyles.primary;
+const cardStyle = sharedCardStyle;
+const inputStyle = sharedInputStyle;
+const labelStyle = sharedLabelStyle;
 
 function notifyApp(message, type = "info") {
   const text = String(message || "").trim();
@@ -627,9 +634,21 @@ function OnboardingStep2({ onNext, onSkip, onAddAsset }) {
 
 function AddAssetForm({ typeId, onSave, onCancel, editData }) {
   const type = ASSET_TYPES.find((t) => t.id === typeId) || ASSET_TYPES[0];
-  const [name, setName] = useState(editData?.name || "");
-  const [value, setValue] = useState(editData?.value || "");
-  const [notes, setNotes] = useState(editData?.notes || "");
+  const [name, setName] = useState("");
+  const [value, setValue] = useState("");
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (editData) {
+      setName(editData.name || "");
+      setValue(editData.value || "");
+      setNotes(editData.notes || "");
+    } else {
+      setName("");
+      setValue("");
+      setNotes("");
+    }
+  }, [editData]);
 
   const handleSave = () => {
     // Security: Validate and sanitize inputs
@@ -643,8 +662,8 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
     }
     
     onSave({ 
-      id: Date.now(), 
-      typeId, 
+      id: editData?.id || Date.now(), 
+      typeId: editData?.typeId || typeId,
       name: sanitizedName, 
       value: sanitizedValue, 
       currency: "INR", 
@@ -659,7 +678,9 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
     <div style={{ background: "var(--bg-light, #f8fafc)", borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <span style={{ fontSize: 28 }}>{type.icon}</span>
-        <span style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 16 }}>{type.label}</span>
+        <span style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 16 }}>
+          {editData ? `Edit ${type.label}`: `Add ${type.label}`}
+        </span>
       </div>
       <div style={{ display: "grid", gap: 12 }}>
         <div>
@@ -692,20 +713,34 @@ function AddAssetForm({ typeId, onSave, onCancel, editData }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
-        <button onClick={onCancel} style={{ ...btnStyle, background: "#fff", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
-        <button onClick={handleSave} style={{ ...btnStyle, flex: 2 }}>Save Asset</button>
+        <button onClick={onCancel} style={{ ...btnStyle, background: "transparent", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
+        <button onClick={handleSave} style={{ ...btnStyle, flex: 2 }}>{editData ? "Update Asset" : "Save Asset"}</button>
       </div>
     </div>
   );
 }
 
 function AddLiabilityForm({ onSave, onCancel, editData }) {
-  const [typeId, setTypeId] = useState(editData?.typeId || "home_loan");
-  const [name, setName] = useState(editData?.name || "");
-  const [value, setValue] = useState(editData?.value || "");
-  const [interest, setInterest] = useState(editData?.interest || "");
+  const [typeId, setTypeId] = useState("home_loan");
+  const [name, setName] = useState("");
+  const [value, setValue] = useState("");
+  const [interest, setInterest] = useState("");
 
   const type = LIABILITY_TYPES.find((t) => t.id === typeId) || LIABILITY_TYPES[0];
+
+  useEffect(() => {
+    if (editData) {
+      setTypeId(editData.typeId || "home_loan");
+      setName(editData.name || "");
+      setValue(editData.value || "");
+      setInterest(editData.interest || "");
+    } else {
+      setTypeId("home_loan");
+      setName("");
+      setValue("");
+      setInterest("");
+    }
+  }, [editData]);
 
   const handleSave = () => {
     // Security: Validate and sanitize inputs
@@ -719,7 +754,7 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
     }
     
     onSave({ 
-      id: Date.now(), 
+      id: editData?.id || Date.now(), 
       typeId, 
       name: sanitizedName, 
       value: sanitizedValue, 
@@ -732,7 +767,9 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
 
   return (
     <div style={{ background: "var(--bg-light, #f8fafc)", borderRadius: 14, padding: 20 }}>
-      <h3 style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Add Liability</h3>
+      <h3 style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>
+        {editData ? "Edit Liability" : "Add Liability"}
+      </h3>
       <div style={{ display: "grid", gap: 12 }}>
         <div>
           <label style={labelStyle}>Liability Type</label>
@@ -756,8 +793,10 @@ function AddLiabilityForm({ onSave, onCancel, editData }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
-        <button onClick={onCancel} style={{ ...btnStyle, background: "#fff", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
-        <button onClick={handleSave} style={{ ...btnStyle, background: "#ef4444", flex: 2 }}>Save Liability</button>
+        <button onClick={onCancel} style={{ ...btnStyle, background: "transparent", color: "var(--muted, #64748b)", border: "1.5px solid var(--border, #e2e8f0)", flex: 1 }}>Cancel</button>
+        <button onClick={handleSave} style={{ ...btnStyle, background: "var(--error, #f97316)", flex: 2 }}>
+          {editData ? "Update Liability" : "Save Liability"}
+        </button>
       </div>
     </div>
   );
@@ -818,6 +857,7 @@ function Dashboard({
   onToast,
   onNavigate,
 }) {
+  const dashboardRef = useRef(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [assetSearch, setAssetSearch] = useState("");
   const [assetFilter, setAssetFilter] = useState("all");
@@ -930,6 +970,28 @@ function Dashboard({
     return () => window.removeEventListener("click", closePopover);
   }, [showQuickPopover]);
 
+  useEffect(() => {
+    if (!dashboardRef.current) return undefined;
+
+    // Run entrance animation only once per dashboard mount.
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".dashboard-anim",
+        { autoAlpha: 0, y: 12 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.5,
+          stagger: 0.06,
+          ease: "power3.out",
+          clearProps: "opacity,transform",
+        }
+      );
+    }, dashboardRef);
+
+    return () => ctx.revert();
+  }, []);
+
   const handleSnapshot = () => {
     onToast?.("Snapshot captured and timeline updated.", "success");
     setShowSnapshotModal(false);
@@ -947,9 +1009,19 @@ function Dashboard({
     onAddAsset?.(selectedType);
   };
 
+  const dashboardTabItems = [
+    { id: "overview", label: "Overview" },
+    { id: "holdings", label: "Holdings" },
+    { id: "cashflow", label: "Cashflow" },
+  ];
+  const activeDashboardTabIndex = Math.max(
+    0,
+    dashboardTabItems.findIndex((tab) => tab.id === activeTab)
+  );
+
   return (
-    <DashboardWrap $isMobile={isMobile}>
-      <HeroPanel $isMobile={isMobile}>
+    <DashboardWrap ref={dashboardRef} $isMobile={isMobile}>
+      <HeroPanel className="dashboard-anim" $isMobile={isMobile}>
         <div>
           <HeroLabel>Net Worth • {currency}</HeroLabel>
           <HeroValue>{c.symbol}{netWorth.toLocaleString()}</HeroValue>
@@ -980,7 +1052,7 @@ function Dashboard({
         </ActionCluster>
       </HeroPanel>
 
-      <StatGrid $isMobile={isMobile}>
+      <StatGrid className="dashboard-anim" $isMobile={isMobile}>
         <StatCard>
           <StatLabel>Total Assets</StatLabel>
           <StatValue style={{ color: "#16a34a" }}>{formatCurrency(totalAssets, currency)}</StatValue>
@@ -998,15 +1070,31 @@ function Dashboard({
         </StatCard>
       </StatGrid>
 
-      <DashboardTabs>
-        <TabButton $active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>Overview</TabButton>
-        <TabButton $active={activeTab === "holdings"} onClick={() => setActiveTab("holdings")}>Holdings</TabButton>
-        <TabButton $active={activeTab === "cashflow"} onClick={() => setActiveTab("cashflow")}>Cashflow</TabButton>
+      <DashboardTabs
+        className="dashboard-anim"
+        $isMobile={isMobile}
+        $count={dashboardTabItems.length}
+        $activeIndex={activeDashboardTabIndex}
+      >
+        {dashboardTabItems.map((tab) => (
+          <TabButton
+            key={tab.id}
+            type="button"
+            className="segmented-tab-btn"
+            $active={activeTab === tab.id}
+            onClick={(event) => {
+              event.preventDefault();
+              setActiveTab(tab.id);
+            }}
+          >
+            {tab.label}
+          </TabButton>
+        ))}
       </DashboardTabs>
 
       {activeTab === "overview" && (
-        <PanelGrid $isMobile={isMobile}>
-          <PanelCard>
+        <PanelGrid className="dashboard-anim" $isMobile={isMobile}>
+          <PanelCard className="dashboard-anim">
             <PanelTitle>Net Worth Trend</PanelTitle>
             <PanelHint>Smooth trend chart from your snapshots.</PanelHint>
             {snapshots.length < 2 ? (
@@ -1022,7 +1110,7 @@ function Dashboard({
               </ResponsiveContainer>
             )}
           </PanelCard>
-          <PanelCard>
+          <PanelCard className="dashboard-anim">
             <PanelTitle>Allocation</PanelTitle>
             <PanelHint>Current spread by asset class.</PanelHint>
             {allocationData.length === 0 ? (
@@ -1063,7 +1151,7 @@ function Dashboard({
       )}
 
       {activeTab === "holdings" && (
-        <PanelCard>
+        <PanelCard className="dashboard-anim">
           <PanelTitle>Asset Table</PanelTitle>
           <PanelHint>Search, filter and sort your holdings.</PanelHint>
           <Toolbar $isMobile={isMobile}>
@@ -1126,8 +1214,8 @@ function Dashboard({
       )}
 
       {activeTab === "cashflow" && (
-        <PanelGrid $isMobile={isMobile}>
-          <PanelCard>
+        <PanelGrid className="dashboard-anim" $isMobile={isMobile}>
+          <PanelCard className="dashboard-anim">
             <PanelTitle>Cashflow Items</PanelTitle>
             <PanelHint>All income and expense records.</PanelHint>
             {combinedCashflow.length === 0 ? (
@@ -1166,33 +1254,41 @@ function Dashboard({
               </>
             )}
           </PanelCard>
-          <PanelCard>
-            <PanelTitle>Cashflow Balance</PanelTitle>
-            <PanelHint>Income vs expense split.</PanelHint>
+          <PanelCard className="dashboard-anim" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div>
+              <PanelTitle>Cashflow Balance</PanelTitle>
+              <PanelHint>Income vs expense split.</PanelHint>
+            </div>
+            
             {(totalIncome + totalExpenses) === 0 ? (
-              <EmptyBlock>No data available for split chart.</EmptyBlock>
+              <EmptyBlock style={{ flexGrow: 1, display: 'grid', placeContent: 'center' }}>
+                No data available for split chart.
+              </EmptyBlock>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: "Income", value: totalIncome, color: "#16a34a" },
-                      { name: "Expenses", value: totalExpenses, color: "#ef4444" },
-                    ]}
-                    dataKey="value"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={70}
-                    innerRadius={44}
-                    isAnimationActive
-                  >
-                    <Cell fill="#16a34a" />
-                    <Cell fill="#ef4444" />
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value, currency)} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+                <ResponsiveContainer width="100%" height="90%">
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Income", value: totalIncome, color: "#16a34a" },
+                        { name: "Expenses", value: totalExpenses, color: "#ef4444" },
+                      ]}
+                      dataKey="value"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70}
+                      innerRadius={44}
+                      isAnimationActive
+                    >
+                      <Cell fill="#16a34a" />
+                      <Cell fill="#ef4444" />
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(value, currency)} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             )}
+
             <div style={{ marginTop: 8, fontSize: TYPE_SCALE.meta, color: "var(--muted, #64748b)", display: "grid", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span>Income</span>
@@ -1259,9 +1355,10 @@ function SummaryCard({ icon, label, value, sub, color, negative }) {
   );
 }
 
-function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
+function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
+  const [editingAsset, setEditingAsset] = useState(null);
   const [selectedType, setSelectedType] = useState("stocks");
   const [pickingType, setPickingType] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1346,6 +1443,23 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
   const closeAddModal = () => {
     setShowAdd(false);
     setPickingType(true);
+    setEditingAsset(null);
+  };
+  
+  const handleEdit = (asset) => {
+    setEditingAsset(asset);
+    setSelectedType(asset.typeId);
+    setPickingType(false);
+    setShowAdd(true);
+  };
+
+  const handleSaveAsset = (asset) => {
+    if (editingAsset) {
+      onUpdate(asset);
+    } else {
+      onAdd(asset);
+    }
+    closeAddModal();
   };
 
   useEffect(() => {
@@ -1371,6 +1485,7 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
         <PageHeaderActions $isMobile={isMobile}>
           <button
             onClick={() => {
+              setEditingAsset(null);
               setShowAdd(true);
               setPickingType(true);
             }}
@@ -1418,12 +1533,16 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
               </>
             ) : (
               <AddAssetForm
+                editData={editingAsset}
                 typeId={selectedType}
-                onSave={(asset) => {
-                  onAdd(asset);
-                  closeAddModal();
+                onSave={handleSaveAsset}
+                onCancel={() => {
+                  if (editingAsset) {
+                    closeAddModal();
+                  } else {
+                    setPickingType(true);
+                  }
                 }}
-                onCancel={() => setPickingType(true)}
               />
             )}
           </ModalCard>
@@ -1464,7 +1583,7 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
                 disabled={selectedAssetIds.length === 0}
                 style={{
                   ...btnStyle,
-                  background: "#ef4444",
+                  background: "var(--error, #f97316)",
                   padding: "8px 12px",
                   fontSize: 12,
                   opacity: selectedAssetIds.length === 0 ? 0.55 : 1,
@@ -1484,7 +1603,7 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
                 <DataTable>
                   <thead>
                     <tr>
-                      <TableHead style={{ width: "8%" }}>
+                      <TableHead style={{ width: "5%" }}>
                         <input
                           type="checkbox"
                           checked={allAssetsOnPageSelected}
@@ -1492,10 +1611,11 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
                           aria-label="Select all assets on this page"
                         />
                       </TableHead>
-                      <TableHead style={{ width: "24%" }}>Asset</TableHead>
-                      <TableHead style={{ width: "20%" }}>Type</TableHead>
-                      <TableHead style={{ width: "32%" }}>Notes</TableHead>
+                      <TableHead style={{ width: "22%" }}>Asset</TableHead>
+                      <TableHead style={{ width: "18%" }}>Type</TableHead>
+                      <TableHead style={{ width: "27%" }}>Notes</TableHead>
                       <TableHead style={{ width: "16%" }}>Value</TableHead>
+                      <TableHead style={{ width: "12%" }}>Actions</TableHead>
                     </tr>
                   </thead>
                   <tbody>
@@ -1517,6 +1637,11 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
                           <TableCell title={formatCurrency(asset.value, asset.currency || currency)}>
                             {formatCurrency(asset.value, asset.currency || currency)}
                           </TableCell>
+                          <TableCell>
+                            <button onClick={() => handleEdit(asset)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
+                              Modify
+                            </button>
+                          </TableCell>
                         </tr>
                       );
                     })}
@@ -1536,9 +1661,10 @@ function AssetsPage({ assets, currency, onAdd, onDelete, openAssetComposerReques
   );
 }
 
-function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
+function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDelete }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
+  const [editingLiability, setEditingLiability] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("value_desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1615,6 +1741,25 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
     setSelectedLiabilityIds([]);
   };
 
+  const closeAddModal = () => {
+    setShowAdd(false);
+    setEditingLiability(null);
+  };
+
+  const handleEdit = (liability) => {
+    setEditingLiability(liability);
+    setShowAdd(true);
+  };
+
+  const handleSaveLiability = (liability) => {
+    if (editingLiability) {
+      onUpdate(liability);
+    } else {
+      onAdd(liability);
+    }
+    closeAddModal();
+  };
+
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
@@ -1623,19 +1768,17 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: <span style={{ color: "#ef4444" }}>{formatCurrency(total, currency)}</span></p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
-          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: "#ef4444", width: isMobile ? "100%" : "auto" }}>+ Add Liability</button>
+          <button onClick={() => { setEditingLiability(null); setShowAdd(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Liability</button>
         </PageHeaderActions>
       </PageHeader>
 
       {showAdd && (
-        <ModalBackdrop onClick={() => setShowAdd(false)}>
+        <ModalBackdrop onClick={closeAddModal}>
           <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
             <AddLiabilityForm
-              onSave={(liability) => {
-                onAdd(liability);
-                setShowAdd(false);
-              }}
-              onCancel={() => setShowAdd(false)}
+              editData={editingLiability}
+              onSave={handleSaveLiability}
+              onCancel={closeAddModal}
             />
           </ModalCard>
         </ModalBackdrop>
@@ -1669,7 +1812,7 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
                 disabled={selectedLiabilityIds.length === 0}
                 style={{
                   ...btnStyle,
-                  background: "#ef4444",
+                  background: "var(--error, #f97316)",
                   padding: "8px 12px",
                   fontSize: 12,
                   opacity: selectedLiabilityIds.length === 0 ? 0.55 : 1,
@@ -1689,7 +1832,7 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
                 <DataTable>
                   <thead>
                     <tr>
-                      <TableHead style={{ width: "8%" }}>
+                      <TableHead style={{ width: "5%" }}>
                         <input
                           type="checkbox"
                           checked={allLiabilitiesOnPageSelected}
@@ -1697,10 +1840,11 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
                           aria-label="Select all liabilities on this page"
                         />
                       </TableHead>
-                      <TableHead style={{ width: "28%" }}>Liability</TableHead>
-                      <TableHead style={{ width: "28%" }}>Type</TableHead>
-                      <TableHead style={{ width: "16%" }}>Interest</TableHead>
-                      <TableHead style={{ width: "20%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "25%" }}>Liability</TableHead>
+                      <TableHead style={{ width: "25%" }}>Type</TableHead>
+                      <TableHead style={{ width: "15%" }}>Interest</TableHead>
+                      <TableHead style={{ width: "18%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "12%" }}>Actions</TableHead>
                     </tr>
                   </thead>
                   <tbody>
@@ -1720,6 +1864,11 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
                         <TableCell title={formatCurrency(liability.value, liability.currency || currency)}>
                           {formatCurrency(liability.value, liability.currency || currency)}
                         </TableCell>
+                        <TableCell>
+                          <button onClick={() => handleEdit(liability)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
+                            Modify
+                          </button>
+                        </TableCell>
                       </tr>
                     ))}
                   </tbody>
@@ -1738,10 +1887,11 @@ function LiabilitiesPage({ liabilities, currency, onAdd, onDelete }) {
   );
 }
 
-function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImportExpense }) {
+function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
   const total = incomes.reduce((s, i) => s + i.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingIncome, setEditingIncome] = useState(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -1749,6 +1899,16 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIncomeIds, setSelectedIncomeIds] = useState([]);
   const importInputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingIncome) {
+      setName(editingIncome.name || "");
+      setAmount(editingIncome.amount || "");
+    } else {
+      setName("");
+      setAmount("");
+    }
+  }, [editingIncome]);
 
   const incomeRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -1819,18 +1979,34 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
 
   const closeAddModal = () => {
     setShowAdd(false);
-    setName("");
-    setAmount("");
+    setEditingIncome(null);
   };
 
-  const save = () => {
+  const handleEdit = (income) => {
+    setEditingIncome(income);
+    setShowAdd(true);
+  };
+
+  const handleSave = () => {
     const n = sanitizeInput(name, 'text');
     const a = sanitizeInput(amount, 'number');
     if (!n || a <= 0) {
       notifyApp("Enter valid income name and positive amount.", "error");
       return;
     }
-    onAdd({ id: Date.now(), name: n, amount: a, currency });
+    
+    const payload = { 
+      id: editingIncome?.id || Date.now(), 
+      name: n, 
+      amount: a, 
+      currency 
+    };
+
+    if (editingIncome) {
+      onUpdate(payload);
+    } else {
+      onAdd(payload);
+    }
     closeAddModal();
   };
 
@@ -1886,14 +2062,14 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
           >
             Import HDFC Statement
           </button>
-          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Income</button>
+          <button onClick={() => { setEditingIncome(null); setShowAdd(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Income</button>
         </PageHeaderActions>
       </PageHeader>
 
       {showAdd && (
         <ModalBackdrop onClick={closeAddModal}>
           <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
-            <ModalTitle>Add Income</ModalTitle>
+            <ModalTitle>{editingIncome ? "Edit Income" : "Add Income"}</ModalTitle>
             <ModalText>Record recurring or one-time income entries.</ModalText>
             <div style={{ display: 'grid', gap: 12 }}>
               <div>
@@ -1906,7 +2082,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                 <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
-                <button onClick={save} style={btnStyle}>Save</button>
+                <button onClick={handleSave} style={btnStyle}>{editingIncome ? "Update" : "Save"}</button>
               </div>
             </div>
           </ModalCard>
@@ -1941,7 +2117,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
                 disabled={selectedIncomeIds.length === 0}
                 style={{
                   ...btnStyle,
-                  background: "#ef4444",
+                  background: "var(--error, #f97316)",
                   padding: "8px 12px",
                   fontSize: 12,
                   opacity: selectedIncomeIds.length === 0 ? 0.55 : 1,
@@ -1961,7 +2137,7 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
                 <DataTable>
                   <thead>
                     <tr>
-                      <TableHead style={{ width: "8%" }}>
+                      <TableHead style={{ width: "5%" }}>
                         <input
                           type="checkbox"
                           checked={allIncomeOnPageSelected}
@@ -1969,8 +2145,9 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
                           aria-label="Select all income rows on this page"
                         />
                       </TableHead>
-                      <TableHead style={{ width: "56%" }}>Source</TableHead>
-                      <TableHead style={{ width: "36%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "50%" }}>Source</TableHead>
+                      <TableHead style={{ width: "30%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "15%" }}>Actions</TableHead>
                     </tr>
                   </thead>
                   <tbody>
@@ -1987,6 +2164,11 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
                         <TableCell title={income.name}>{income.name}</TableCell>
                         <TableCell title={formatCurrency(income.amount, income.currency || currency)}>
                           {formatCurrency(income.amount, income.currency || currency)}
+                        </TableCell>
+                        <TableCell>
+                          <button onClick={() => handleEdit(income)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
+                            Modify
+                          </button>
                         </TableCell>
                       </tr>
                     ))}
@@ -2006,10 +2188,11 @@ function IncomePage({ incomes, currency, onAdd, onDelete, onImportIncome, onImpo
   );
 }
 
-function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onImportExpense }) {
+function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
   const total = expenses.reduce((s, e) => s + e.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -2017,6 +2200,16 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
   const importInputRef = useRef(null);
+
+  useEffect(() => {
+    if (editingExpense) {
+      setName(editingExpense.name || "");
+      setAmount(editingExpense.amount || "");
+    } else {
+      setName("");
+      setAmount("");
+    }
+  }, [editingExpense]);
 
   const expenseRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -2087,18 +2280,34 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
 
   const closeAddModal = () => {
     setShowAdd(false);
-    setName("");
-    setAmount("");
+    setEditingExpense(null);
   };
 
-  const save = () => {
+  const handleEdit = (expense) => {
+    setEditingExpense(expense);
+    setShowAdd(true);
+  };
+
+  const handleSave = () => {
     const n = sanitizeInput(name, 'text');
     const a = sanitizeInput(amount, 'number');
     if (!n || a <= 0) {
       notifyApp("Enter valid expense name and positive amount.", "error");
       return;
     }
-    onAdd({ id: Date.now(), name: n, amount: a, currency });
+    
+    const payload = {
+      id: editingExpense?.id || Date.now(),
+      name: n,
+      amount: a,
+      currency
+    };
+
+    if (editingExpense) {
+      onUpdate(payload);
+    } else {
+      onAdd(payload);
+    }
     closeAddModal();
   };
 
@@ -2154,14 +2363,14 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
           >
             Import HDFC Statement
           </button>
-          <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, background: '#ef4444', width: isMobile ? "100%" : "auto" }}>+ Add Expense</button>
+          <button onClick={() => { setEditingExpense(null); setShowAdd(true); }} style={{ ...btnStyle, background: "var(--error, #f97316)", width: isMobile ? "100%" : "auto" }}>+ Add Expense</button>
         </PageHeaderActions>
       </PageHeader>
 
       {showAdd && (
         <ModalBackdrop onClick={closeAddModal}>
           <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
-            <ModalTitle>Add Expense</ModalTitle>
+            <ModalTitle>{editingExpense ? "Edit Expense" : "Add Expense"}</ModalTitle>
             <ModalText>Track outgoing costs to monitor your monthly cashflow.</ModalText>
             <div style={{ display: 'grid', gap: 12 }}>
               <div>
@@ -2174,7 +2383,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                 <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
-                <button onClick={save} style={{ ...btnStyle, background: "#ef4444" }}>Save</button>
+                <button onClick={handleSave} style={{ ...btnStyle, background: "var(--error, #f97316)" }}>{editingExpense ? "Update" : "Save"}</button>
               </div>
             </div>
           </ModalCard>
@@ -2209,7 +2418,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
                 disabled={selectedExpenseIds.length === 0}
                 style={{
                   ...btnStyle,
-                  background: "#ef4444",
+                  background: "var(--error, #f97316)",
                   padding: "8px 12px",
                   fontSize: 12,
                   opacity: selectedExpenseIds.length === 0 ? 0.55 : 1,
@@ -2229,7 +2438,7 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
                 <DataTable>
                   <thead>
                     <tr>
-                      <TableHead style={{ width: "8%" }}>
+                      <TableHead style={{ width: "5%" }}>
                         <input
                           type="checkbox"
                           checked={allExpensesOnPageSelected}
@@ -2237,8 +2446,9 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
                           aria-label="Select all expense rows on this page"
                         />
                       </TableHead>
-                      <TableHead style={{ width: "56%" }}>Expense</TableHead>
-                      <TableHead style={{ width: "36%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "50%" }}>Expense</TableHead>
+                      <TableHead style={{ width: "30%" }}>Amount</TableHead>
+                      <TableHead style={{ width: "15%" }}>Actions</TableHead>
                     </tr>
                   </thead>
                   <tbody>
@@ -2255,6 +2465,11 @@ function ExpensesPage({ expenses, currency, onAdd, onDelete, onImportIncome, onI
                         <TableCell title={expense.name}>{expense.name}</TableCell>
                         <TableCell title={formatCurrency(expense.amount, expense.currency || currency)}>
                           {formatCurrency(expense.amount, expense.currency || currency)}
+                        </TableCell>
+                        <TableCell>
+                          <button onClick={() => handleEdit(expense)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
+                            Modify
+                          </button>
                         </TableCell>
                       </tr>
                     ))}
@@ -2628,7 +2843,7 @@ function GoalsPage({ assets, currency }) {
                 disabled={selectedGoalIds.length === 0}
                 style={{
                   ...btnStyle,
-                  background: "#ef4444",
+                  background: "var(--error, #f97316)",
                   padding: "8px 12px",
                   fontSize: 12,
                   opacity: selectedGoalIds.length === 0 ? 0.55 : 1,
@@ -2765,17 +2980,28 @@ function PlaceholderPage({ title, icon }) {
   );
 }
 
-const btnStyle = buttonStyles.primary;
-const cardStyle = sharedCardStyle;
-const inputStyle = sharedInputStyle;
-const labelStyle = sharedLabelStyle;
-
 const TYPE_SCALE = {
-  h1: 20,
-  h2: 16,
+  h1: 30,
+  h2: 18,
   body: 14,
-  meta: 12,
-  micro: 10,
+  meta: 13,
+  micro: 11,
+};
+
+const APP_FONT_STACK = "'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif";
+const DASHBOARD_LAYOUT = {
+  pagePadding: 28,
+  cardGap: 24,
+  sectionGap: 32,
+  sidebarWidth: 260,
+  sidebarPadding: 20,
+  headerHeight: 72,
+  headerSearchWidth: 300,
+};
+const MOBILE_LAYOUT = {
+  topNavHeight: 72,
+  bottomTabBarHeight: 88,
+  bottomTabBarOffset: 20,
 };
 
 const TABLE_PAGE_LENGTH = 10;
@@ -2815,14 +3041,16 @@ const AppShell = styled.div(({ $isMobile }) => ({
   display: "flex",
   height: "100dvh",
   overflow: "hidden",
-  fontFamily,
-  background: "var(--bg, #f8fafc)",
+  position: "relative",
+  isolation: "isolate",
+  fontFamily: APP_FONT_STACK,
+  background: "transparent",
   color: "var(--text-color, #1e293b)",
   flexDirection: $isMobile ? "column" : "row",
 }));
 
 const SidebarRail = styled.aside(({ $collapsed }) => ({
-  width: $collapsed ? 84 : 268,
+  width: $collapsed ? 84 : DASHBOARD_LAYOUT.sidebarWidth,
   background: "var(--sidebar-bg, #ffffff)",
   borderRight: "1px solid var(--border, #e2e8f0)",
   display: "flex",
@@ -2834,16 +3062,20 @@ const SidebarRail = styled.aside(({ $collapsed }) => ({
 }));
 
 const SidebarTop = styled.div(({ $collapsed }) => ({
-  padding: $collapsed ? "16px 12px 14px" : "16px 14px 14px",
+  padding: $collapsed ? "16px 12px" : `${DASHBOARD_LAYOUT.sidebarPadding}px`,
   borderBottom: "1px solid var(--border, #e2e8f0)",
   display: "grid",
-  gap: 12,
+  gap: 14,
 }));
 
 const ProfileCard = styled.div(({ $collapsed }) => ({
   display: "flex",
   alignItems: "center",
   gap: 10,
+  borderRadius: 12,
+  padding: $collapsed ? "10px 8px" : "10px 12px",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
   justifyContent: $collapsed ? "center" : "flex-start",
   cursor: "pointer",
 }));
@@ -2853,7 +3085,7 @@ const ProfileAvatar = styled.img({
   height: 38,
   borderRadius: "50%",
   objectFit: "cover",
-  border: "2px solid rgba(22, 163, 74, 0.2)",
+  border: "2px solid rgba(255, 255, 255, 0.18)",
   background: "var(--bg-light, #f8fafc)",
 });
 
@@ -2864,7 +3096,7 @@ const ProfileFallback = styled.div({
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "#16a34a",
+  background: "var(--primary, #38bdf8)",
   color: "#fff",
   fontWeight: 700,
   fontSize: TYPE_SCALE.meta,
@@ -2909,8 +3141,8 @@ function SidebarGlyph({ name, size = 16 }) {
     <span
       aria-hidden="true"
       style={{
-        width: size + 6,
-        height: size + 6,
+        width: size,
+        height: size,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -2923,80 +3155,143 @@ function SidebarGlyph({ name, size = 16 }) {
   );
 }
 
-const SidebarSearch = styled.input({
-  width: "100%",
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 999,
-  padding: "9px 12px",
-  fontSize: TYPE_SCALE.meta,
-  outline: "none",
-  color: "var(--text-color, #1e293b)",
-  background: "var(--input-bg, #fff)",
-});
-
 const SidebarNav = styled.nav({
   flex: 1,
-  padding: "10px 8px",
+  padding: `${DASHBOARD_LAYOUT.sidebarPadding}px 12px`,
   overflow: "hidden",
 });
 
 const SectionBlock = styled.div({
-  marginBottom: 8,
+  marginBottom: 10,
 });
 
 const MenuButton = styled.button(({ $active, $collapsed }) => ({
   width: "100%",
-  border: "none",
+  border: "1px solid transparent",
   borderRadius: 10,
-  marginBottom: 4,
-  padding: $collapsed ? "8px 6px" : "8px 10px",
-  background: $active ? "var(--accent-bg, #f0fdf4)" : "transparent",
-  color: $active ? "var(--primary, #16a34a)" : "var(--text-color, #1e293b)",
+  marginBottom: 6,
+  padding: $collapsed ? "12px 10px" : "12px 16px",
+  background: $active ? "rgba(255,255,255,0.12)" : "transparent",
+  color: $active ? "var(--text-color, #e5e7eb)" : "var(--muted, #9ca3af)",
   display: "flex",
   alignItems: "center",
   justifyContent: $collapsed ? "center" : "flex-start",
   gap: 10,
   cursor: "pointer",
-  fontSize: TYPE_SCALE.body,
-  fontWeight: $active ? 700 : 500,
+  fontSize: 14,
+  fontWeight: $active ? 600 : 500,
+  position: "relative",
+  transition: "background 200ms ease, color 200ms ease, border-color 200ms ease",
+  "&:hover": {
+    background: "rgba(255,255,255,0.07)",
+    borderColor: "rgba(255,255,255,0.1)",
+    color: "var(--text-color, #e5e7eb)",
+  },
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    left: 6,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 99,
+    background: "linear-gradient(180deg, rgba(125,211,252,0.95) 0%, rgba(56,189,248,0.78) 100%)",
+    boxShadow: "0 0 16px rgba(56,189,248,0.5)",
+    opacity: $active && !$collapsed ? 1 : 0,
+    transition: "opacity 200ms ease",
+  },
 }));
 
 const SidebarBottom = styled.div({
   borderTop: "1px solid var(--border, #e2e8f0)",
-  padding: "10px 8px 12px",
+  padding: `12px 12px ${DASHBOARD_LAYOUT.sidebarPadding}px`,
   display: "grid",
-  gap: 6,
+  gap: 8,
 });
 
-const MainSurface = styled.main(({ $hasMobileNav }) => ({
+const MainSurface = styled.main(({ $hasMobileNav, $isMobile }) => ({
   flex: 1,
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
-  paddingBottom: $hasMobileNav ? 80 : 0,
+  position: "relative",
+  isolation: "isolate",
+  paddingTop: $isMobile ? `calc(${MOBILE_LAYOUT.topNavHeight}px + env(safe-area-inset-top, 0px))` : 0,
+  paddingBottom: 0,
 }));
 
-const MainHeader = styled.header({
-  position: "sticky",
-  top: 0,
-  zIndex: 40,
+const MainHeader = styled.header(({ $isMobile }) => ({
+  position: $isMobile ? "fixed" : "sticky",
+  top: $isMobile ? "env(safe-area-inset-top, 0px)" : 10,
+  left: $isMobile ? 12 : "auto",
+  right: $isMobile ? 12 : "auto",
+  zIndex: 140,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: 12,
-  padding: "12px 20px",
-  borderBottom: "1px solid var(--border, #e2e8f0)",
-  background: "var(--sidebar-bg, #ffffff)",
-});
+  height: MOBILE_LAYOUT.topNavHeight,
+  gap: 16,
+  padding: $isMobile ? "0 16px" : "0 28px",
+  margin: $isMobile ? 0 : "0 20px",
+  borderRadius: 24,
+  boxSizing: "border-box",
+  overflow: "hidden",
+  isolation: "isolate",
+  transition: "transform 220ms ease",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    left: 1,
+    right: 1,
+    top: 1,
+    height: 1,
+    borderRadius: 999,
+    background: "linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34), rgba(255,255,255,0.18))",
+    pointerEvents: "none",
+    zIndex: 1,
+    opacity: 0.9,
+  },
+  "& > *": {
+    position: "relative",
+    zIndex: 2,
+  },
+}));
 
-const HeaderTitle = styled.h1({
+const HeaderTitle = styled.h1(({ $isMobile }) => ({
   margin: 0,
-  fontSize: TYPE_SCALE.h1,
+  fontSize: $isMobile ? 22 : 26,
   fontWeight: 700,
   color: "var(--heading-color, #1a2e1a)",
-  lineHeight: 1.2,
-});
+  lineHeight: 1,
+  letterSpacing: 0.2,
+  textShadow: "0 1px 12px rgba(2, 6, 23, 0.45)",
+}));
+
+const BrandLockup = styled.div(({ $isMobile }) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: $isMobile ? 8 : 10,
+  minWidth: 0,
+}));
+
+const BrandLogo = styled.div(({ $isMobile }) => ({
+  width: $isMobile ? 30 : 34,
+  height: $isMobile ? 30 : 34,
+  borderRadius: 11,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#e2f5ff",
+  fontSize: $isMobile ? 13 : 14,
+  fontWeight: 800,
+  letterSpacing: 0.4,
+  border: "1px solid rgba(186, 230, 253, 0.45)",
+  background:
+    "radial-gradient(130% 120% at 18% 14%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0) 72%), linear-gradient(145deg, rgba(56,189,248,0.95) 0%, rgba(14,165,233,0.86) 52%, rgba(2,132,199,0.8) 100%)",
+  boxShadow: "0 8px 18px rgba(2,132,199,0.35), inset 0 1px 0 rgba(255,255,255,0.4)",
+  flexShrink: 0,
+}));
 
 const HeaderSubtitle = styled.p({
   margin: "2px 0 0",
@@ -3004,56 +3299,139 @@ const HeaderSubtitle = styled.p({
   color: "var(--muted, #64748b)",
 });
 
-const HeaderActions = styled.div({
+const HeaderActions = styled.div(({ $isMobile }) => ({
   display: "inline-flex",
   alignItems: "center",
-  gap: 8,
-});
+  alignSelf: "center",
+  gap: 10,
+  height: $isMobile ? "100%" : "auto",
+}));
 
 const HeaderButton = styled.button({
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 8,
-  background: "var(--card-bg, #fff)",
-  color: "var(--muted, #64748b)",
-  padding: "6px 10px",
+  border: "1px solid rgba(255,255,255,0.12)",
+  borderRadius: 12,
+  background: "rgba(255,255,255,0.06)",
+  color: "var(--muted, #9ca3af)",
+  padding: "8px 12px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
   cursor: "pointer",
+  transition: "transform 0.2s ease, background 0.2s ease, color 0.2s ease",
+  "&:hover": {
+    background: "rgba(255,255,255,0.12)",
+    color: "var(--text-color, #e5e7eb)",
+    transform: "scale(1.03)",
+  },
 });
 
-const MainScroll = styled.div({
+const HeaderSearch = styled.input(({ $isMobile }) => ({
+  width: $isMobile ? "100%" : DASHBOARD_LAYOUT.headerSearchWidth,
+  minWidth: 0,
+  flex: $isMobile ? 1 : "0 0 auto",
+  height: 40,
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 12,
+  padding: "0 14px",
+  fontSize: TYPE_SCALE.meta,
+  outline: "none",
+  color: "var(--text-color, #e5e7eb)",
+  background: "rgba(255,255,255,0.08)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+  boxSizing: "border-box",
+}));
+
+const MainScroll = styled.div(({ $hasMobileNav, $isMobile }) => ({
   flex: 1,
   minHeight: 0,
+  position: "relative",
+  zIndex: 1,
   overflowY: "auto",
   overflowX: "hidden",
+  boxSizing: "border-box",
+  WebkitOverflowScrolling: "touch",
+  paddingBottom: $hasMobileNav
+    ? `calc(${MOBILE_LAYOUT.bottomTabBarHeight + MOBILE_LAYOUT.bottomTabBarOffset}px + env(safe-area-inset-bottom, 0px))`
+    : 0,
+  scrollPaddingTop: $isMobile
+    ? `calc(${MOBILE_LAYOUT.topNavHeight}px + env(safe-area-inset-top, 0px) + 12px)`
+    : DASHBOARD_LAYOUT.headerHeight,
+  scrollPaddingBottom: $hasMobileNav
+    ? `calc(${MOBILE_LAYOUT.bottomTabBarHeight + MOBILE_LAYOUT.bottomTabBarOffset}px + env(safe-area-inset-bottom, 0px))`
+    : 24,
+}));
+
+const MainMenuTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) => {
+  const safeCount = Math.max(1, Number($count) || 1);
+  const clampedIndex = Math.min(Math.max(0, Number($activeIndex) || 0), safeCount - 1);
+  return {
+    position: "relative",
+    height: "44px",
+    padding: "4px",
+    borderRadius: 999,
+    display: "grid",
+    gridTemplateColumns: `repeat(${safeCount}, minmax(0, 1fr))`,
+    alignItems: "stretch",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(25px)",
+    WebkitBackdropFilter: "blur(25px)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
+    margin: $isMobile ? "16px 12px 0" : "20px 28px 0",
+    overflow: "hidden",
+    width: $isMobile ? "calc(100% - 24px)" : "min(620px, calc(100% - 56px))",
+    maxWidth: "100%",
+    isolation: "isolate",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 4,
+      bottom: 4,
+      left: 4,
+      width: `calc((100% - 8px) / ${safeCount})`,
+      transform: `translateX(${clampedIndex * 100}%)`,
+      borderRadius: 999,
+      border: "1px solid rgba(255,255,255,0.22)",
+      background:
+        "linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.14) 48%, rgba(56,189,248,0.2) 100%)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.42), inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px rgba(14,165,233,0.24)",
+      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      pointerEvents: "none",
+      zIndex: 0,
+    },
+    "& > *": {
+      position: "relative",
+      zIndex: 1,
+    },
+  };
 });
 
-const MainMenuTabs = styled.div(({ $isMobile }) => ({
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  padding: $isMobile ? "10px 12px 0" : "10px 16px 0",
-  overflowX: "auto",
-  flexWrap: "nowrap",
-}));
-
 const MainMenuTab = styled.button(({ $active }) => ({
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 10,
-  background: $active ? "var(--accent-bg, #f0fdf4)" : "var(--card-bg, #fff)",
-  color: $active ? "var(--primary, #16a34a)" : "var(--muted, #64748b)",
+  width: "100%",
+  height: "100%",
+  border: "none",
+  borderRadius: 999,
+  background: "transparent",
+  color: $active ? "#f8fbff" : "rgba(229,231,235,0.72)",
   display: "inline-flex",
   alignItems: "center",
-  gap: 8,
-  padding: "8px 12px",
-  fontSize: TYPE_SCALE.meta,
+  justifyContent: "center",
+  padding: "8px 14px",
+  fontSize: 14,
   fontWeight: $active ? 700 : 600,
   cursor: "pointer",
+  textAlign: "center",
+  minWidth: 0,
   whiteSpace: "nowrap",
+  textShadow: $active ? "0 1px 10px rgba(56,189,248,0.35)" : "none",
+  transform: $active ? "scale(1.05)" : "scale(1)",
+  transformOrigin: "center",
+  willChange: "transform",
+  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease, text-shadow 220ms ease",
 }));
 
-const PageSection = styled.section(({ $isMobile }) => ({
-  padding: $isMobile ? "16px 12px" : "28px 32px",
+const PageSection = styled.div(({ $isMobile }) => ({
+  padding: $isMobile ? "24px 16px" : "20px 24px",
   maxWidth: 900,
   width: "100%",
   boxSizing: "border-box",
@@ -3065,7 +3443,7 @@ const PageHeader = styled.div(({ $isMobile }) => ({
   alignItems: $isMobile ? "flex-start" : "center",
   flexDirection: $isMobile ? "column" : "row",
   gap: $isMobile ? 12 : 0,
-  marginBottom: 24,
+  marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
 }));
 
 const PageHeaderActions = styled.div(({ $isMobile }) => ({
@@ -3076,7 +3454,7 @@ const PageHeaderActions = styled.div(({ $isMobile }) => ({
 }));
 
 const DashboardWrap = styled.div(({ $isMobile }) => ({
-  padding: $isMobile ? "16px" : "20px 24px 24px",
+  padding: $isMobile ? "24px 16px" : "20px 24px",
   maxWidth: 1180,
   width: "100%",
   boxSizing: "border-box",
@@ -3084,13 +3462,13 @@ const DashboardWrap = styled.div(({ $isMobile }) => ({
 
 const HeroPanel = styled.section(({ $isMobile }) => ({
   borderRadius: 18,
-  border: "1px solid var(--accent-border, #bbf7d0)",
+  border: "1px solid rgba(255,255,255,0.12)",
   background: `var(--hero-gradient, ${heroGradient})`,
-  padding: $isMobile ? "16px 14px" : "20px 22px",
-  marginBottom: 16,
+  padding: $isMobile ? "16px 16px" : "22px 24px",
+  marginBottom: DASHBOARD_LAYOUT.cardGap,
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "1.4fr auto",
-  gap: 14,
+  gap: 18,
   animation: `${surfaceIn} 260ms ease`,
 }));
 
@@ -3118,7 +3496,7 @@ const HeroMeta = styled.div({
 const ActionCluster = styled.div({
   display: "inline-flex",
   alignItems: "center",
-  gap: 8,
+  gap: 10,
   flexWrap: "wrap",
 });
 
@@ -3158,19 +3536,39 @@ const GhostButton = styled.button({
 const StatGrid = styled.div(({ $isMobile }) => ({
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
-  gap: 12,
-  marginBottom: 16,
+  gap: DASHBOARD_LAYOUT.cardGap,
+  marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
 }));
 
-const StatCard = styled.article({
-  borderRadius: 14,
-  border: "1px solid var(--border, #e2e8f0)",
-  background: "var(--card-bg, #fff)",
-  padding: "14px 14px 12px",
-  display: "grid",
-  gap: 4,
-  animation: `${surfaceIn} 240ms ease`,
-});
+const StatCard = styled.article`
+  border-radius: 18px;
+  padding: 20px;
+  display: grid;
+  gap: 6px;
+  animation: ${surfaceIn} 240ms ease;
+
+  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
+  position: relative;
+  transition: all 0.3s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
+  }
+`;
 
 const StatLabel = styled.div({
   fontSize: TYPE_SCALE.micro,
@@ -3181,7 +3579,7 @@ const StatLabel = styled.div({
 });
 
 const StatValue = styled.div({
-  fontSize: TYPE_SCALE.h2,
+  fontSize: 26,
   fontWeight: 700,
   color: "var(--text-color, #1e293b)",
 });
@@ -3191,38 +3589,102 @@ const StatSub = styled.div({
   color: "var(--muted, #64748b)",
 });
 
-const DashboardTabs = styled.div({
-  display: "inline-flex",
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 10,
-  background: "var(--card-bg, #fff)",
-  marginBottom: 12,
-  overflow: "hidden",
+const DashboardTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) => {
+  const safeCount = Math.max(1, Number($count) || 1);
+  const clampedIndex = Math.min(Math.max(0, Number($activeIndex) || 0), safeCount - 1);
+  return {
+    position: "relative",
+    display: "grid",
+    gridTemplateColumns: `repeat(${safeCount}, minmax(0, 1fr))`,
+    alignItems: "stretch",
+    height: 46,
+    padding: "4px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(25px)",
+    WebkitBackdropFilter: "blur(25px)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
+    marginBottom: DASHBOARD_LAYOUT.cardGap,
+    width: $isMobile ? "100%" : "min(460px, 100%)",
+    maxWidth: "100%",
+    overflow: "hidden",
+    isolation: "isolate",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 4,
+      bottom: 4,
+      left: 4,
+      width: `calc((100% - 8px) / ${safeCount})`,
+      transform: `translateX(${clampedIndex * 100}%)`,
+      borderRadius: 999,
+      border: "1px solid rgba(255,255,255,0.22)",
+      background:
+        "linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.14) 48%, rgba(56,189,248,0.2) 100%)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.42), inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px rgba(14,165,233,0.24)",
+      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      pointerEvents: "none",
+      zIndex: 0,
+    },
+    "& > *": {
+      position: "relative",
+      zIndex: 1,
+    },
+  };
 });
 
 const TabButton = styled.button(({ $active }) => ({
+  width: "100%",
+  height: "100%",
   border: "none",
-  background: $active ? "var(--accent-bg, #f0fdf4)" : "transparent",
-  color: $active ? "var(--primary, #16a34a)" : "var(--muted, #64748b)",
+  borderRadius: 999,
+  background: "transparent",
+  color: $active ? "#f8fbff" : "rgba(229,231,235,0.72)",
   padding: "9px 12px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: $active ? 700 : 600,
   cursor: "pointer",
+  textShadow: $active ? "0 1px 10px rgba(56,189,248,0.35)" : "none",
+  transform: $active ? "scale(1.05)" : "scale(1)",
+  transformOrigin: "center",
+  willChange: "transform",
+  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease, text-shadow 220ms ease",
 }));
 
 const PanelGrid = styled.div(({ $isMobile }) => ({
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "minmax(0, 1.7fr) minmax(260px, 1fr)",
-  gap: 12,
+  gap: DASHBOARD_LAYOUT.cardGap,
 }));
 
-const PanelCard = styled.section({
-  borderRadius: 14,
-  border: "1px solid var(--border, #e2e8f0)",
-  background: "var(--card-bg, #fff)",
-  padding: "14px 14px 12px",
-  animation: `${surfaceIn} 240ms ease`,
-});
+const PanelCard = styled.section`
+  border-radius: 18px;
+  padding: 22px;
+  animation: ${surfaceIn} 240ms ease;
+
+  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
+  position: relative;
+  transition: all 0.3s ease;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
+  }
+`;
 
 const PanelTitle = styled.h2({
   margin: "0 0 8px",
@@ -3234,14 +3696,14 @@ const PanelTitle = styled.h2({
 const PanelHint = styled.div({
   fontSize: TYPE_SCALE.meta,
   color: "var(--muted, #64748b)",
-  marginBottom: 10,
+  marginBottom: 14,
 });
 
 const Toolbar = styled.div(({ $isMobile }) => ({
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "1fr 180px 180px",
-  gap: 8,
-  marginBottom: 10,
+  gap: 10,
+  marginBottom: 14,
 }));
 
 const Field = styled.input({
@@ -3250,7 +3712,7 @@ const Field = styled.input({
   borderRadius: 10,
   background: "var(--input-bg, #fff)",
   color: "var(--text-color, #1e293b)",
-  padding: "8px 10px",
+  padding: "10px 12px",
   fontSize: TYPE_SCALE.meta,
   outline: "none",
   boxSizing: "border-box",
@@ -3262,16 +3724,18 @@ const Select = styled.select({
   borderRadius: 10,
   background: "var(--input-bg, #fff)",
   color: "var(--text-color, #1e293b)",
-  padding: "8px 10px",
+  padding: "10px 12px",
   fontSize: TYPE_SCALE.meta,
   outline: "none",
 });
 
 const TableWrap = styled.div({
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 16,
   overflowX: "auto",
   overflowY: "hidden",
+  background: "rgba(255,255,255,0.04)",
+  padding: 2,
 });
 
 const DataTable = styled.table({
@@ -3361,10 +3825,12 @@ const PopoverCard = styled.div({
   right: 0,
   top: "calc(100% + 6px)",
   width: 220,
-  borderRadius: 10,
-  border: "1px solid var(--border, #e2e8f0)",
-  background: "var(--card-bg, #fff)",
-  boxShadow: "0 14px 28px rgba(15, 23, 42, 0.15)",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  backdropFilter: "blur(24px)",
+  WebkitBackdropFilter: "blur(24px)",
+  boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
   padding: 6,
   zIndex: 20,
 });
@@ -3386,36 +3852,63 @@ const ModalBackdrop = styled.div({
   position: "fixed",
   inset: 0,
   zIndex: 130,
-  background: "rgba(2, 6, 23, 0.45)",
+  background: "rgba(8,12,20,0.85)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   padding: 16,
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
 });
 
 const ModalCard = styled.div(({ $maxWidth = 460 }) => ({
+  position: "relative",
+  isolation: "isolate",
   width: "100%",
   maxWidth: $maxWidth,
   maxHeight: "min(92dvh, 720px)",
-  borderRadius: 14,
-  border: "1px solid var(--border, #e2e8f0)",
-  background: "var(--card-bg, #fff)",
-  padding: 16,
+  borderRadius: 18,
+  background: "rgba(15, 23, 42, 0.65)",
+  backdropFilter: "blur(22px) saturate(1.2)",
+  WebkitBackdropFilter: "blur(22px) saturate(1.2)",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.35)",
+  color: "var(--modal-text, #e2e8f0)",
+  padding: 22,
   overflowY: "auto",
-  boxShadow: "0 24px 48px rgba(2, 6, 23, 0.24)",
   animation: `${surfaceIn} 180ms ease`,
+
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "1px",
+    background: "rgba(255, 255, 255, 0.15)",
+    boxShadow: "0 1px 2px rgba(255, 255, 255, 0.05)",
+  },
+
+  "&::after": {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    borderRadius: "inherit",
+    background: "radial-gradient(ellipse 100% 80% at 50% 0%, rgba(255, 255, 255, 0.06), transparent)",
+    pointerEvents: "none",
+  }
 }));
 
 const ModalTitle = styled.h2({
   margin: "0 0 6px",
   fontSize: TYPE_SCALE.h2,
-  color: "var(--text-color, #1e293b)",
+  color: "var(--modal-text, var(--text-color, #1e293b))",
 });
 
 const ModalText = styled.p({
   margin: "0 0 14px",
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "var(--modal-muted, var(--muted, #64748b))",
   lineHeight: 1.45,
 });
 
@@ -3526,7 +4019,6 @@ export default function App() {
   const [expenses, setExpenses] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [activeNav, setActiveNav] = useState("dashboard");
-  const [darkMode, setDarkMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState("");
   const [sectionSelection, setSectionSelection] = useState({});
@@ -3541,15 +4033,36 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   const saveTimeoutRef = useRef(null);
+  const mobileNavTrackRef = useRef(null);
+  const mobileBubbleRef = useRef(null);
+  const mobileNavButtonRefs = useRef({});
+  const mobileBubbleReadyRef = useRef(false);
 
   const addAsset = (a) => setAssets((prev) => [...prev, a]);
+  const updateAsset = (updatedAsset) => {
+    setAssets(prev => prev.map(asset => asset.id === updatedAsset.id ? updatedAsset : asset));
+    pushToast("Asset updated successfully", "success");
+  };
   const deleteAsset = (id) => setAssets((prev) => prev.filter((a) => a.id !== id));
   const addLiability = (l) => setLiabilities((prev) => [...prev, l]);
+  const updateLiability = (updatedLiability) => {
+    setLiabilities(prev => prev.map(liability => liability.id === updatedLiability.id ? updatedLiability : liability));
+    pushToast("Liability updated successfully", "success");
+  };
   const deleteLiability = (id) => setLiabilities((prev) => prev.filter((l) => l.id !== id));
   const addIncome = (inc) => setIncomes((prev) => [...prev, inc]);
+  const updateIncome = (updatedIncome) => {
+    setIncomes(prev => prev.map(income => income.id === updatedIncome.id ? updatedIncome : income));
+    pushToast("Income updated successfully", "success");
+  };
   const deleteIncome = (id) => setIncomes((prev) => prev.filter((i) => i.id !== id));
   const addExpense = (ex) => setExpenses((prev) => [...prev, ex]);
+  const updateExpense = (updatedExpense) => {
+    setExpenses(prev => prev.map(expense => expense.id === updatedExpense.id ? updatedExpense : expense));
+    pushToast("Expense updated successfully", "success");
+  };
   const deleteExpense = (id) => setExpenses((prev) => prev.filter((e) => e.id !== id));
   const importIncomeEntries = (entries) => setIncomes((prev) => [...prev, ...entries]);
   const importExpenseEntries = (entries) => setExpenses((prev) => [...prev, ...entries]);
@@ -3610,6 +4123,10 @@ export default function App() {
 
   const activeSection = activeSectionData?.section || null;
   const activeSectionItems = activeSectionData?.items || [];
+  const activeSectionTabIndex = Math.max(
+    0,
+    activeSectionItems.findIndex((item) => item.id === activeNav)
+  );
   const validNavIds = useMemo(() => navSections.flatMap((section) => section.items.map((item) => item.id)), [navSections]);
 
   const normalizedNavSearch = sidebarSearch.trim().toLowerCase();
@@ -3652,11 +4169,24 @@ export default function App() {
   const pageTitle = activeSectionData?.section || pageNameMap[activeNav] || "Dashboard";
   const pageSubtitle = pageSubtitleMap[activeNav] || "Manage your wealth";
 
-  const mobileNavItems = navSections.map((section) => ({
-    section: section.section,
-    label: section.section,
-    iconKey: section.section.toLowerCase(),
-  }));
+  const mobileNavItems = useMemo(
+    () =>
+      navSections.map((section) => ({
+        section: section.section,
+        label: section.section,
+        iconKey: section.section.toLowerCase(),
+      })),
+    [navSections]
+  );
+  const activeMobileSection = activeSection || mobileNavItems[0]?.section || null;
+  const mobileNavColorBySection = useMemo(
+    () =>
+      mobileNavItems.reduce((acc, item, index) => {
+        acc[item.section] = MOBILE_NAV_COLORS[index % MOBILE_NAV_COLORS.length];
+        return acc;
+      }, {}),
+    [mobileNavItems]
+  );
 
   const getSectionTargetNav = (section) => {
     if (!section?.items?.length) return null;
@@ -3673,6 +4203,48 @@ export default function App() {
     setActiveNav(nextNav);
   };
 
+  const handleMainScroll = (event) => {
+    const nextScrolled = event.currentTarget.scrollTop > 8;
+    setHeaderScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled));
+  };
+
+  const setMobileNavButtonRef = (section) => (node) => {
+    if (node) {
+      mobileNavButtonRefs.current[section] = node;
+      return;
+    }
+    delete mobileNavButtonRefs.current[section];
+  };
+
+  const moveMobileNavBubble = (section, immediate = false) => {
+    const navTrack = mobileNavTrackRef.current;
+    const bubble = mobileBubbleRef.current;
+    const targetButton = section ? mobileNavButtonRefs.current[section] : null;
+    if (!isMobile || !navTrack || !bubble || !targetButton) return;
+
+    const trackRect = navTrack.getBoundingClientRect();
+    const buttonRect = targetButton.getBoundingClientRect();
+    const x = buttonRect.left - trackRect.left;
+    const targetWidth = buttonRect.width;
+
+    gsap.to(bubble, {
+      duration: immediate ? 0 : 0.38,
+      x,
+      width: targetWidth,
+      backgroundColor: mobileNavColorBySection[section] || "var(--primary, #16a34a)",
+      ease: immediate ? "none" : "power3.out",
+      overwrite: "auto",
+    });
+
+    if (!immediate) {
+      gsap.fromTo(
+        targetButton,
+        { y: 3, scale: 0.96 },
+        { duration: 0.28, y: 0, scale: 1, ease: "power2.out", clearProps: "transform" }
+      );
+    }
+  };
+
   const resetTrackerState = () => {
     setPhase("onboarding");
     setAssets([]);
@@ -3681,7 +4253,6 @@ export default function App() {
     setExpenses([]);
     setSnapshots([]);
     setActiveNav("dashboard");
-    setDarkMode(true);
     setLastSyncedAt(null);
     setSyncInProgress(false);
     setSectionSelection({});
@@ -3748,7 +4319,6 @@ export default function App() {
           setExpenses(Array.isArray(cloud.expenses) ? cloud.expenses : []);
           setSnapshots(Array.isArray(cloud.snapshots) ? cloud.snapshots : []);
           setActiveNav(typeof cloud.activeNav === "string" ? cloud.activeNav : "dashboard");
-          setDarkMode(typeof cloud.darkMode === "boolean" ? cloud.darkMode : true);
           setLastSyncedAt(new Date().toISOString());
         } else {
           resetTrackerState();
@@ -3811,7 +4381,7 @@ export default function App() {
               expenses,
               snapshots,
               activeNav,
-              darkMode,
+              darkMode: true,
               profile: {
                 email: authUser.email || null,
                 displayName: authUser.displayName || null,
@@ -3843,17 +4413,15 @@ export default function App() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [authUser, cloudHydrated, phase, assets, liabilities, incomes, expenses, snapshots, activeNav, darkMode]);
+  }, [authUser, cloudHydrated, phase, assets, liabilities, incomes, expenses, snapshots, activeNav]);
 
-  const bg = darkMode ? "#0f172a" : "#f8fafc";
-  const textColor = darkMode ? "var(--text-color, #e2e8f0)" : "#1e293b";
-  const onboardingBg = darkMode
-    ? "linear-gradient(135deg, #020617 0%, #0b1220 48%, #111827 100%)"
-    : onboardingGradient;
+  const bg = "#020617";
+  const textColor = "var(--text-color, #e2e8f0)";
+  const onboardingBg = "linear-gradient(135deg, #020617 0%, #0b1220 48%, #111827 100%)";
 
   // Expose theme tokens via CSS variables so inline styles adapt to dark mode
   useEffect(() => {
-    applyTheme(darkMode);
+    applyTheme(true);
     const html = document.documentElement;
     const rootEl = document.getElementById("root");
 
@@ -3893,7 +4461,27 @@ export default function App() {
     // also apply to body for immediate background/text color
     document.body.style.background = bg;
     document.body.style.color = textColor;
-  }, [darkMode, bg, textColor, phase]);
+  }, [bg, textColor, phase]);
+
+  const auroraStyles = css`
+    body::after {
+      content: "";
+      position: fixed;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(16,185,129,0.25), transparent 60%);
+      top: -200px;
+      left: -200px;
+      filter: blur(120px);
+      animation: auroraMove 18s infinite alternate ease-in-out;
+      pointer-events: none;
+      z-index: -1;
+    }
+    @keyframes auroraMove {
+      0% { transform: translate(0px,0px); }
+      100% { transform: translate(300px,200px); }
+    }
+  `;
 
   useEffect(() => {
     if (!activeSection) return;
@@ -3911,10 +4499,29 @@ export default function App() {
   }, [activeNav, validNavIds]);
 
   useEffect(() => {
-    if (!isMobile && mobileProfileMenuOpen) {
-      setMobileProfileMenuOpen(false);
+    if (!isMobile || !activeMobileSection) {
+      mobileBubbleReadyRef.current = false;
+      return undefined;
     }
-  }, [isMobile, mobileProfileMenuOpen]);
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      moveMobileNavBubble(activeMobileSection, !mobileBubbleReadyRef.current);
+      mobileBubbleReadyRef.current = true;
+    });
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [isMobile, activeMobileSection, mobileNavColorBySection]);
+
+  useEffect(() => {
+    if (!isMobile || !activeMobileSection) return undefined;
+
+    const handleResize = () => {
+      moveMobileNavBubble(activeMobileSection, true);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile, activeMobileSection, mobileNavColorBySection]);
 
   useEffect(() => {
     if (!mobileProfileMenuOpen) return undefined;
@@ -3973,29 +4580,6 @@ export default function App() {
         }}
       >
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          style={{
-            position: "absolute",
-            top: isMobile ? 10 : 16,
-            right: isMobile ? 10 : 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            border: "1px solid var(--border, #e2e8f0)",
-            background: "var(--card-bg, #fff)",
-            color: "var(--text-color, #1e293b)",
-            borderRadius: 999,
-            padding: "8px 12px",
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: "pointer",
-            zIndex: 2,
-          }}
-        >
-          <span>{darkMode ? "\u2600\uFE0F" : "\u{1F319}"}</span>
-          <span>{darkMode ? "Light" : "Dark"}</span>
-        </button>
         <div
           style={{
             width: "100%",
@@ -4049,21 +4633,21 @@ export default function App() {
         );
       case "assets":
         return (
-          <AssetsPage
-            assets={assets}
-            currency={currency}
-            onAdd={addAsset}
-            onDelete={deleteAsset}
-            openAssetComposerRequest={assetComposerRequest}
-            onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
-          />
-        );
-      case "liabilities": return <LiabilitiesPage liabilities={liabilities} currency={currency} onAdd={addLiability} onDelete={deleteLiability} />;
+              <AssetsPage
+                assets={assets}
+                currency={currency}
+                onAdd={addAsset}
+                onUpdate={updateAsset}
+                onDelete={deleteAsset}
+                openAssetComposerRequest={assetComposerRequest}
+                onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
+              />        );
+      case "liabilities": return <LiabilitiesPage liabilities={liabilities} currency={currency} onAdd={addLiability} onUpdate={updateLiability} onDelete={deleteLiability} />;
       case "networth": return <NetWorthPage assets={assets} liabilities={liabilities} currency={currency} snapshots={snapshots} onSnapshot={() => takeSnapshot(true)} isMobile={isMobile} />;
       case "goals": return <GoalsPage assets={assets} currency={currency} />;
       case "allocation": return <AllocationPage assets={assets} currency={currency} />;
-      case "income": return <IncomePage incomes={incomes} currency={currency} onAdd={addIncome} onDelete={deleteIncome} onImportIncome={importIncomeEntries} onImportExpense={importExpenseEntries} />;
-      case "expenses": return <ExpensesPage expenses={expenses} currency={currency} onAdd={addExpense} onDelete={deleteExpense} onImportIncome={importIncomeEntries} onImportExpense={importExpenseEntries} />;
+      case "income": return <IncomePage incomes={incomes} currency={currency} onAdd={addIncome} onUpdate={updateIncome} onDelete={deleteIncome} onImportIncome={importIncomeEntries} onImportExpense={importExpenseEntries} />;
+      case "expenses": return <ExpensesPage expenses={expenses} currency={currency} onAdd={addExpense} onUpdate={updateExpense} onDelete={deleteExpense} onImportIncome={importIncomeEntries} onImportExpense={importExpenseEntries} />;
       case "insights": return <InsightsPage assets={assets} liabilities={liabilities} currency={currency} />;
       case "settings":
         return (
@@ -4072,14 +4656,10 @@ export default function App() {
             <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Manage your preferences</p>
             <div style={{ display: "grid", gap: 16, maxWidth: 500 }}>
               <div style={cardStyle}>
-                <div style={{ fontWeight: 600, marginBottom: 12, color: "var(--text-color, #1e293b)" }}>Display</div>
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  style={{ ...btnStyle, width: "100%", justifyContent: "space-between" }}
-                >
-                  <span>{darkMode ? "Dark Mode" : "Light Mode"}</span>
-                  <span>{darkMode ? "\u{1F319}" : "\u2600\uFE0F"}</span>
-                </button>
+                <div style={{ fontWeight: 600, marginBottom: 6, color: "var(--text-color, #1e293b)" }}>Display</div>
+                <div style={{ color: "var(--muted, #64748b)", fontSize: TYPE_SCALE.meta }}>
+                  Liquid glass dark theme is enabled by default.
+                </div>
               </div>
             </div>
           </div>
@@ -4096,8 +4676,9 @@ export default function App() {
   };
 
   return (
-    <AppShell $isMobile={isMobile}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <AppShell className="liquid-shell" $isMobile={isMobile}>
+      <Global styles={auroraStyles} />
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {!isMobile && (
         <SidebarRail $collapsed={sidebarCollapsed}>
@@ -4120,13 +4701,6 @@ export default function App() {
                 </div>
               )}
             </ProfileCard>
-            {!sidebarCollapsed && (
-              <SidebarSearch
-                value={sidebarSearch}
-                onChange={(event) => setSidebarSearch(event.target.value)}
-                placeholder="Search menus"
-              />
-            )}
           </SidebarTop>
 
           <SidebarNav>
@@ -4154,15 +4728,6 @@ export default function App() {
             <MenuButton
               $active={false}
               $collapsed={sidebarCollapsed}
-              onClick={() => setDarkMode((prev) => !prev)}
-              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              <SidebarGlyph name="theme" />
-              {!sidebarCollapsed && <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>}
-            </MenuButton>
-            <MenuButton
-              $active={false}
-              $collapsed={sidebarCollapsed}
               onClick={handleSignOut}
               title="Sign out"
             >
@@ -4173,97 +4738,99 @@ export default function App() {
         </SidebarRail>
       )}
 
-      <MainSurface $hasMobileNav={isMobile}>
-        <MainHeader>
-          <div>
-            <HeaderTitle>{pageTitle}</HeaderTitle>
-            <HeaderSubtitle>{pageSubtitle}</HeaderSubtitle>
-          </div>
-          <HeaderActions>
+      <MainSurface $hasMobileNav={isMobile} $isMobile={isMobile}>
+        <MainHeader
+          className={headerScrolled ? "top-glass-header is-scrolled" : "top-glass-header"}
+          $isMobile={isMobile}
+        >
+          {isMobile && (
+            <BrandLockup $isMobile={isMobile}>
+              <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+              <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+            </BrandLockup>
+          )}
+          {!isMobile && (
+            <HeaderSearch
+              $isMobile={isMobile}
+              value={sidebarSearch}
+              onChange={(event) => setSidebarSearch(event.target.value)}
+              placeholder="Search menus, sections, and pages"
+            />
+          )}
+          <HeaderActions $isMobile={isMobile}>
+            {!isMobile && (
+              <BrandLockup $isMobile={isMobile}>
+                <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+                <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+              </BrandLockup>
+            )}
             {isMobile && (
-              <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMobileProfileMenuOpen((prev) => !prev);
-                  }}
-                  title="Profile menu"
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {userAvatar ? (
-                    <ProfileAvatar src={userAvatar} alt={userName} style={{ width: 32, height: 32 }} />
-                  ) : (
-                    <ProfileFallback style={{ width: 32, height: 32, fontSize: TYPE_SCALE.micro }}>
-                      {(userName || "U").charAt(0).toUpperCase()}
-                    </ProfileFallback>
-                  )}
-                </button>
-                {mobileProfileMenuOpen && (
-                  <div
+              <>
+                <HeaderButton title="Dashboard" onClick={() => setActiveNav("dashboard")}>{"\u{1F3E0}"}</HeaderButton>
+                <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setMobileProfileMenuOpen((prev) => !prev);
+                    }}
+                    title="Profile menu"
                     style={{
-                      position: "absolute",
-                      right: 0,
-                      top: "calc(100% + 8px)",
-                      border: "1px solid var(--border, #e2e8f0)",
-                      borderRadius: 10,
-                      background: "var(--card-bg, #fff)",
-                      boxShadow: "0 12px 26px rgba(2, 6, 23, 0.2)",
-                      padding: 6,
-                      minWidth: 140,
-                      zIndex: 80,
+                      border: "none",
+                      background: "transparent",
+                      padding: 0,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    <button
-                      onClick={() => {
-                        setDarkMode((prev) => !prev);
-                        setMobileProfileMenuOpen(false);
-                      }}
+                    {userAvatar ? (
+                      <ProfileAvatar src={userAvatar} alt={userName} style={{ width: 36, height: 36 }} />
+                    ) : (
+                      <ProfileFallback style={{ width: 36, height: 36, fontSize: TYPE_SCALE.micro }}>
+                        {(userName || "U").charAt(0).toUpperCase()}
+                      </ProfileFallback>
+                    )}
+                  </button>
+                  {mobileProfileMenuOpen && (
+                    <div
                       style={{
-                        width: "100%",
-                        border: "none",
-                        background: "transparent",
-                        textAlign: "left",
-                        borderRadius: 8,
-                        padding: "8px 10px",
-                        color: "var(--text-color, #1e293b)",
-                        fontSize: TYPE_SCALE.meta,
-                        fontWeight: 600,
-                        cursor: "pointer",
+                        position: "absolute",
+                        right: 0,
+                        top: "calc(100% + 8px)",
+                        border: "1px solid var(--border, #e2e8f0)",
+                        borderRadius: 10,
+                        background: "var(--card-bg, #fff)",
+                        boxShadow: "0 12px 26px rgba(2, 6, 23, 0.2)",
+                        padding: 6,
+                        minWidth: 140,
+                        zIndex: 80,
                       }}
                     >
-                      {darkMode ? "Light Mode" : "Dark Mode"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setMobileProfileMenuOpen(false);
-                        handleSignOut();
-                      }}
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        background: "transparent",
-                        textAlign: "left",
-                        borderRadius: 8,
-                        padding: "8px 10px",
-                        color: "var(--text-color, #1e293b)",
-                        fontSize: TYPE_SCALE.meta,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
+                      <button
+                        onClick={() => {
+                          setMobileProfileMenuOpen(false);
+                          handleSignOut();
+                        }}
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "left",
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                          color: "var(--text-color, #1e293b)",
+                          fontSize: TYPE_SCALE.meta,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </HeaderActions>
         </MainHeader>
@@ -4286,66 +4853,59 @@ export default function App() {
         )}
 
         {activeSectionItems.length > 1 && (
-          <MainMenuTabs $isMobile={isMobile}>
+          <MainMenuTabs
+            $isMobile={isMobile}
+            $count={activeSectionItems.length}
+            $activeIndex={activeSectionTabIndex}
+          >
             {activeSectionItems.map((item) => (
               <MainMenuTab
                 key={item.id}
+                type="button"
+                className="segmented-tab-btn"
                 $active={activeNav === item.id}
-                onClick={() => setActiveNav(item.id)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setActiveNav(item.id);
+                }}
               >
-                <SidebarGlyph name={item.id} size={14} />
                 <span>{item.label}</span>
               </MainMenuTab>
             ))}
           </MainMenuTabs>
         )}
 
-        <MainScroll>{renderPage()}</MainScroll>
+        <MainScroll $hasMobileNav={isMobile} $isMobile={isMobile} onScroll={handleMainScroll}>
+          {renderPage()}
+        </MainScroll>
 
         {isMobile && (
-          <div
-            style={{
-              position: "fixed",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 120,
-              height: 66,
-              borderTop: "1px solid var(--border, #e2e8f0)",
-              background: "var(--sidebar-bg, #fff)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-around",
-            }}
-          >
-            {mobileNavItems.map((item) => (
-              <button
-                key={item.section}
-                onClick={() => {
-                  const section = navSections.find((navSection) => navSection.section === item.section);
-                  if (section) {
-                    navigateToSection(section);
-                  }
-                }}
-                style={{
-                  border: "none",
-                  background: "none",
-                  color: activeSection === item.section ? "var(--primary, #16a34a)" : "var(--muted, #64748b)",
-                  fontSize: TYPE_SCALE.micro,
-                  fontWeight: activeSection === item.section ? 700 : 600,
-                  display: "grid",
-                  gap: 4,
-                  justifyItems: "center",
-                  cursor: "pointer",
-                  padding: 0,
-                }}
-              >
-                <span style={{ fontSize: TYPE_SCALE.meta, display: "inline-flex" }}>
-                  <SidebarGlyph name={item.iconKey} size={14} />
-                </span>
-                <span>{item.label}</span>
-              </button>
-            ))}
+          <div className="mobile-fluid-nav-wrap bottom-navbar">
+            <div className="mobile-fluid-nav nav-glass" ref={mobileNavTrackRef}>
+              <div className="mobile-fluid-nav__bubble" ref={mobileBubbleRef} />
+              {mobileNavItems.map((item) => {
+                const isActive = activeMobileSection === item.section;
+                return (
+                  <button
+                    key={item.section}
+                    type="button"
+                    className={`mobile-fluid-nav__item${isActive ? " is-active" : ""}`}
+                    ref={setMobileNavButtonRef(item.section)}
+                    onClick={() => {
+                      const section = navSections.find((navSection) => navSection.section === item.section);
+                      if (!section) return;
+                      moveMobileNavBubble(item.section);
+                      navigateToSection(section);
+                    }}
+                  >
+                    <span className="mobile-fluid-nav__icon">
+                      <SidebarGlyph name={item.iconKey} size={22} />
+                    </span>
+                    <span className="mobile-fluid-nav__label">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </MainSurface>
@@ -4358,4 +4918,3 @@ export default function App() {
     </AppShell>
   );
 }
-
