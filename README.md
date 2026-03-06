@@ -23,11 +23,28 @@ service cloud.firestore {
     match /wealthtrackerUsers/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-  }
+}
 }
 ```
 
 Without Firebase env values, the app will show a configuration message on the login screen.
+
+### GitHub Pages Deployment Firebase Config
+
+The deployed build at `https://katboykarthi.github.io/WealthTracker/` is created in GitHub Actions, so it does not use your local `.env.local`.
+
+Set these repository secrets (Settings -> Secrets and variables -> Actions):
+- `REACT_APP_FIREBASE_API_KEY`
+- `REACT_APP_FIREBASE_AUTH_DOMAIN`
+- `REACT_APP_FIREBASE_PROJECT_ID`
+- `REACT_APP_FIREBASE_STORAGE_BUCKET`
+- `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
+- `REACT_APP_FIREBASE_APP_ID`
+
+The deploy workflow now:
+- Uses all six GitHub secrets when they are present.
+- Falls back to `.env.example` if secrets are missing.
+- Fails the build if any required Firebase variable is still empty.
 
 ## 🔒 Security Features
 

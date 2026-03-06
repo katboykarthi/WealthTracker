@@ -30,14 +30,57 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create .env file
+      - name: Prepare Firebase env
+        env:
+          REACT_APP_FIREBASE_API_KEY: ${{ secrets.REACT_APP_FIREBASE_API_KEY }}
+          REACT_APP_FIREBASE_AUTH_DOMAIN: ${{ secrets.REACT_APP_FIREBASE_AUTH_DOMAIN }}
+          REACT_APP_FIREBASE_PROJECT_ID: ${{ secrets.REACT_APP_FIREBASE_PROJECT_ID }}
+          REACT_APP_FIREBASE_STORAGE_BUCKET: ${{ secrets.REACT_APP_FIREBASE_STORAGE_BUCKET }}
+          REACT_APP_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}
+          REACT_APP_FIREBASE_APP_ID: ${{ secrets.REACT_APP_FIREBASE_APP_ID }}
         run: |
-          echo "REACT_APP_FIREBASE_API_KEY=${{ secrets.REACT_APP_FIREBASE_API_KEY }}" > .env
-          echo "REACT_APP_FIREBASE_AUTH_DOMAIN=${{ secrets.REACT_APP_FIREBASE_AUTH_DOMAIN }}" >> .env
-          echo "REACT_APP_FIREBASE_PROJECT_ID=${{ secrets.REACT_APP_FIREBASE_PROJECT_ID }}" >> .env
-          echo "REACT_APP_FIREBASE_STORAGE_BUCKET=${{ secrets.REACT_APP_FIREBASE_STORAGE_BUCKET }}" >> .env
-          echo "REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.REACT_APP_FIREBASE_MESSAGING_SENDER_ID }}" >> .env
-          echo "REACT_APP_FIREBASE_APP_ID=${{ secrets.REACT_APP_FIREBASE_APP_ID }}" >> .env
+          required_vars=(
+            REACT_APP_FIREBASE_API_KEY
+            REACT_APP_FIREBASE_AUTH_DOMAIN
+            REACT_APP_FIREBASE_PROJECT_ID
+            REACT_APP_FIREBASE_STORAGE_BUCKET
+            REACT_APP_FIREBASE_MESSAGING_SENDER_ID
+            REACT_APP_FIREBASE_APP_ID
+          )
+
+          has_all_secrets=true
+          for key in "${required_vars[@]}"; do
+            if [ -z "${!key}" ]; then
+              has_all_secrets=false
+              break
+            fi
+          done
+
+          if [ "$has_all_secrets" = true ]; then
+            cat > .env <<EOF
+REACT_APP_FIREBASE_API_KEY=${REACT_APP_FIREBASE_API_KEY}
+REACT_APP_FIREBASE_AUTH_DOMAIN=${REACT_APP_FIREBASE_AUTH_DOMAIN}
+REACT_APP_FIREBASE_PROJECT_ID=${REACT_APP_FIREBASE_PROJECT_ID}
+REACT_APP_FIREBASE_STORAGE_BUCKET=${REACT_APP_FIREBASE_STORAGE_BUCKET}
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${REACT_APP_FIREBASE_MESSAGING_SENDER_ID}
+REACT_APP_FIREBASE_APP_ID=${REACT_APP_FIREBASE_APP_ID}
+EOF
+            echo "Using Firebase config from GitHub secrets."
+          else
+            if [ ! -f .env.example ]; then
+              echo "::error::.env.example is missing and required Firebase secrets were not provided."
+              exit 1
+            fi
+            cp .env.example .env
+            echo "Using Firebase config from .env.example fallback."
+          fi
+
+          for key in "${required_vars[@]}"; do
+            if ! grep -Eq "^${key}=.+$" .env; then
+              echo "::error::Missing required Firebase config: ${key}"
+              exit 1
+            fi
+          done
 
       - name: Build app
         run: npm run build
