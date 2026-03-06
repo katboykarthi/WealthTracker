@@ -973,6 +973,7 @@ function Dashboard({
   useEffect(() => {
     if (!dashboardRef.current) return undefined;
 
+    // Run entrance animation only once per dashboard mount.
     const ctx = gsap.context(() => {
       gsap.fromTo(
         ".dashboard-anim",
@@ -989,7 +990,7 @@ function Dashboard({
     }, dashboardRef);
 
     return () => ctx.revert();
-  }, [activeTab, assets.length, liabilities.length, incomes.length, expenses.length]);
+  }, []);
 
   const handleSnapshot = () => {
     onToast?.("Snapshot captured and timeline updated.", "success");
@@ -1007,6 +1008,16 @@ function Dashboard({
     onToast?.(`Opening ${ASSET_TYPES.find((type) => type.id === selectedType)?.label || "asset"} flow.`, "info");
     onAddAsset?.(selectedType);
   };
+
+  const dashboardTabItems = [
+    { id: "overview", label: "Overview" },
+    { id: "holdings", label: "Holdings" },
+    { id: "cashflow", label: "Cashflow" },
+  ];
+  const activeDashboardTabIndex = Math.max(
+    0,
+    dashboardTabItems.findIndex((tab) => tab.id === activeTab)
+  );
 
   return (
     <DashboardWrap ref={dashboardRef} $isMobile={isMobile}>
@@ -1059,10 +1070,26 @@ function Dashboard({
         </StatCard>
       </StatGrid>
 
-      <DashboardTabs className="dashboard-anim">
-        <TabButton $active={activeTab === "overview"} onClick={() => setActiveTab("overview")}>Overview</TabButton>
-        <TabButton $active={activeTab === "holdings"} onClick={() => setActiveTab("holdings")}>Holdings</TabButton>
-        <TabButton $active={activeTab === "cashflow"} onClick={() => setActiveTab("cashflow")}>Cashflow</TabButton>
+      <DashboardTabs
+        className="dashboard-anim"
+        $isMobile={isMobile}
+        $count={dashboardTabItems.length}
+        $activeIndex={activeDashboardTabIndex}
+      >
+        {dashboardTabItems.map((tab) => (
+          <TabButton
+            key={tab.id}
+            type="button"
+            className="segmented-tab-btn"
+            $active={activeTab === tab.id}
+            onClick={(event) => {
+              event.preventDefault();
+              setActiveTab(tab.id);
+            }}
+          >
+            {tab.label}
+          </TabButton>
+        ))}
       </DashboardTabs>
 
       {activeTab === "overview" && (
@@ -2968,8 +2995,13 @@ const DASHBOARD_LAYOUT = {
   sectionGap: 32,
   sidebarWidth: 260,
   sidebarPadding: 20,
-  headerHeight: 60,
+  headerHeight: 72,
   headerSearchWidth: 300,
+};
+const MOBILE_LAYOUT = {
+  topNavHeight: 72,
+  bottomTabBarHeight: 88,
+  bottomTabBarOffset: 20,
 };
 
 const TABLE_PAGE_LENGTH = 10;
@@ -3177,37 +3209,88 @@ const SidebarBottom = styled.div({
   gap: 8,
 });
 
-const MainSurface = styled.main(({ $hasMobileNav }) => ({
+const MainSurface = styled.main(({ $hasMobileNav, $isMobile }) => ({
   flex: 1,
   minHeight: 0,
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
-  paddingBottom: $hasMobileNav ? 100 : 0,
+  position: "relative",
+  isolation: "isolate",
+  paddingTop: $isMobile ? `calc(${MOBILE_LAYOUT.topNavHeight}px + env(safe-area-inset-top, 0px))` : 0,
+  paddingBottom: 0,
 }));
 
 const MainHeader = styled.header(({ $isMobile }) => ({
-  position: "sticky",
-  top: 0,
-  zIndex: 40,
+  position: $isMobile ? "fixed" : "sticky",
+  top: $isMobile ? "env(safe-area-inset-top, 0px)" : 10,
+  left: $isMobile ? 12 : "auto",
+  right: $isMobile ? 12 : "auto",
+  zIndex: 140,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  height: $isMobile ? "64px" : DASHBOARD_LAYOUT.headerHeight,
+  height: MOBILE_LAYOUT.topNavHeight,
   gap: 16,
   padding: $isMobile ? "0 16px" : "0 28px",
-  borderBottom: "1px solid rgba(255,255,255,0.08)",
-  background: "rgba(255,255,255,0.04)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
+  margin: $isMobile ? 0 : "0 20px",
+  borderRadius: 24,
+  boxSizing: "border-box",
+  overflow: "hidden",
+  isolation: "isolate",
+  transition: "transform 220ms ease",
+  "&::before": {
+    content: '""',
+    position: "absolute",
+    left: 1,
+    right: 1,
+    top: 1,
+    height: 1,
+    borderRadius: 999,
+    background: "linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34), rgba(255,255,255,0.18))",
+    pointerEvents: "none",
+    zIndex: 1,
+    opacity: 0.9,
+  },
+  "& > *": {
+    position: "relative",
+    zIndex: 2,
+  },
 }));
 
 const HeaderTitle = styled.h1(({ $isMobile }) => ({
   margin: 0,
-  fontSize: $isMobile ? 24 : 28,
-  fontWeight: 600,
+  fontSize: $isMobile ? 22 : 26,
+  fontWeight: 700,
   color: "var(--heading-color, #1a2e1a)",
-  lineHeight: 1.2,
+  lineHeight: 1,
+  letterSpacing: 0.2,
+  textShadow: "0 1px 12px rgba(2, 6, 23, 0.45)",
+}));
+
+const BrandLockup = styled.div(({ $isMobile }) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: $isMobile ? 8 : 10,
+  minWidth: 0,
+}));
+
+const BrandLogo = styled.div(({ $isMobile }) => ({
+  width: $isMobile ? 30 : 34,
+  height: $isMobile ? 30 : 34,
+  borderRadius: 11,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#e2f5ff",
+  fontSize: $isMobile ? 13 : 14,
+  fontWeight: 800,
+  letterSpacing: 0.4,
+  border: "1px solid rgba(186, 230, 253, 0.45)",
+  background:
+    "radial-gradient(130% 120% at 18% 14%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0) 72%), linear-gradient(145deg, rgba(56,189,248,0.95) 0%, rgba(14,165,233,0.86) 52%, rgba(2,132,199,0.8) 100%)",
+  boxShadow: "0 8px 18px rgba(2,132,199,0.35), inset 0 1px 0 rgba(255,255,255,0.4)",
+  flexShrink: 0,
 }));
 
 const HeaderSubtitle = styled.p({
@@ -3216,11 +3299,13 @@ const HeaderSubtitle = styled.p({
   color: "var(--muted, #64748b)",
 });
 
-const HeaderActions = styled.div({
+const HeaderActions = styled.div(({ $isMobile }) => ({
   display: "inline-flex",
   alignItems: "center",
+  alignSelf: "center",
   gap: 10,
-});
+  height: $isMobile ? "100%" : "auto",
+}));
 
 const HeaderButton = styled.button({
   border: "1px solid rgba(255,255,255,0.12)",
@@ -3256,31 +3341,78 @@ const HeaderSearch = styled.input(({ $isMobile }) => ({
   boxSizing: "border-box",
 }));
 
-const MainScroll = styled.div({
+const MainScroll = styled.div(({ $hasMobileNav, $isMobile }) => ({
   flex: 1,
   minHeight: 0,
+  position: "relative",
+  zIndex: 1,
   overflowY: "auto",
   overflowX: "hidden",
-});
-
-const MainMenuTabs = styled.div(({ $isMobile }) => ({
-  height: "44px",
-  padding: "4px",
-  borderRadius: 12,
-  display: "inline-flex",
-  alignItems: "stretch",
-  border: "1px solid var(--border, #e2e8f0)",
-  background: "var(--card-bg, #fff)",
-  margin: $isMobile ? "8px 12px 0" : "8px 28px 0",
-  overflow: "hidden",
-  width: $isMobile ? "calc(100% - 24px)" : "fit-content",
-  maxWidth: "100%",
+  boxSizing: "border-box",
+  WebkitOverflowScrolling: "touch",
+  paddingBottom: $hasMobileNav
+    ? `calc(${MOBILE_LAYOUT.bottomTabBarHeight + MOBILE_LAYOUT.bottomTabBarOffset}px + env(safe-area-inset-bottom, 0px))`
+    : 0,
+  scrollPaddingTop: $isMobile
+    ? `calc(${MOBILE_LAYOUT.topNavHeight}px + env(safe-area-inset-top, 0px) + 12px)`
+    : DASHBOARD_LAYOUT.headerHeight,
+  scrollPaddingBottom: $hasMobileNav
+    ? `calc(${MOBILE_LAYOUT.bottomTabBarHeight + MOBILE_LAYOUT.bottomTabBarOffset}px + env(safe-area-inset-bottom, 0px))`
+    : 24,
 }));
 
-const MainMenuTab = styled.button(({ $active, $isMobile }) => ({
+const MainMenuTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) => {
+  const safeCount = Math.max(1, Number($count) || 1);
+  const clampedIndex = Math.min(Math.max(0, Number($activeIndex) || 0), safeCount - 1);
+  return {
+    position: "relative",
+    height: "44px",
+    padding: "4px",
+    borderRadius: 999,
+    display: "grid",
+    gridTemplateColumns: `repeat(${safeCount}, minmax(0, 1fr))`,
+    alignItems: "stretch",
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(25px)",
+    WebkitBackdropFilter: "blur(25px)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
+    margin: $isMobile ? "16px 12px 0" : "20px 28px 0",
+    overflow: "hidden",
+    width: $isMobile ? "calc(100% - 24px)" : "min(620px, calc(100% - 56px))",
+    maxWidth: "100%",
+    isolation: "isolate",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 4,
+      bottom: 4,
+      left: 4,
+      width: `calc((100% - 8px) / ${safeCount})`,
+      transform: `translateX(${clampedIndex * 100}%)`,
+      borderRadius: 999,
+      border: "1px solid rgba(255,255,255,0.22)",
+      background:
+        "linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.14) 48%, rgba(56,189,248,0.2) 100%)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.42), inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px rgba(14,165,233,0.24)",
+      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      pointerEvents: "none",
+      zIndex: 0,
+    },
+    "& > *": {
+      position: "relative",
+      zIndex: 1,
+    },
+  };
+});
+
+const MainMenuTab = styled.button(({ $active }) => ({
+  width: "100%",
+  height: "100%",
   border: "none",
-  background: $active ? "rgba(255,255,255,0.12)" : "transparent",
-  color: $active ? "var(--text-color, #e5e7eb)" : "var(--muted, #9ca3af)",
+  borderRadius: 999,
+  background: "transparent",
+  color: $active ? "#f8fbff" : "rgba(229,231,235,0.72)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -3289,16 +3421,17 @@ const MainMenuTab = styled.button(({ $active, $isMobile }) => ({
   fontWeight: $active ? 700 : 600,
   cursor: "pointer",
   textAlign: "center",
-  flex: $isMobile ? 1 : "0 0 auto",
   minWidth: 0,
   whiteSpace: "nowrap",
-  "&:not(:last-of-type)": {
-    borderRight: "1px solid var(--border, #e2e8f0)",
-  },
+  textShadow: $active ? "0 1px 10px rgba(56,189,248,0.35)" : "none",
+  transform: $active ? "scale(1.05)" : "scale(1)",
+  transformOrigin: "center",
+  willChange: "transform",
+  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease, text-shadow 220ms ease",
 }));
 
 const PageSection = styled.div(({ $isMobile }) => ({
-  padding: $isMobile ? "20px 12px" : "20px 24px",
+  padding: $isMobile ? "24px 16px" : "20px 24px",
   maxWidth: 900,
   width: "100%",
   boxSizing: "border-box",
@@ -3310,7 +3443,7 @@ const PageHeader = styled.div(({ $isMobile }) => ({
   alignItems: $isMobile ? "flex-start" : "center",
   flexDirection: $isMobile ? "column" : "row",
   gap: $isMobile ? 12 : 0,
-  marginBottom: $isMobile ? 16 : DASHBOARD_LAYOUT.sectionGap,
+  marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
 }));
 
 const PageHeaderActions = styled.div(({ $isMobile }) => ({
@@ -3321,7 +3454,7 @@ const PageHeaderActions = styled.div(({ $isMobile }) => ({
 }));
 
 const DashboardWrap = styled.div(({ $isMobile }) => ({
-  padding: $isMobile ? "20px 16px" : "20px 24px",
+  padding: $isMobile ? "24px 16px" : "20px 24px",
   maxWidth: 1180,
   width: "100%",
   boxSizing: "border-box",
@@ -3331,7 +3464,7 @@ const HeroPanel = styled.section(({ $isMobile }) => ({
   borderRadius: 18,
   border: "1px solid rgba(255,255,255,0.12)",
   background: `var(--hero-gradient, ${heroGradient})`,
-  padding: $isMobile ? "18px 16px" : "22px 24px",
+  padding: $isMobile ? "16px 16px" : "22px 24px",
   marginBottom: DASHBOARD_LAYOUT.cardGap,
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "1.4fr auto",
@@ -3404,7 +3537,7 @@ const StatGrid = styled.div(({ $isMobile }) => ({
   display: "grid",
   gridTemplateColumns: $isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
   gap: DASHBOARD_LAYOUT.cardGap,
-  marginBottom: $isMobile ? 16 : DASHBOARD_LAYOUT.sectionGap,
+  marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
 }));
 
 const StatCard = styled.article`
@@ -3456,23 +3589,67 @@ const StatSub = styled.div({
   color: "var(--muted, #64748b)",
 });
 
-const DashboardTabs = styled.div({
-  display: "inline-flex",
-  border: "1px solid var(--border, #e2e8f0)",
-  borderRadius: 12,
-  background: "var(--card-bg, #fff)",
-  marginBottom: 16,
-  overflow: "hidden",
+const DashboardTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) => {
+  const safeCount = Math.max(1, Number($count) || 1);
+  const clampedIndex = Math.min(Math.max(0, Number($activeIndex) || 0), safeCount - 1);
+  return {
+    position: "relative",
+    display: "grid",
+    gridTemplateColumns: `repeat(${safeCount}, minmax(0, 1fr))`,
+    alignItems: "stretch",
+    height: 46,
+    padding: "4px",
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.06)",
+    backdropFilter: "blur(25px)",
+    WebkitBackdropFilter: "blur(25px)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
+    marginBottom: DASHBOARD_LAYOUT.cardGap,
+    width: $isMobile ? "100%" : "min(460px, 100%)",
+    maxWidth: "100%",
+    overflow: "hidden",
+    isolation: "isolate",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 4,
+      bottom: 4,
+      left: 4,
+      width: `calc((100% - 8px) / ${safeCount})`,
+      transform: `translateX(${clampedIndex * 100}%)`,
+      borderRadius: 999,
+      border: "1px solid rgba(255,255,255,0.22)",
+      background:
+        "linear-gradient(145deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.14) 48%, rgba(56,189,248,0.2) 100%)",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.42), inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px rgba(14,165,233,0.24)",
+      transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+      pointerEvents: "none",
+      zIndex: 0,
+    },
+    "& > *": {
+      position: "relative",
+      zIndex: 1,
+    },
+  };
 });
 
 const TabButton = styled.button(({ $active }) => ({
+  width: "100%",
+  height: "100%",
   border: "none",
-  background: $active ? "rgba(255,255,255,0.12)" : "transparent",
-  color: $active ? "var(--text-color, #e5e7eb)" : "var(--muted, #9ca3af)",
+  borderRadius: 999,
+  background: "transparent",
+  color: $active ? "#f8fbff" : "rgba(229,231,235,0.72)",
   padding: "9px 12px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: $active ? 700 : 600,
   cursor: "pointer",
+  textShadow: $active ? "0 1px 10px rgba(56,189,248,0.35)" : "none",
+  transform: $active ? "scale(1.05)" : "scale(1)",
+  transformOrigin: "center",
+  willChange: "transform",
+  transition: "transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease, text-shadow 220ms ease",
 }));
 
 const PanelGrid = styled.div(({ $isMobile }) => ({
@@ -3856,6 +4033,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   const saveTimeoutRef = useRef(null);
   const mobileNavTrackRef = useRef(null);
   const mobileBubbleRef = useRef(null);
@@ -3945,6 +4123,10 @@ export default function App() {
 
   const activeSection = activeSectionData?.section || null;
   const activeSectionItems = activeSectionData?.items || [];
+  const activeSectionTabIndex = Math.max(
+    0,
+    activeSectionItems.findIndex((item) => item.id === activeNav)
+  );
   const validNavIds = useMemo(() => navSections.flatMap((section) => section.items.map((item) => item.id)), [navSections]);
 
   const normalizedNavSearch = sidebarSearch.trim().toLowerCase();
@@ -4019,6 +4201,11 @@ export default function App() {
     const nextNav = getSectionTargetNav(section);
     if (!nextNav) return;
     setActiveNav(nextNav);
+  };
+
+  const handleMainScroll = (event) => {
+    const nextScrolled = event.currentTarget.scrollTop > 8;
+    setHeaderScrolled((prev) => (prev === nextScrolled ? prev : nextScrolled));
   };
 
   const setMobileNavButtonRef = (section) => (node) => {
@@ -4551,9 +4738,17 @@ export default function App() {
         </SidebarRail>
       )}
 
-      <MainSurface $hasMobileNav={isMobile}>
-        <MainHeader $isMobile={isMobile}>
-          {isMobile && <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>}
+      <MainSurface $hasMobileNav={isMobile} $isMobile={isMobile}>
+        <MainHeader
+          className={headerScrolled ? "top-glass-header is-scrolled" : "top-glass-header"}
+          $isMobile={isMobile}
+        >
+          {isMobile && (
+            <BrandLockup $isMobile={isMobile}>
+              <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+              <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+            </BrandLockup>
+          )}
           {!isMobile && (
             <HeaderSearch
               $isMobile={isMobile}
@@ -4562,8 +4757,13 @@ export default function App() {
               placeholder="Search menus, sections, and pages"
             />
           )}
-          <HeaderActions>
-            {!isMobile && <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>}
+          <HeaderActions $isMobile={isMobile}>
+            {!isMobile && (
+              <BrandLockup $isMobile={isMobile}>
+                <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+                <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+              </BrandLockup>
+            )}
             {isMobile && (
               <>
                 <HeaderButton title="Dashboard" onClick={() => setActiveNav("dashboard")}>{"\u{1F3E0}"}</HeaderButton>
@@ -4653,13 +4853,21 @@ export default function App() {
         )}
 
         {activeSectionItems.length > 1 && (
-          <MainMenuTabs $isMobile={isMobile}>
+          <MainMenuTabs
+            $isMobile={isMobile}
+            $count={activeSectionItems.length}
+            $activeIndex={activeSectionTabIndex}
+          >
             {activeSectionItems.map((item) => (
               <MainMenuTab
                 key={item.id}
+                type="button"
+                className="segmented-tab-btn"
                 $active={activeNav === item.id}
-                $isMobile={isMobile}
-                onClick={() => setActiveNav(item.id)}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setActiveNav(item.id);
+                }}
               >
                 <span>{item.label}</span>
               </MainMenuTab>
@@ -4667,11 +4875,13 @@ export default function App() {
           </MainMenuTabs>
         )}
 
-        <MainScroll>{renderPage()}</MainScroll>
+        <MainScroll $hasMobileNav={isMobile} $isMobile={isMobile} onScroll={handleMainScroll}>
+          {renderPage()}
+        </MainScroll>
 
         {isMobile && (
-          <div className="mobile-fluid-nav-wrap">
-            <div className="mobile-fluid-nav" ref={mobileNavTrackRef}>
+          <div className="mobile-fluid-nav-wrap bottom-navbar">
+            <div className="mobile-fluid-nav nav-glass" ref={mobileNavTrackRef}>
               <div className="mobile-fluid-nav__bubble" ref={mobileBubbleRef} />
               {mobileNavItems.map((item) => {
                 const isActive = activeMobileSection === item.section;
@@ -4689,7 +4899,7 @@ export default function App() {
                     }}
                   >
                     <span className="mobile-fluid-nav__icon">
-                      <SidebarGlyph name={item.iconKey} size={20} />
+                      <SidebarGlyph name={item.iconKey} size={22} />
                     </span>
                     <span className="mobile-fluid-nav__label">{item.label}</span>
                   </button>
