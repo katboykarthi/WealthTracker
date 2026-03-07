@@ -4,64 +4,76 @@
 // ================================================================
 
 // ── Shared inline styles ──────────────────────────────────────
+const windowGlassSurface =
+  "radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%), linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%), linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%)";
+const windowGlassAccentSurface =
+  "radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 44%, rgba(255,255,255,0) 70%), linear-gradient(135deg, rgba(56,189,248,0.34) 0%, rgba(14,165,233,0.24) 52%, rgba(6,182,212,0.18) 100%), linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%)";
+const windowGlassDangerSurface =
+  "radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 44%, rgba(255,255,255,0) 70%), linear-gradient(135deg, rgba(251,146,60,0.26) 0%, rgba(249,115,22,0.2) 100%), linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%)";
+const windowGlassBorder = "1px solid rgba(128,128,128,0.32)";
+const windowGlassRadius = "var(--window-glass-radius, 20px)";
+const windowGlassButtonRadius = "calc(var(--window-glass-radius, 20px) - 4px)";
+const windowGlassBlur = "blur(var(--window-glass-blur, 15px)) saturate(1.08)";
+const windowGlassButtonBlur = "blur(calc(var(--window-glass-blur, 15px) - 2px)) saturate(1.12)";
+const windowGlassPanelShadow = "0 18px 48px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.16)";
 
 export const buttonStyles = {
   primary: {
-    background: "radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.05) 46%, rgba(255,255,255,0) 68%), linear-gradient(135deg, rgba(56,189,248,0.68) 0%, rgba(14,165,233,0.52) 54%, rgba(6,182,212,0.46) 100%)",
+    background: windowGlassAccentSurface,
     color: "#fff",
-    border: "1px solid rgba(186,230,253,0.62)",
-    borderRadius: 12,
+    border: windowGlassBorder,
+    borderRadius: windowGlassButtonRadius,
     padding: "12px 24px",
     fontWeight: 700,
     fontSize: 14,
     cursor: "pointer",
     fontFamily: "inherit",
-    backdropFilter: "blur(14px) saturate(1.35)",
-    WebkitBackdropFilter: "blur(14px) saturate(1.35)",
-    boxShadow: "0 8px 26px rgba(14,165,233,0.32), inset 0 1px 0 rgba(255,255,255,0.34), inset 0 -1px 0 rgba(255,255,255,0.08)",
+    backdropFilter: windowGlassButtonBlur,
+    WebkitBackdropFilter: windowGlassButtonBlur,
+    boxShadow: "0 10px 26px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.22)",
     transition: "all 420ms cubic-bezier(0.22, 1, 0.36, 1)",
   },
   secondary: {
-    background: "radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.04) 48%, rgba(255,255,255,0) 70%), rgba(15,23,42,0.46)",
+    background: windowGlassSurface,
     color: "rgba(230,240,255,0.92)",
-    border: "1px solid rgba(186,230,253,0.24)",
-    borderRadius: 12,
+    border: windowGlassBorder,
+    borderRadius: windowGlassButtonRadius,
     padding: "12px 24px",
     fontWeight: 700,
     fontSize: 14,
     cursor: "pointer",
     fontFamily: "inherit",
-    backdropFilter: "blur(14px) saturate(1.25)",
-    WebkitBackdropFilter: "blur(14px) saturate(1.25)",
-    boxShadow: "0 8px 24px rgba(8,15,32,0.22), inset 0 1px 0 rgba(255,255,255,0.2)",
+    backdropFilter: windowGlassButtonBlur,
+    WebkitBackdropFilter: windowGlassButtonBlur,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.16)",
     transition: "all 360ms cubic-bezier(0.22, 1, 0.36, 1)",
   },
   danger: {
-    background: "radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.03) 44%, rgba(255,255,255,0) 66%), linear-gradient(135deg, rgba(251,146,60,0.64) 0%, rgba(249,115,22,0.46) 100%)",
+    background: windowGlassDangerSurface,
     color: "#fff",
-    border: "1px solid rgba(251,191,36,0.58)",
-    borderRadius: 12,
+    border: windowGlassBorder,
+    borderRadius: windowGlassButtonRadius,
     padding: "12px 24px",
     fontWeight: 700,
     fontSize: 14,
     cursor: "pointer",
     fontFamily: "inherit",
-    backdropFilter: "blur(14px) saturate(1.3)",
-    WebkitBackdropFilter: "blur(14px) saturate(1.3)",
-    boxShadow: "0 8px 24px rgba(249,115,22,0.28), inset 0 1px 0 rgba(255,255,255,0.3)",
+    backdropFilter: windowGlassButtonBlur,
+    WebkitBackdropFilter: windowGlassButtonBlur,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.18)",
     transition: "all 360ms cubic-bezier(0.22, 1, 0.36, 1)",
   },
 };
 
 export const cardStyle = {
-  background: "radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0) 68%), linear-gradient(145deg, rgba(255,255,255,0.11) 0%, rgba(255,255,255,0.04) 100%), linear-gradient(135deg, rgba(56,189,248,0.08) 0%, rgba(14,165,233,0.04) 56%, rgba(8,47,73,0.03) 100%)",
-  border: "1px solid rgba(186,230,253,0.24)",
-  borderRadius: 18,
+  background: windowGlassSurface,
+  border: windowGlassBorder,
+  borderRadius: windowGlassRadius,
   padding: "20px",
   color: "rgba(230,240,255,0.92)",
-  backdropFilter: "blur(24px) saturate(1.45)",
-  WebkitBackdropFilter: "blur(24px) saturate(1.45)",
-  boxShadow: "0 14px 40px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -1px 0 rgba(255,255,255,0.05)",
+  backdropFilter: windowGlassBlur,
+  WebkitBackdropFilter: windowGlassBlur,
+  boxShadow: windowGlassPanelShadow,
 };
 
 export const inputStyle = {
@@ -175,8 +187,8 @@ export function applyTheme(/* darkMode param ignored; always glass */) {
   root.style.setProperty("--accent-border", "rgba(56,189,248,0.32)");
 
   // Liquid glass tokens
-  root.style.setProperty("--glass-edge", "rgba(186,230,253,0.24)");
-  root.style.setProperty("--glass-shadow", "0 14px 40px rgba(0,0,0,0.34)");
+  root.style.setProperty("--glass-edge", "rgba(128,128,128,0.32)");
+  root.style.setProperty("--glass-shadow", "0 18px 48px rgba(0,0,0,0.4)");
   root.style.setProperty("--glass-inset", "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(255,255,255,0.05)");
   root.style.setProperty("--motion-fluid", "cubic-bezier(0.22, 1, 0.36, 1)");
   root.style.setProperty("--liquid-cyan", "rgba(56,189,248,0.22)");

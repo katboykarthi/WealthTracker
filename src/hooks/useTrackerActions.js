@@ -77,8 +77,17 @@ export function useTrackerActions({
     const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
     const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.value, 0);
     const total = totalAssets - totalLiabilities;
-    const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
-    setSnapshots((prev) => [...prev, { date: today, value: total }]);
+    const now = new Date();
+    const today = now.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" });
+    setSnapshots((prev) => [
+      ...prev,
+      {
+        id: `snapshot-${now.getTime()}`,
+        timestamp: now.toISOString(),
+        date: today,
+        value: total,
+      },
+    ]);
     if (navigateToNetWorth) {
       setActiveNav("networth");
     }

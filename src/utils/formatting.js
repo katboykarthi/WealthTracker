@@ -55,6 +55,84 @@ export function formatDate(date, format = 'short') {
   }
 }
 
+function getSnapshotDateObject(snapshot) {
+  if (!snapshot) return null;
+
+  const timestampCandidate = snapshot.timestamp || snapshot.createdAt || snapshot.dateTime;
+  if (timestampCandidate) {
+    const parsedTimestamp = new Date(timestampCandidate);
+    if (!Number.isNaN(parsedTimestamp.getTime())) {
+      return parsedTimestamp;
+    }
+  }
+
+  if (snapshot.date) {
+    const parsedDate = new Date(snapshot.date);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return parsedDate;
+    }
+  }
+
+  return null;
+}
+
+export function formatSnapshotLabel(snapshot, { includeTime = false, fallbackIndex } = {}) {
+  const dateObj = getSnapshotDateObject(snapshot);
+
+  if (dateObj) {
+    if (includeTime) {
+      return dateObj.toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: '2-digit',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    }
+
+    return dateObj.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: '2-digit',
+    });
+  }
+
+  if (typeof snapshot?.date === 'string' && snapshot.date.trim()) {
+    return snapshot.date;
+  }
+
+  return fallbackIndex !== undefined ? `Snapshot ${fallbackIndex + 1}` : 'Snapshot';
+}
+
+export function buildSnapshotChartData(snapshots = []) {
+  const totalByBaseLabel = snapshots.reduce((map, snapshot, index) => {
+    const baseLabel = formatSnapshotLabel(snapshot, { includeTime: false, fallbackIndex: index });
+    map.set(baseLabel, (map.get(baseLabel) || 0) + 1);
+    return map;
+  }, new Map());
+
+  const occurrenceByBaseLabel = new Map();
+
+  return snapshots.map((snapshot, index) => {
+    const baseLabel = formatSnapshotLabel(snapshot, { includeTime: false, fallbackIndex: index });
+    const occurrence = (occurrenceByBaseLabel.get(baseLabel) || 0) + 1;
+    occurrenceByBaseLabel.set(baseLabel, occurrence);
+
+    const hasTimestamp = Boolean(getSnapshotDateObject({ timestamp: snapshot?.timestamp || snapshot?.createdAt || snapshot?.dateTime }));
+    const hasDuplicateBaseLabel = (totalByBaseLabel.get(baseLabel) || 0) > 1;
+    const detailedLabel = formatSnapshotLabel(snapshot, { includeTime: hasTimestamp, fallbackIndex: index });
+    const suffix = !hasTimestamp && hasDuplicateBaseLabel ? ` · Snapshot ${occurrence}` : '';
+
+    return {
+      ...snapshot,
+      chartKey: snapshot?.id || snapshot?.timestamp || `${baseLabel}-${index}`,
+      chartTick: baseLabel,
+      tooltipLabel: `${detailedLabel}${suffix}`,
+      historyLabel: `${detailedLabel}${suffix}`,
+    };
+  });
+}
+
 /**
  * Gets current date in Indian locale format
  * @returns {string} Today's date

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import styled from "@emotion/styled";
 import { keyframes } from "@emotion/react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { CURRENCIES, ASSET_TYPES, LIABILITY_TYPES, GOAL_ICONS } from "../constants";
 import { formatCurrency } from "../utils/formatCurrency";
+import { buildSnapshotChartData } from "../utils/formatting";
 import { sanitizeInput } from "../utils/security";
 import { useIsMobile } from "../hooks/useWindowSize";
 import { parseHdfcStatementFile, buildImportedHdfcEntries } from "../services/hdfcImportService";
@@ -123,6 +125,8 @@ export function Dashboard({
     return [...incomeRows, ...expenseRows].sort((a, b) => b.amount - a.amount);
   }, [incomes, expenses, currency]);
 
+  const snapshotChartData = useMemo(() => buildSnapshotChartData(snapshots), [snapshots]);
+
   const pagedTableAssets = useMemo(
     () => getPaginatedRows(tableAssets, holdingsPage),
     [tableAssets, holdingsPage]
@@ -154,8 +158,17 @@ export function Dashboard({
   useEffect(() => {
     if (!showQuickPopover) return undefined;
     const closePopover = () => setShowQuickPopover(false);
+    const closePopoverOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setShowQuickPopover(false);
+      }
+    };
     window.addEventListener("click", closePopover);
-    return () => window.removeEventListener("click", closePopover);
+    window.addEventListener("keydown", closePopoverOnEscape);
+    return () => {
+      window.removeEventListener("click", closePopover);
+      window.removeEventListener("keydown", closePopoverOnEscape);
+    };
   }, [showQuickPopover]);
 
   useEffect(() => {
@@ -243,6 +256,30 @@ export function Dashboard({
     0,
     dashboardTabItems.findIndex((tab) => tab.id === activeTab)
   );
+  const quickActionsPopover = showQuickPopover && typeof document !== "undefined"
+    ? createPortal(
+      <PopoverCard
+        ref={quickPopoverRef}
+        role="menu"
+        onClick={(event) => event.stopPropagation()}
+        style={quickPopoverStyle || { opacity: 0, pointerEvents: "none" }}
+      >
+        <PopoverAction onClick={() => { setShowSnapshotModal(true); setShowQuickPopover(false); }}>
+          Save snapshot
+        </PopoverAction>
+        <PopoverAction onClick={() => { setShowAddModal(true); setShowQuickPopover(false); }}>
+          Open add asset
+        </PopoverAction>
+        <PopoverAction onClick={() => handleNavigate("expenses")}>
+          Open expenses page
+        </PopoverAction>
+        <PopoverAction onClick={() => handleNavigate("insights")}>
+          Open insights page
+        </PopoverAction>
+      </PopoverCard>,
+      document.body
+    )
+    : null;
 
   return (
     <DashboardWrap ref={dashboardRef} $isMobile={isMobile}>
@@ -256,27 +293,15 @@ export function Dashboard({
           <PrimaryButton onClick={() => setShowSnapshotModal(true)}>Take Snapshot</PrimaryButton>
           <SecondaryButton onClick={() => setShowAddModal(true)}>Add Asset</SecondaryButton>
           <FloatingArea ref={quickPopoverAnchorRef} onClick={(event) => event.stopPropagation()}>
-            <GhostButton onClick={() => setShowQuickPopover((prev) => !prev)}>Quick Actions</GhostButton>
-            {showQuickPopover && (
-              <PopoverCard
-                ref={quickPopoverRef}
-                style={quickPopoverStyle || { opacity: 0, pointerEvents: "none" }}
-              >
-                <PopoverAction onClick={() => { setShowSnapshotModal(true); setShowQuickPopover(false); }}>
-                  Save snapshot
-                </PopoverAction>
-                <PopoverAction onClick={() => { setShowAddModal(true); setShowQuickPopover(false); }}>
-                  Open add asset
-                </PopoverAction>
-                <PopoverAction onClick={() => handleNavigate("expenses")}>
-                  Open expenses page
-                </PopoverAction>
-                <PopoverAction onClick={() => handleNavigate("insights")}>
-                  Open insights page
-                </PopoverAction>
-              </PopoverCard>
-            )}
+            <GhostButton
+              aria-haspopup="menu"
+              aria-expanded={showQuickPopover}
+              onClick={() => setShowQuickPopover((prev) => !prev)}
+            >
+              Quick Actions
+            </GhostButton>
           </FloatingArea>
+          {quickActionsPopover}
         </ActionCluster>
       </HeroPanel>
 
@@ -329,10 +354,17 @@ export function Dashboard({
               <EmptyBlock>Take two snapshots to unlock trend visualization.</EmptyBlock>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={snapshots}>
-                  <XAxis dataKey="date" tick={{ fontSize: TYPE_SCALE.micro }} />
+                <LineChart data={snapshotChartData}>
+                  <XAxis
+                    dataKey="chartKey"
+                    tick={{ fontSize: TYPE_SCALE.micro }}
+                    tickFormatter={(value) => snapshotChartData.find((snapshot) => snapshot.chartKey === value)?.chartTick ?? value}
+                  />
                   <YAxis tick={{ fontSize: TYPE_SCALE.micro }} tickFormatter={(value) => formatCurrency(value, currency)} />
-                  <Tooltip formatter={(value) => formatCurrency(value, currency)} />
+                  <Tooltip
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel ?? ""}
+                    formatter={(value) => formatCurrency(value, currency)}
+                  />
                   <Line type="monotone" dataKey="value" stroke="#16a34a" strokeWidth={2.4} dot={{ r: 3, fill: "#16a34a" }} isAnimationActive />
                 </LineChart>
               </ResponsiveContainer>
@@ -1942,7 +1974,8 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
   const c = CURRENCIES.find((c) => c.code === currency) || CURRENCIES[0];
   const [currentPage, setCurrentPage] = useState(1);
 
-  const snapshotRows = useMemo(() => [...snapshots].reverse(), [snapshots]);
+  const snapshotChartData = useMemo(() => buildSnapshotChartData(snapshots), [snapshots]);
+  const snapshotRows = useMemo(() => [...snapshotChartData].reverse(), [snapshotChartData]);
   const pagedSnapshotRows = useMemo(
     () => getPaginatedRows(snapshotRows, currentPage),
     [snapshotRows, currentPage]
@@ -1982,10 +2015,17 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={snapshots}>
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+            <LineChart data={snapshotChartData}>
+              <XAxis
+                dataKey="chartKey"
+                tick={{ fontSize: 11 }}
+                tickFormatter={(value) => snapshotChartData.find((snapshot) => snapshot.chartKey === value)?.chartTick ?? value}
+              />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => formatCurrency(v, currency)} />
-              <Tooltip formatter={(v) => [formatCurrency(v, currency), "Net Worth"]} />
+              <Tooltip
+                labelFormatter={(_, payload) => payload?.[0]?.payload?.tooltipLabel ?? ""}
+                formatter={(v) => [formatCurrency(v, currency), "Net Worth"]}
+              />
               <Line type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={3} dot={{ fill: "var(--primary)", r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -2002,8 +2042,8 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
             <MobileDataList>
               {pagedSnapshotRows.map((snapshot, index) => (
                 <MobileRecordCard
-                  key={`${snapshot.date}-${index}`}
-                  title={snapshot.date}
+                  key={snapshot.chartKey || `${snapshot.date}-${index}`}
+                  title={snapshot.historyLabel || snapshot.date}
                   fields={[
                     {
                       label: "Net Worth",
@@ -2025,8 +2065,8 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
                 </thead>
                 <tbody>
                   {pagedSnapshotRows.map((snapshot, index) => (
-                    <tr key={index}>
-                      <TableCell>{snapshot.date}</TableCell>
+                    <tr key={snapshot.chartKey || index}>
+                      <TableCell>{snapshot.historyLabel || snapshot.date}</TableCell>
                       <TableCell style={{ color: snapshot.value >= 0 ? "#16a34a" : "#ef4444", fontWeight: 700 }}>
                         {c.symbol}{snapshot.value.toLocaleString()}
                       </TableCell>
@@ -2935,15 +2975,15 @@ const PopoverCard = styled.div({
   maxWidth: "calc(100vw - 32px)",
   overflow: "hidden",
   isolation: "isolate",
-  borderRadius: 14,
-  border: "1px solid rgba(186,230,253,0.22)",
+  borderRadius: 18,
+  border: "1px solid var(--window-glass-border-hover, rgba(255, 255, 255, 0.22))",
   background:
-    "radial-gradient(130% 120% at 0% 0%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 52%, rgba(255,255,255,0) 68%), linear-gradient(145deg, rgba(15,25,50,0.94) 0%, rgba(8,15,32,0.96) 100%)",
-  backdropFilter: "blur(30px) saturate(1.35)",
-  WebkitBackdropFilter: "blur(30px) saturate(1.35)",
-  boxShadow: "0 18px 44px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)",
-  padding: 6,
-  zIndex: 220,
+    "radial-gradient(130% 120% at 0% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 72%), linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%), linear-gradient(180deg, var(--window-glass-surface-strong-bg, rgba(128, 128, 128, 0.109804)) 0%, rgba(68,68,68,0.22) 100%)",
+  backdropFilter: "blur(calc(var(--window-glass-blur, 15px) + 10px)) saturate(1.22)",
+  WebkitBackdropFilter: "blur(calc(var(--window-glass-blur, 15px) + 10px)) saturate(1.22)",
+  boxShadow: "0 22px 48px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.18)",
+  padding: 8,
+  zIndex: 320,
   transition: "top 160ms ease, left 160ms ease, opacity 120ms ease",
   "&::before": {
     content: '""',
@@ -2963,18 +3003,19 @@ const PopoverCard = styled.div({
 const PopoverAction = styled.button({
   width: "100%",
   border: "none",
-  borderRadius: 8,
+  borderRadius: 12,
   background: "transparent",
   color: "var(--text-color, #e5e7eb)",
   textAlign: "left",
-  padding: "8px 10px",
+  padding: "10px 12px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
   cursor: "pointer",
-  transition: "background 160ms ease, color 160ms ease",
+  transition: "background 160ms ease, color 160ms ease, transform 160ms ease",
   "&:hover": {
     background: "rgba(255,255,255,0.08)",
     color: "#ffffff",
+    transform: "translateY(-1px)",
   },
 });
 

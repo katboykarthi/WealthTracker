@@ -13,15 +13,18 @@ const surfaceIn = keyframes`
 `;
 
 const GlassCard = styled.div`
-  border-radius: 18px;
+  border-radius: var(--window-glass-radius, 20px);
   padding: 22px;
   animation: ${surfaceIn} 240ms ease;
 
-  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
+  background:
+    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%);
+  backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+  -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+  border: 1px solid rgba(128,128,128,0.32);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.40), inset 0 1px rgba(255,255,255,0.16);
   position: relative;
   transition: all 0.3s ease;
 
@@ -30,14 +33,14 @@ const GlassCard = styled.div`
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+    background: linear-gradient(120deg, rgba(255,255,255,0.12), transparent 44%);
     pointer-events: none;
   }
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
       transform: translateY(-4px);
-      box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.46), inset 0 1px rgba(255,255,255,0.2);
     }
   }
 `;
