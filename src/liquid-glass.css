@@ -236,14 +236,16 @@ header {
 }
 header h1 { color: var(--heading-color) !important; }
 header p  { color: var(--muted) !important; }
-header button {
+button.header-action-btn {
   background: rgba(255,255,255,0.07) !important;
   border: 1px solid rgba(255,255,255,0.14) !important;
   border-radius: 8px !important;
   color: var(--muted) !important;
   transition: all 0.2s var(--g-ease) !important;
 }
-header button:hover { background: rgba(255,255,255,0.13) !important; border-color: rgba(255,255,255,0.25) !important; color: var(--text-color) !important; }
+@media (hover: hover) and (pointer: fine) {
+  button.header-action-btn:hover { background: rgba(255,255,255,0.13) !important; border-color: rgba(255,255,255,0.25) !important; color: var(--text-color) !important; }
+}
 
 /* ── 5. Stat Cards (StatCard → <article>) ─────────────────────── */
 article {
@@ -284,19 +286,21 @@ article::after {
   z-index: 0;
 }
 article > * { position: relative; z-index: 1; }
-article:hover {
-  transform: translateY(-4px) scale(1.02) !important;
-  background-position: 100% 0%, 0% 0%, 100% 100% !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22) !important;
-  border-color: rgba(186, 230, 253, 0.4) !important;
-  filter: saturate(1.1) brightness(1.04) !important;
-}
-article:hover::before {
-  transform: translateY(-2px);
-  opacity: 0.9;
-}
-article:hover::after {
-  animation: glassSweep 900ms var(--g-ease) 1;
+@media (hover: hover) and (pointer: fine) {
+  article:hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    background-position: 100% 0%, 0% 0%, 100% 100% !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+    border-color: rgba(186, 230, 253, 0.4) !important;
+    filter: saturate(1.1) brightness(1.04) !important;
+  }
+  article:hover::before {
+    transform: translateY(-2px);
+    opacity: 0.9;
+  }
+  article:hover::after {
+    animation: glassSweep 900ms var(--g-ease) 1;
+  }
 }
 
 /* ── 6. Panel Cards (PanelCard → <section>) ───────────────────── */
@@ -331,15 +335,17 @@ main section > *, section > * {
   position: relative;
   z-index: 1;
 }
-main section:hover, section:hover {
-  transform: translateY(-4px) scale(1.02) !important;
-  background-position: 100% 0%, 0% 0%, 100% 100% !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22) !important;
-  border-color: rgba(186, 230, 253, 0.34) !important;
-  filter: saturate(1.08) brightness(1.03) !important;
-}
-main section:hover::after, section:hover::after {
-  animation: glassSweep 900ms var(--g-ease) 1;
+@media (hover: hover) and (pointer: fine) {
+  main section:hover, section:hover {
+    transform: translateY(-4px) scale(1.02) !important;
+    background-position: 100% 0%, 0% 0%, 100% 100% !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+    border-color: rgba(186, 230, 253, 0.34) !important;
+    filter: saturate(1.08) brightness(1.03) !important;
+  }
+  main section:hover::after, section:hover::after {
+    animation: glassSweep 900ms var(--g-ease) 1;
+  }
 }
 
 /* Hero panel (first section in dashboard) – emerald tint */
@@ -357,7 +363,7 @@ div[style*="hero-gradient"] {
 }
 
 /* ── 7. Buttons ───────────────────────────────────────────────── */
-button:not(.mobile-fluid-nav__item) {
+button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn) {
   position: relative;
   overflow: hidden;
   transform: translateZ(0);
@@ -370,7 +376,7 @@ button:not(.mobile-fluid-nav__item) {
     background-color 0.2s var(--g-ease),
     background-position 0.2s var(--g-ease) !important;
 }
-button:not(.mobile-fluid-nav__item)::before {
+button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn)::before {
   content: "";
   position: absolute;
   left: -130%;
@@ -382,7 +388,7 @@ button:not(.mobile-fluid-nav__item)::before {
   opacity: 0;
   pointer-events: none;
 }
-button:not(.mobile-fluid-nav__item)::after {
+button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn)::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -392,22 +398,130 @@ button:not(.mobile-fluid-nav__item)::after {
   opacity: 0.7;
   transition: opacity 0.3s var(--g-ease);
 }
-button:not(.mobile-fluid-nav__item):hover {
-  transform: translateY(-1px) scale(1.03);
-  filter: saturate(1.1) brightness(1.04);
-}
-button:not(.mobile-fluid-nav__item):hover::before {
-  animation: buttonSweep 720ms var(--g-ease) 1;
-}
-button:not(.mobile-fluid-nav__item):hover::after {
-  opacity: 1;
-}
-button:not(.mobile-fluid-nav__item):active {
+button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):active {
   transform: translateY(0) scale(0.98) !important;
 }
-button:not(.mobile-fluid-nav__item):disabled {
+button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):disabled {
   transform: none !important;
   filter: none !important;
+}
+
+button.header-avatar-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+button.header-avatar-btn::before,
+button.header-avatar-btn::after {
+  content: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover {
+    transform: translateY(-1px) scale(1.03);
+    filter: saturate(1.1) brightness(1.04);
+  }
+  button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover::before {
+    animation: buttonSweep 720ms var(--g-ease) 1;
+  }
+  button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover::after {
+    opacity: 1;
+  }
+}
+
+/* Segmented tabs: subtle lift + underline glow */
+button.segmented-tab-btn {
+  position: relative;
+  overflow: hidden;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    transform 180ms var(--g-fluid),
+    color 180ms var(--g-ease),
+    text-shadow 180ms var(--g-ease),
+    filter 180ms var(--g-ease) !important;
+}
+button.segmented-tab-btn::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(125,211,252,0), rgba(125,211,252,0.95), rgba(125,211,252,0));
+  opacity: 0;
+  transform: scaleX(0.36);
+  transform-origin: center;
+  transition: transform 180ms var(--g-fluid), opacity 180ms var(--g-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+  button.segmented-tab-btn:hover {
+    transform: translateY(-1px) scale(1.018) !important;
+    color: #f8fbff !important;
+    text-shadow: 0 1px 10px rgba(125,211,252,0.38) !important;
+    filter: brightness(1.05);
+  }
+  button.segmented-tab-btn:hover::after {
+    opacity: 0.95;
+    transform: scaleX(1);
+  }
+}
+button.segmented-tab-btn:focus {
+  outline: none;
+}
+button.segmented-tab-btn:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.22),
+    0 0 0 2px rgba(125,211,252,0.7);
+}
+button.segmented-tab-btn:active {
+  transform: translateY(0) scale(0.992) !important;
+}
+
+/* Sidebar menu buttons: horizontal glide */
+button.sidebar-menu-btn {
+  will-change: transform, box-shadow;
+  transition:
+    transform 190ms var(--g-fluid),
+    box-shadow 220ms var(--g-ease),
+    background-color 200ms var(--g-ease),
+    border-color 200ms var(--g-ease),
+    color 200ms var(--g-ease) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.sidebar-menu-btn:hover {
+    transform: translateX(6px) !important;
+    box-shadow: inset 0 0 0 1px rgba(186,230,253,0.2), 0 8px 18px rgba(2,6,23,0.26) !important;
+  }
+}
+button.sidebar-menu-btn:active {
+  transform: translateX(2px) scale(0.995) !important;
+}
+
+/* Header quick action buttons: compact pop */
+button.header-action-btn {
+  transition:
+    transform 170ms var(--g-spring),
+    box-shadow 170ms var(--g-ease),
+    filter 170ms var(--g-ease),
+    background-color 170ms var(--g-ease),
+    border-color 170ms var(--g-ease) !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  button.header-action-btn:hover {
+    transform: translateY(-2px) scale(1.06) !important;
+    box-shadow: 0 10px 24px rgba(2,132,199,0.34) !important;
+    filter: saturate(1.16) brightness(1.07) !important;
+  }
+}
+button.header-action-btn:active {
+  transform: translateY(0) scale(0.985) !important;
 }
 
 /* Primary / liquid blue */
@@ -423,11 +537,13 @@ button[style*="#38bdf8"], button[style*="38bdf8"], button[style*="#16a34a"], but
   transition: all 0.2s var(--g-ease) !important;
   overflow: hidden; position: relative;
 }
-button[style*="#38bdf8"]:hover, button[style*="38bdf8"]:hover, button[style*="#16a34a"]:hover, button[style*="16a34a"]:hover {
-  transform: translateY(-1px) scale(1.03) !important;
-  background-position: 100% 100%, 0% 0% !important;
-  box-shadow: 0 10px 30px rgba(14,165,233,0.42), inset 0 1px 0 rgba(255,255,255,0.4) !important;
-  border-color: rgba(125,211,252,0.74) !important;
+@media (hover: hover) and (pointer: fine) {
+  button[style*="#38bdf8"]:hover, button[style*="38bdf8"]:hover, button[style*="#16a34a"]:hover, button[style*="16a34a"]:hover {
+    transform: translateY(-1px) scale(1.03) !important;
+    background-position: 100% 100%, 0% 0% !important;
+    box-shadow: 0 10px 30px rgba(14,165,233,0.42), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+    border-color: rgba(125,211,252,0.74) !important;
+  }
 }
 
 /* Danger / orange */
@@ -442,14 +558,16 @@ button[style*="var(--error"], button[style*="#f97316"], button[style*="f97316"],
   box-shadow: 0 4px 16px rgba(249,115,22,0.24) !important;
   transition: all 0.2s var(--g-ease) !important;
 }
-button[style*="var(--error"]:hover, button[style*="#f97316"]:hover, button[style*="f97316"]:hover, button[style*="#ef4444"]:hover, button[style*="ef4444"]:hover {
-  transform: translateY(-1px) scale(1.03) !important;
-  background-position: 100% 100%, 0% 0% !important;
-  box-shadow: 0 10px 28px rgba(249,115,22,0.36) !important;
+@media (hover: hover) and (pointer: fine) {
+  button[style*="var(--error"]:hover, button[style*="#f97316"]:hover, button[style*="f97316"]:hover, button[style*="#ef4444"]:hover, button[style*="ef4444"]:hover {
+    transform: translateY(-1px) scale(1.03) !important;
+    background-position: 100% 100%, 0% 0% !important;
+    box-shadow: 0 10px 28px rgba(249,115,22,0.36) !important;
+  }
 }
 
 /* Secondary / ghost */
-button[style*="card-bg"], button[style*="transparent"][style*="border"] {
+button:not(.header-avatar-btn)[style*="card-bg"], button:not(.header-avatar-btn)[style*="transparent"][style*="border"] {
   background:
     radial-gradient(125% 140% at 0% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 46%, rgba(255,255,255,0) 70%),
     rgba(255,255,255,0.07) !important;
@@ -458,7 +576,13 @@ button[style*="card-bg"], button[style*="transparent"][style*="border"] {
   backdrop-filter: blur(12px) saturate(1.2) !important;
   transition: all 0.2s var(--g-ease) !important;
 }
-button[style*="card-bg"]:hover { background: rgba(255,255,255,0.14) !important; border-color: rgba(186,230,253,0.34) !important; transform: translateY(-1px) scale(1.03) !important; }
+@media (hover: hover) and (pointer: fine) {
+  button:not(.header-avatar-btn)[style*="card-bg"]:hover {
+    background: rgba(255,255,255,0.14) !important;
+    border-color: rgba(186,230,253,0.34) !important;
+    transform: translateY(-1px) scale(1.03) !important;
+  }
+}
 
 /* ── 8. Inputs & Selects ──────────────────────────────────────── */
 input[type="text"], input[type="number"], input[type="email"], input:not([type]), select, textarea {
@@ -691,10 +815,16 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
   justify-items: center;
   gap: 2px;
   cursor: pointer;
+  overflow: hidden;
+  outline: none;
   padding: 6px 2px 7px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: color 0.22s ease, text-shadow 0.22s ease;
 }
 
@@ -718,6 +848,16 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
 
 .mobile-fluid-nav__item.is-active .mobile-fluid-nav__icon {
   transform: translateY(-1px) scale(1.08);
+}
+
+.mobile-fluid-nav__item:focus {
+  outline: none;
+}
+
+.mobile-fluid-nav__item:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.2),
+    0 0 0 2px rgba(125,211,252,0.7);
 }
 
 .mobile-fluid-nav__item:active .mobile-fluid-nav__icon {
@@ -767,11 +907,13 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
   to { opacity: 0; }
 }
 
-.glass-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: 0.3s ease;
+@media (hover: hover) and (pointer: fine) {
+  .glass-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: 0.3s ease;
+  }
 }
 
 .glass-primary {
