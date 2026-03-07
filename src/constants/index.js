@@ -41,13 +41,6 @@ export const NAV_ITEMS = [
     ],
   },
   {
-    section: "Plan",
-    items: [
-      { id: "goals", label: "Goals", icon: "🎯" },
-      { id: "allocation", label: "Allocation", icon: "🕐" },
-    ],
-  },
-  {
     section: "Money",
     items: [
       { id: "income", label: "Income", icon: "💼" },
@@ -62,6 +55,13 @@ export const NAV_ITEMS = [
 
     items: [
       { id: "settings", label: "Settings", icon: "⚙️" },
+    ],
+  },
+  {
+    section: "Plan",
+    items: [
+      { id: "goals", label: "Goals", icon: "🎯" },
+      { id: "allocation", label: "Allocation", icon: "🕐" },
     ],
   },
 ];
