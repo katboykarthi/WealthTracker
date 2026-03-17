@@ -1,7 +1,8 @@
 import { serifFontFamily } from "../../styles";
 import { formatCurrency } from "../../utils/formatCurrency";
 import StatCard from "../../components/cards/StatCard";
-import GlassCard from "../../components/ui/GlassCard";
+import LiquidGlassCard from "../../components/LiquidGlassCard";
+import { PageSection, PageHeader } from "../AppPages";
 
 export default function Plan({ assets, liabilities, currency, isMobile = false }) {
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
@@ -19,9 +20,13 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
   ];
 
   return (
-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 900, width: "100%", boxSizing: "border-box" }}>
-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Insights</h2>
-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Smart observations about your financial health</p>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
+        <div>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Insights</h2>
+          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Smart observations about your financial health</p>
+        </div>
+      </PageHeader>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <StatCard
@@ -44,15 +49,15 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
 
       <div style={{ display: "grid", gap: isMobile ? 12 : 14 }}>
         {insights.map((ins, i) => (
-          <GlassCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both", padding: isMobile ? 18 : 22 }}>
+          <LiquidGlassCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both", padding: isMobile ? 18 : 22 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ins.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{ins.icon}</div>
             <div>
               <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 4 }}>{ins.title}</div>
               <div style={{ color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>{ins.desc}</div>
             </div>
-          </GlassCard>
+          </LiquidGlassCard>
         ))}
       </div>
-    </div>
+    </PageSection>
   );
 }

@@ -1,0 +1,2589 @@
+﻿diff --git a/src/App.jsx b/src/App.jsx
+index db26fe9..c494391 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -42,6 +42,7 @@ export default function App() {
+     deleteExpense,
+     importIncomeEntries,
+     importExpenseEntries,
++    importAssetHoldings,
+     takeSnapshot,
+     openAssetComposer,
+     authUser,
+@@ -119,6 +120,7 @@ export default function App() {
+     deleteExpense,
+     importIncomeEntries,
+     importExpenseEntries,
++    importAssetHoldings,
+   });
+ 
+   return (
+diff --git a/src/components/cards/StatCard.jsx b/src/components/cards/StatCard.jsx
+index 27de78c..ef45448 100644
+--- a/src/components/cards/StatCard.jsx
++++ b/src/components/cards/StatCard.jsx
+@@ -1,5 +1,5 @@
+-import GlassCard from "../ui/GlassCard";
+-import { cardStyle, serifFontFamily } from "../../styles";
++import LiquidGlassCard from "../LiquidGlassCard";
++import { serifFontFamily } from "../../styles";
+ 
+ const TYPE_SCALE = {
+   h1: 30,
+@@ -21,13 +21,9 @@ export default function StatCard({ icon, label, value, sub, color, negative, ani
+     </>
+   );
+ 
+-  if (animated) {
+-    return <GlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>{content}</GlassCard>;
+-  }
+-
+   return (
+-    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
++    <LiquidGlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start", height: "100%" }}>
+       {content}
+-    </div>
++    </LiquidGlassCard>
+   );
+ }
+diff --git a/src/components/layout/AppShellStyles.jsx b/src/components/layout/AppShellStyles.jsx
+index 33720a1..a6fdf43 100644
+--- a/src/components/layout/AppShellStyles.jsx
++++ b/src/components/layout/AppShellStyles.jsx
+@@ -23,7 +23,6 @@ export const AppShell = styled.div(({ $isMobile }) => ({
+   height: "100dvh",
+   overflow: "hidden",
+   position: "relative",
+-  isolation: "isolate",
+   fontFamily: APP_FONT_STACK,
+   background: "transparent",
+   color: "var(--text-color, #1e293b)",
+diff --git a/src/components/layout/AppWorkspace.jsx b/src/components/layout/AppWorkspace.jsx
+index a64a07f..91d1e30 100644
+--- a/src/components/layout/AppWorkspace.jsx
++++ b/src/components/layout/AppWorkspace.jsx
+@@ -61,8 +61,6 @@ export default function AppWorkspace({
+           <TopNavbar
+             isMobile={isMobile}
+             headerScrolled={headerScrolled}
+-            sidebarSearch={sidebarSearch}
+-            onSidebarSearchChange={setSidebarSearch}
+             onDashboardClick={() => setActiveNav("dashboard")}
+             userAvatar={userAvatar}
+             userName={userName}
+@@ -94,7 +92,9 @@ export default function AppWorkspace({
+           />
+         )}
+       >
+-        {renderedPage}
++        <div style={{ color: "white", padding: "100px", fontSize: "24px" }}>
++          MINIMAL RENDER TEST - CAN YOU SEE THIS?
++        </div>
+       </PageContainer>
+ 
+       {toast && (
+diff --git a/src/components/layout/PageContainer.jsx b/src/components/layout/PageContainer.jsx
+index 8a27872..2739d2c 100644
+--- a/src/components/layout/PageContainer.jsx
++++ b/src/components/layout/PageContainer.jsx
+@@ -62,7 +62,7 @@ const MainMenuTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) =>
+     backdropFilter: "blur(25px)",
+     WebkitBackdropFilter: "blur(25px)",
+     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
+-    margin: $isMobile ? "16px 12px 0" : "20px 28px 0",
++    margin: $isMobile ? "16px auto 0" : "20px auto 0",
+     overflow: "hidden",
+     width: $isMobile ? "calc(100% - 24px)" : "min(620px, calc(100% - 56px))",
+     maxWidth: "100%",
+diff --git a/src/components/layout/Sidebar.jsx b/src/components/layout/Sidebar.jsx
+index af67803..a77c9fb 100644
+--- a/src/components/layout/Sidebar.jsx
++++ b/src/components/layout/Sidebar.jsx
+@@ -8,73 +8,49 @@ const DASHBOARD_LAYOUT = {
+ 
+ const SidebarRail = styled.aside(({ $collapsed }) => ({
+   width: $collapsed ? 84 : DASHBOARD_LAYOUT.sidebarWidth,
+-  background: "var(--sidebar-bg, #ffffff)",
+-  borderRight: "1px solid var(--border, #e2e8f0)",
++  background: "rgba(10, 15, 25, 0.25)",
++  backdropFilter: "blur(24px) saturate(1.2)",
++  WebkitBackdropFilter: "blur(24px) saturate(1.2)",
++  borderRight: "1px solid rgba(255,255,255,0.08)",
+   display: "flex",
+   flexDirection: "column",
+   minHeight: 0,
+   flexShrink: 0,
+-  overflow: "hidden",
+-  transition: "width 260ms cubic-bezier(0.22, 1, 0.36, 1)",
++  overflow: "hidden", // Essential for smooth collapse
++  transition: "width 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+   willChange: "width",
++  zIndex: 100, // keep above background
+ }));
+ 
+ const SidebarTop = styled.div(({ $collapsed }) => ({
+-  padding: $collapsed ? "16px 12px" : `${DASHBOARD_LAYOUT.sidebarPadding}px`,
+-  borderBottom: "1px solid var(--border, #e2e8f0)",
+-  display: "grid",
+-  gap: 14,
+-  flexShrink: 0,
+-}));
+-
+-const ProfileCard = styled.div(({ $collapsed }) => ({
+-  border: "1px solid rgba(255,255,255,0.1)",
+-  borderRadius: 14,
+-  padding: $collapsed ? "10px 8px" : "10px 12px",
++  padding: $collapsed ? "16px 12px" : `16px ${DASHBOARD_LAYOUT.sidebarPadding}px`,
++  borderBottom: "1px solid rgba(255,255,255,0.08)",
+   display: "flex",
+   alignItems: "center",
+-  justifyContent: $collapsed ? "center" : "flex-start",
+-  gap: $collapsed ? 0 : 10,
+-  cursor: "pointer",
+-}));
+-
+-const ProfileAvatar = styled.img({
+-  width: 38,
+-  height: 38,
+-  borderRadius: "50%",
+-  objectFit: "cover",
+-  border: "1px solid rgba(255,255,255,0.22)",
+   flexShrink: 0,
+-});
++  minHeight: 74,
++  transition: "padding 350ms cubic-bezier(0.22, 1, 0.36, 1)",
++}));
+ 
+-const ProfileFallback = styled.div({
+-  width: 38,
+-  height: 38,
+-  borderRadius: "50%",
+-  display: "inline-flex",
++const ToggleButton = styled.button(({ $collapsed }) => ({
++  width: 40,
++  height: 40,
++  borderRadius: 12,
++  border: "1px solid transparent",
++  background: "transparent",
++  color: "rgba(229,231,235,0.85)",
++  display: "flex",
+   alignItems: "center",
+   justifyContent: "center",
+-  fontWeight: 700,
+-  color: "#f8fafc",
+-  background: "linear-gradient(145deg, rgba(56,189,248,0.95), rgba(14,165,233,0.75))",
+-  border: "1px solid rgba(186,230,253,0.45)",
++  cursor: "pointer",
+   flexShrink: 0,
+-});
+-
+-const ProfileName = styled.div({
+-  fontWeight: 700,
+-  color: "var(--text-color, #1e293b)",
+-  fontSize: 13,
+-  maxWidth: 150,
+-  whiteSpace: "nowrap",
+-  overflow: "hidden",
+-  textOverflow: "ellipsis",
+-});
+-
+-const ProfileMeta = styled.div({
+-  fontSize: 11,
+-  color: "var(--muted, #64748b)",
+-});
++  transition: "background 200ms ease, color 200ms ease, transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
++  transform: $collapsed ? "translateX(10px)" : "translateX(0)",
++  "&:hover": {
++    background: "rgba(255,255,255,0.1)",
++    color: "#f8fafc",
++  },
++}));
+ 
+ const SidebarNav = styled.nav({
+   flex: 1,
+@@ -83,40 +59,46 @@ const SidebarNav = styled.nav({
+   overflowX: "hidden",
+   overflowY: "auto",
+   overscrollBehavior: "contain",
++  "&::-webkit-scrollbar": {
++    width: "4px",
++  },
++  "&::-webkit-scrollbar-thumb": {
++    background: "rgba(255,255,255,0.1)",
++    borderRadius: "4px",
++  },
+ });
+ 
+ const SectionBlock = styled.div({
+-  marginBottom: 10,
++  marginBottom: 8,
+ });
+ 
+ const MenuButton = styled.button(({ $active, $collapsed }) => ({
+   width: "100%",
+   border: "1px solid transparent",
+-  borderRadius: 10,
+-  marginBottom: 6,
+-  padding: $collapsed ? "12px 10px" : "12px 16px",
++  borderRadius: 12, // softer radius
++  padding: $collapsed ? "14px 22px" : "12px 16px",
+   background: $active ? "rgba(255,255,255,0.12)" : "transparent",
+-  color: $active ? "var(--text-color, #e5e7eb)" : "var(--muted, #9ca3af)",
++  color: $active ? "#f8fafc" : "rgba(229,231,235,0.65)",
+   display: "flex",
+   alignItems: "center",
+-  justifyContent: $collapsed ? "center" : "flex-start",
+-  gap: 10,
++  gap: 12,
+   cursor: "pointer",
+   fontSize: 14,
+   fontWeight: $active ? 600 : 500,
+   position: "relative",
+-  transition: "background 200ms ease, color 200ms ease, border-color 200ms ease",
++  transition: "background 200ms ease, color 200ms ease, padding 350ms cubic-bezier(0.22, 1, 0.36, 1)",
++  textShadow: $active ? "0 1px 8px rgba(0,0,0,0.5)" : "none",
+   "&:hover": {
+-    background: "rgba(255,255,255,0.07)",
+-    borderColor: "rgba(255,255,255,0.1)",
+-    color: "var(--text-color, #e5e7eb)",
++    background: "rgba(255,255,255,0.08)",
++    color: "#f8fafc",
+   },
+   "&::before": {
+     content: '""',
+     position: "absolute",
+-    left: 6,
+-    top: 8,
+-    bottom: 8,
++    left: 4,
++    top: "50%",
++    transform: "translateY(-50%)",
++    height: "60%",
+     width: 3,
+     borderRadius: 99,
+     background: "linear-gradient(180deg, rgba(125,211,252,0.95) 0%, rgba(56,189,248,0.78) 100%)",
+@@ -126,13 +108,21 @@ const MenuButton = styled.button(({ $active, $collapsed }) => ({
+   },
+ }));
+ 
+-const SidebarBottom = styled.div({
+-  borderTop: "1px solid var(--border, #e2e8f0)",
+-  padding: `12px 12px ${DASHBOARD_LAYOUT.sidebarPadding}px`,
++const LabelText = styled.span(({ $collapsed }) => ({
++  opacity: $collapsed ? 0 : 1,
++  transform: $collapsed ? "translateX(-15px)" : "translateX(0)",
++  transition: "opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
++  whiteSpace: "nowrap",
++}));
++
++const SidebarBottom = styled.div(({ $collapsed }) => ({
++  borderTop: "1px solid rgba(255,255,255,0.08)",
++  padding: $collapsed ? "12px" : `12px 12px ${DASHBOARD_LAYOUT.sidebarPadding}px`,
+   display: "grid",
+   gap: 8,
+   flexShrink: 0,
+-});
++  transition: "padding 350ms cubic-bezier(0.22, 1, 0.36, 1)",
++}));
+ 
+ export default function Sidebar({
+   collapsed,
+@@ -147,24 +137,14 @@ export default function Sidebar({
+   return (
+     <SidebarRail $collapsed={collapsed}>
+       <SidebarTop $collapsed={collapsed}>
+-        <ProfileCard
++        <ToggleButton
+           $collapsed={collapsed}
+-          style={{ minWidth: 0 }}
+           onClick={onToggleCollapsed}
+           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
++          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+         >
+-          {userAvatar ? (
+-            <ProfileAvatar src={userAvatar} alt={userName} />
+-          ) : (
+-            <ProfileFallback>{(userName || "U").charAt(0).toUpperCase()}</ProfileFallback>
+-          )}
+-          {!collapsed && (
+-            <div>
+-              <ProfileName>{userName}</ProfileName>
+-              <ProfileMeta>Personal workspace</ProfileMeta>
+-            </div>
+-          )}
+-        </ProfileCard>
++          <SidebarGlyph name="menu" size={20} />
++        </ToggleButton>
+       </SidebarTop>
+ 
+       <SidebarNav>
+@@ -182,14 +162,14 @@ export default function Sidebar({
+                 title={section.section}
+               >
+                 <SidebarGlyph name={sectionIconName} />
+-                {!collapsed && <span>{section.section}</span>}
++                <LabelText $collapsed={collapsed}>{section.section}</LabelText>
+               </MenuButton>
+             </SectionBlock>
+           );
+         })}
+       </SidebarNav>
+ 
+-      <SidebarBottom>
++      <SidebarBottom $collapsed={collapsed}>
+         <MenuButton
+           className="sidebar-menu-btn"
+           $active={false}
+@@ -198,7 +178,7 @@ export default function Sidebar({
+           title="Sign out"
+         >
+           <SidebarGlyph name="logout" />
+-          {!collapsed && <span>Sign Out</span>}
++          <LabelText $collapsed={collapsed}>Sign Out</LabelText>
+         </MenuButton>
+       </SidebarBottom>
+     </SidebarRail>
+diff --git a/src/components/layout/SidebarGlyph.jsx b/src/components/layout/SidebarGlyph.jsx
+index be4c7dc..5657655 100644
+--- a/src/components/layout/SidebarGlyph.jsx
++++ b/src/components/layout/SidebarGlyph.jsx
+@@ -15,6 +15,7 @@ export default function SidebarGlyph({ name, size = 16 }) {
+     insights: "\u{1F4A1}",
+     settings: "\u2699\uFE0F",
+     logout: "\u{1F6AA}",
++    menu: "\u2630",
+   };
+ 
+   const icon = map[String(name || "").toLowerCase()] || "\u2022";
+diff --git a/src/components/layout/TopNavbar.jsx b/src/components/layout/TopNavbar.jsx
+index d01d6fc..e5288a7 100644
+--- a/src/components/layout/TopNavbar.jsx
++++ b/src/components/layout/TopNavbar.jsx
+@@ -16,47 +16,30 @@ const MOBILE_LAYOUT = {
+ const MainHeader = styled.header(({ $isMobile }) => ({
+   position: $isMobile ? "fixed" : "sticky",
+   top: $isMobile ? "env(safe-area-inset-top, 0px)" : 10,
+-  left: $isMobile ? 12 : "auto",
+-  right: $isMobile ? 12 : "auto",
++  left: 0,
++  right: 0,
+   zIndex: 140,
+   display: "flex",
+   alignItems: "center",
+-  justifyContent: $isMobile ? "space-between" : "flex-start",
++  justifyContent: "space-between",
+   height: MOBILE_LAYOUT.topNavHeight,
+   gap: $isMobile ? 16 : 12,
+-  padding: $isMobile ? "0 16px" : "0 28px",
+-  margin: $isMobile ? 0 : "0 20px",
+-  borderRadius: 24,
++  padding: $isMobile ? "0 16px" : "0 24px",
++  margin: "0 auto",
++  maxWidth: 1180,
++  width: "100%",
+   boxSizing: "border-box",
+-  overflow: $isMobile ? "visible" : "hidden",
+-  isolation: "isolate",
+-  transition: "transform 220ms ease",
++  background: "transparent",
++  transition: "padding 220ms ease",
+   "@media (max-width: 1180px)": {
+-    gap: $isMobile ? 16 : 10,
+-    padding: $isMobile ? "0 16px" : "0 16px",
+-    margin: $isMobile ? 0 : "0 12px",
++    padding: $isMobile ? "0 16px" : "0 24px",
+   },
+-  "@media (max-width: 980px)": {
+-    gap: $isMobile ? 16 : 8,
+-    padding: $isMobile ? "0 16px" : "0 12px",
+-    margin: $isMobile ? 0 : "0 8px",
+-  },
+-  "&::before": {
+-    content: '""',
+-    position: "absolute",
+-    left: 1,
+-    right: 1,
+-    top: 1,
+-    height: 1,
+-    borderRadius: 999,
+-    background: "linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34), rgba(255,255,255,0.18))",
+-    pointerEvents: "none",
+-    zIndex: 1,
+-    opacity: 0.9,
+-  },
+-  "& > *": {
+-    position: "relative",
+-    zIndex: 2,
++  "&.is-scrolled": {
++    background: "rgba(10, 15, 25, 0.45)",
++    backdropFilter: "blur(24px) saturate(1.2)",
++    WebkitBackdropFilter: "blur(24px) saturate(1.2)",
++    boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
++    borderBottom: "1px solid rgba(255,255,255,0.08)",
+   },
+ }));
+ 
+@@ -81,20 +64,12 @@ const BrandLockup = styled.div(({ $isMobile }) => ({
+ }));
+ 
+ const BrandLogo = styled.div(({ $isMobile }) => ({
+-  width: $isMobile ? 30 : 34,
+-  height: $isMobile ? 30 : 34,
+-  borderRadius: 11,
+   display: "inline-flex",
+   alignItems: "center",
+   justifyContent: "center",
+   color: "#e2f5ff",
+-  fontSize: $isMobile ? 13 : 14,
++  fontSize: $isMobile ? 22 : 26,
+   fontWeight: 800,
+-  letterSpacing: 0.4,
+-  border: "1px solid rgba(186, 230, 253, 0.45)",
+-  background:
+-    "radial-gradient(130% 120% at 18% 14%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0) 72%), linear-gradient(145deg, rgba(56,189,248,0.95) 0%, rgba(14,165,233,0.86) 52%, rgba(2,132,199,0.8) 100%)",
+-  boxShadow: "0 8px 18px rgba(2,132,199,0.35), inset 0 1px 0 rgba(255,255,255,0.4)",
+   flexShrink: 0,
+ }));
+ 
+@@ -151,37 +126,11 @@ const HeaderSearch = styled.input(({ $isMobile }) => ({
+   },
+ }));
+ 
+-function ProfileAvatar({ userAvatar, userName }) {
+-  if (userAvatar) {
+-    return <img src={userAvatar} alt={userName} style={{ width: 36, height: 36, borderRadius: "50%" }} />;
+-  }
+-
+-  return (
+-    <div
+-      style={{
+-        width: 36,
+-        height: 36,
+-        borderRadius: "50%",
+-        display: "inline-flex",
+-        alignItems: "center",
+-        justifyContent: "center",
+-        fontWeight: 700,
+-        color: "#f8fafc",
+-        background: "linear-gradient(145deg, rgba(56,189,248,0.95), rgba(14,165,233,0.75))",
+-        border: "1px solid rgba(186,230,253,0.45)",
+-        fontSize: TYPE_SCALE.micro,
+-      }}
+-    >
+-      {(userName || "U").charAt(0).toUpperCase()}
+-    </div>
+-  );
+-}
++// Profile avatar removed per user request
+ 
+ export default function TopNavbar({
+   isMobile,
+   headerScrolled,
+-  sidebarSearch,
+-  onSidebarSearchChange,
+   onDashboardClick,
+   userAvatar,
+   userName,
+@@ -191,96 +140,19 @@ export default function TopNavbar({
+ }) {
+   return (
+     <MainHeader
+-      className={headerScrolled ? "top-glass-header is-scrolled" : "top-glass-header"}
++      className={headerScrolled ? "is-scrolled" : ""}
+       $isMobile={isMobile}
+     >
+-      {isMobile && (
+-        <BrandLockup $isMobile={isMobile}>
+-          <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+-          <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+-        </BrandLockup>
+-      )}
+-      {!isMobile && (
+-        <HeaderSearch
+-          $isMobile={isMobile}
+-          value={sidebarSearch}
+-          onChange={(event) => onSidebarSearchChange(event.target.value)}
+-          placeholder="Search menus, sections, and pages"
+-        />
+-      )}
++      <BrandLockup $isMobile={isMobile}>
++        <BrandLogo $isMobile={isMobile} aria-hidden="true">≡ƒî┐</BrandLogo>
++        <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
++      </BrandLockup>
+       <HeaderActions $isMobile={isMobile}>
+-        {!isMobile && (
+-          <BrandLockup $isMobile={isMobile}>
+-            <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
+-            <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+-          </BrandLockup>
+-        )}
+-        {isMobile && (
++        {isMobile ? (
+           <>
+             <HeaderButton className="header-action-btn" title="Dashboard" onClick={onDashboardClick}>{"\u{1F3E0}"}</HeaderButton>
+-            <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
+-              <button
+-                className="header-avatar-btn"
+-                onClick={(event) => {
+-                  event.stopPropagation();
+-                  setMobileProfileMenuOpen((prev) => !prev);
+-                }}
+-                title="Profile menu"
+-                aria-haspopup="menu"
+-                aria-expanded={mobileProfileMenuOpen}
+-                style={{
+-                  border: "none",
+-                  background: "transparent",
+-                  padding: 0,
+-                  borderRadius: "50%",
+-                  cursor: "pointer",
+-                  display: "inline-flex",
+-                  alignItems: "center",
+-                  justifyContent: "center",
+-                }}
+-              >
+-                <ProfileAvatar userAvatar={userAvatar} userName={userName} />
+-              </button>
+-              {mobileProfileMenuOpen && (
+-                <div
+-                  style={{
+-                    position: "absolute",
+-                    right: 0,
+-                    top: "calc(100% + 8px)",
+-                    border: "1px solid var(--border, #e2e8f0)",
+-                    borderRadius: 10,
+-                    background: "var(--card-bg, #fff)",
+-                    boxShadow: "0 12px 26px rgba(2, 6, 23, 0.2)",
+-                    padding: 6,
+-                    minWidth: 140,
+-                    zIndex: 80,
+-                  }}
+-                >
+-                  <button
+-                    onClick={() => {
+-                      setMobileProfileMenuOpen(false);
+-                      onSignOut();
+-                    }}
+-                    style={{
+-                      width: "100%",
+-                      border: "none",
+-                      background: "transparent",
+-                      textAlign: "left",
+-                      borderRadius: 8,
+-                      padding: "8px 10px",
+-                      color: "var(--text-color, #1e293b)",
+-                      fontSize: TYPE_SCALE.meta,
+-                      fontWeight: 600,
+-                      cursor: "pointer",
+-                    }}
+-                  >
+-                    Sign Out
+-                  </button>
+-                </div>
+-              )}
+-            </div>
+           </>
+-        )}
++        ) : null}
+       </HeaderActions>
+     </MainHeader>
+   );
+diff --git a/src/components/ui/GlassCard.jsx b/src/components/ui/GlassCard.jsx
+deleted file mode 100644
+index 99230a9..0000000
+--- a/src/components/ui/GlassCard.jsx
++++ /dev/null
+@@ -1,48 +0,0 @@
+-import styled from "@emotion/styled";
+-import { keyframes } from "@emotion/react";
+-
+-const surfaceIn = keyframes`
+-  from {
+-    opacity: 0;
+-    transform: translateY(10px);
+-  }
+-  to {
+-    opacity: 1;
+-    transform: translateY(0);
+-  }
+-`;
+-
+-const GlassCard = styled.div`
+-  border-radius: var(--window-glass-radius, 20px);
+-  padding: 22px;
+-  animation: ${surfaceIn} 240ms ease;
+-
+-  background:
+-    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%);
+-  backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+-  -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+-  border: 1px solid rgba(128,128,128,0.32);
+-  box-shadow: 0 18px 48px rgba(0,0,0,0.40), inset 0 1px rgba(255,255,255,0.16);
+-  position: relative;
+-  transition: all 0.3s ease;
+-
+-  &::after {
+-    content: "";
+-    position: absolute;
+-    inset: 0;
+-    border-radius: inherit;
+-    background: linear-gradient(120deg, rgba(255,255,255,0.12), transparent 44%);
+-    pointer-events: none;
+-  }
+-
+-  @media (hover: hover) and (pointer: fine) {
+-    &:hover {
+-      transform: translateY(-4px);
+-      box-shadow: 0 24px 60px rgba(0,0,0,0.46), inset 0 1px rgba(255,255,255,0.2);
+-    }
+-  }
+-`;
+-
+-export default GlassCard;
+diff --git a/src/hooks/useTrackerActions.js b/src/hooks/useTrackerActions.js
+index 6b483ad..e95e1e4 100644
+--- a/src/hooks/useTrackerActions.js
++++ b/src/hooks/useTrackerActions.js
+@@ -66,13 +66,125 @@ export function useTrackerActions({
+   }, [setExpenses]);
+ 
+   const importIncomeEntries = useCallback((entries) => {
+-    setIncomes((prev) => [...prev, ...entries]);
++    if (!Array.isArray(entries) || entries.length === 0) return;
++
++    setIncomes((prev) => {
++      const next = [...prev];
++
++      entries.forEach((incoming) => {
++        const incomingName = String(incoming.name || "").trim().toLowerCase();
++        if (!incomingName || !Number.isFinite(incoming.amount) || incoming.amount <= 0) {
++          return;
++        }
++
++        const existingIndex = next.findIndex(
++          (item) => String(item.name || "").trim().toLowerCase() === incomingName
++        );
++
++        if (existingIndex >= 0) {
++          const existing = next[existingIndex];
++          next[existingIndex] = {
++            ...existing,
++            amount: incoming.amount,
++            currency: incoming.currency || existing.currency,
++          };
++        } else {
++          next.push({
++            id: Date.now() + Math.random(),
++            name: incoming.name,
++            amount: incoming.amount,
++            currency: incoming.currency,
++          });
++        }
++      });
++
++      return next;
++    });
+   }, [setIncomes]);
+ 
+   const importExpenseEntries = useCallback((entries) => {
+-    setExpenses((prev) => [...prev, ...entries]);
++    if (!Array.isArray(entries) || entries.length === 0) return;
++
++    setExpenses((prev) => {
++      const next = [...prev];
++
++      entries.forEach((incoming) => {
++        const incomingName = String(incoming.name || "").trim().toLowerCase();
++        if (!incomingName || !Number.isFinite(incoming.amount) || incoming.amount <= 0) {
++          return;
++        }
++
++        const existingIndex = next.findIndex(
++          (item) => String(item.name || "").trim().toLowerCase() === incomingName
++        );
++
++        if (existingIndex >= 0) {
++          const existing = next[existingIndex];
++          next[existingIndex] = {
++            ...existing,
++            amount: incoming.amount,
++            currency: incoming.currency || existing.currency,
++          };
++        } else {
++          next.push({
++            id: Date.now() + Math.random(),
++            name: incoming.name,
++            amount: incoming.amount,
++            currency: incoming.currency,
++          });
++        }
++      });
++
++      return next;
++    });
+   }, [setExpenses]);
+ 
++  const importAssetHoldings = useCallback((entries) => {
++    if (!Array.isArray(entries) || entries.length === 0) return;
++
++    setAssets((prev) => {
++      const next = [...prev];
++
++      entries.forEach((incoming) => {
++        const incomingName = String(incoming.name || "").trim().toLowerCase();
++        const incomingTypeId = incoming.typeId;
++
++        if (!incomingName || !incomingTypeId || !Number.isFinite(incoming.value) || incoming.value <= 0) {
++          return;
++        }
++
++        const existingIndex = next.findIndex(
++          (asset) =>
++            String(asset.name || "").trim().toLowerCase() === incomingName &&
++            asset.typeId === incomingTypeId
++        );
++
++        if (existingIndex >= 0) {
++          const existing = next[existingIndex];
++          next[existingIndex] = {
++            ...existing,
++            value: incoming.value,
++            currency: incoming.currency || existing.currency,
++            notes: incoming.notes || existing.notes || "",
++          };
++        } else {
++          next.push({
++            id: Date.now() + Math.random(),
++            typeId: incomingTypeId,
++            name: incoming.name,
++            value: incoming.value,
++            currency: incoming.currency,
++            notes: incoming.notes || "",
++          });
++        }
++      });
++
++      return next;
++    });
++
++    pushToast("AngelOne holdings imported successfully.", "success");
++  }, [setAssets, pushToast]);
++
+   const takeSnapshot = useCallback((navigateToNetWorth = false) => {
+     const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
+     const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.value, 0);
+@@ -115,6 +227,7 @@ export function useTrackerActions({
+     deleteExpense,
+     importIncomeEntries,
+     importExpenseEntries,
++    importAssetHoldings,
+     takeSnapshot,
+     openAssetComposer,
+   };
+diff --git a/src/hooks/useTrackerRuntime.js b/src/hooks/useTrackerRuntime.js
+index 308198c..6586040 100644
+--- a/src/hooks/useTrackerRuntime.js
++++ b/src/hooks/useTrackerRuntime.js
+@@ -60,6 +60,7 @@ export function useTrackerRuntime() {
+     deleteExpense,
+     importIncomeEntries,
+     importExpenseEntries,
++    importAssetHoldings,
+     takeSnapshot,
+     openAssetComposer,
+   } = useTrackerActions({
+@@ -181,6 +182,7 @@ export function useTrackerRuntime() {
+     deleteExpense,
+     importIncomeEntries,
+     importExpenseEntries,
++    importAssetHoldings,
+     takeSnapshot,
+     openAssetComposer,
+     authUser,
+diff --git a/src/index.js b/src/index.js
+index a787857..e5e2db0 100644
+--- a/src/index.js
++++ b/src/index.js
+@@ -1,3 +1,4 @@
++import "./background.css";
+ import mountApp from "./main";
+ 
+ mountApp();
+diff --git a/src/liquid-glass.css b/src/liquid-glass.css
+index 7ab4316..0152ca6 100644
+--- a/src/liquid-glass.css
++++ b/src/liquid-glass.css
+@@ -24,48 +24,49 @@
+ /* ΓöÇΓöÇ 1. CSS Variable Override (shadows applyTheme in styles/index.js) ΓöÇΓöÇ */
+ :root,
+ html {
+-  --bg:             transparent !important;
+-  --sidebar-bg:     rgba(5, 10, 22, 0.86) !important;
+-  --card-bg:        rgba(255, 255, 255, 0.06) !important;
+-  --card-border:    rgba(255, 255, 255, 0.14) !important;
+-  --bg-light:       rgba(255, 255, 255, 0.04) !important;
+-  --muted-bg:       rgba(255, 255, 255, 0.06) !important;
+-  --danger-bg:      rgba(249, 115, 22, 0.14) !important;
+-  --info-bg:        rgba(96,  165, 250, 0.10) !important;
+-  --info-border:    rgba(96,  165, 250, 0.25) !important;
+-  --input-bg:       rgba(255, 255, 255, 0.07) !important;
+-  --modal-bg:       #0b1220 !important;
+-  --modal-border:   rgba(148, 163, 184, 0.34) !important;
+-  --modal-text:     rgba(230, 240, 255, 0.94) !important;
+-  --modal-muted:    rgba(180, 200, 230, 0.72) !important;
++  --bg: transparent !important;
++  --sidebar-bg: rgba(5, 10, 22, 0.86) !important;
++  --card-bg: rgba(255, 255, 255, 0.06) !important;
++  --card-border: rgba(255, 255, 255, 0.14) !important;
++  --bg-light: rgba(255, 255, 255, 0.04) !important;
++  --muted-bg: rgba(255, 255, 255, 0.06) !important;
++  --danger-bg: rgba(249, 115, 22, 0.14) !important;
++  --info-bg: rgba(96, 165, 250, 0.10) !important;
++  --info-border: rgba(96, 165, 250, 0.25) !important;
++  --input-bg: rgba(255, 255, 255, 0.07) !important;
++  --modal-bg: #0b1220 !important;
++  --modal-border: rgba(148, 163, 184, 0.34) !important;
++  --modal-text: rgba(230, 240, 255, 0.94) !important;
++  --modal-muted: rgba(180, 200, 230, 0.72) !important;
+   --modal-backdrop: rgba(2, 6, 23, 0.72) !important;
+-  --border:         rgba(255, 255, 255, 0.13) !important;
+-  --input-border:   rgba(255, 255, 255, 0.18) !important;
+-  --accent-border:  rgba(52,  211, 153, 0.30) !important;
+-  --text-color:     rgba(230, 240, 255, 0.92) !important;
+-  --heading-color:  rgba(255, 255, 255, 0.95) !important;
+-  --muted:          rgba(180, 200, 230, 0.60) !important;
+-  --muted-light:    rgba(180, 200, 230, 0.40) !important;
+-  --input-text:     rgba(230, 240, 255, 0.92) !important;
+-  --label-color:    rgba(180, 200, 230, 0.65) !important;
+-  --primary:        #38bdf8 !important;
+-  --error:          #f97316 !important;
+-  --warning:        #fbbf24 !important;
+-  --info:           #60a5fa !important;
+-  --accent-dark:    #7dd3fc !important;
+-  --accent-bg:      rgba(56, 189, 248, 0.14) !important;
++  --border: rgba(255, 255, 255, 0.13) !important;
++  --input-border: rgba(255, 255, 255, 0.18) !important;
++  --accent-border: rgba(52, 211, 153, 0.30) !important;
++  --text-color: rgba(230, 240, 255, 0.92) !important;
++  --heading-color: rgba(255, 255, 255, 0.95) !important;
++  --muted: rgba(180, 200, 230, 0.60) !important;
++  --muted-light: rgba(180, 200, 230, 0.40) !important;
++  --input-text: rgba(230, 240, 255, 0.92) !important;
++  --label-color: rgba(180, 200, 230, 0.65) !important;
++  --primary: #38bdf8 !important;
++  --error: #f97316 !important;
++  --warning: #fbbf24 !important;
++  --info: #60a5fa !important;
++  --accent-dark: #7dd3fc !important;
++  --accent-bg: rgba(56, 189, 248, 0.14) !important;
+   --hero-gradient:
+     linear-gradient(135deg,
+-      rgba(56,189,248,0.22) 0%,
+-      rgba(14,165,233,0.12) 54%,
+-      rgba(8,47,73,0.08) 100%) !important;
++      rgba(56, 189, 248, 0.22) 0%,
++      rgba(14, 165, 233, 0.12) 54%,
++      rgba(8, 47, 73, 0.08) 100%) !important;
+   --glass-hover-lift: -3px;
+   --glass-hover-scale: 1.008;
+   --btn-hover-lift: -1px;
+   --btn-hover-scale: 1.015;
+-  --g-spring: cubic-bezier(0.175, 0.885, 0.32, 2.2);
+-  --g-ease:   cubic-bezier(0.4, 0, 0.2, 1);
+-  --g-fluid:  cubic-bezier(0.22, 1, 0.36, 1);
++  /* Softer motion curves to avoid bouncy hover */
++  --g-spring: cubic-bezier(0.25, 0.8, 0.3, 1);
++  --g-ease: cubic-bezier(0.4, 0, 0.2, 1);
++  --g-fluid: cubic-bezier(0.25, 0.9, 0.3, 1);
+   --glass-top-light: rgba(255, 255, 255, 0.2);
+   --glass-edge: rgba(128, 128, 128, 0.32);
+   --glass-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+@@ -80,18 +81,18 @@ html {
+ }
+ 
+ /* ΓöÇΓöÇ 2. Page background ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-html, body {
++html,
++body {
+   background:
+     /* Create depth with multiple, dark, layered gradients */
+-    radial-gradient(circle at 15% 25%, rgba(20, 120, 150, 0.18) 0%, transparent 40%),
+-    radial-gradient(circle at 85% 65%, rgba(10, 80, 120, 0.22) 0%, transparent 50%),
+-    radial-gradient(circle at 50% 90%, rgba(0, 50, 100, 0.15) 0%, transparent 60%),
+-    linear-gradient(180deg, rgba(2, 6, 23, 0.84) 0%, rgba(7, 11, 20, 0.88) 40%, rgba(11, 18, 32, 0.94) 100%),
+-    url("./assets/images/trend-bg.png") center center / cover no-repeat fixed !important;
+-  background-attachment: fixed, fixed, fixed, fixed, fixed;
+-  background-position: center center, center center, center center, center center, center center;
+-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+-  background-size: 120% 120%, 100% 100%, 120% 120%, 100% 100%, cover;
++    radial-gradient(circle at 15% 25%, rgba(20, 120, 150, 0.14) 0%, transparent 40%),
++    radial-gradient(circle at 85% 65%, rgba(10, 80, 120, 0.18) 0%, transparent 50%),
++    radial-gradient(circle at 50% 90%, rgba(0, 50, 100, 0.12) 0%, transparent 60%),
++    linear-gradient(180deg, rgba(2, 6, 23, 0.78) 0%, rgba(7, 11, 20, 0.82) 40%, rgba(11, 18, 32, 0.9) 100%) !important;
++  background-attachment: fixed, fixed, fixed, fixed;
++  background-position: center center, center center, center center, center center;
++  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
++  background-size: 120% 120%, 100% 100%, 120% 120%, 100% 100%;
+   min-height: 100vh;
+   color: var(--text-color) !important;
+   font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+@@ -107,13 +108,14 @@ html::before {
+     radial-gradient(110% 90% at 0% 0%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 48%),
+     radial-gradient(100% 110% at 100% 100%, rgba(56, 189, 248, 0.16) 0%, rgba(56, 189, 248, 0) 52%),
+     linear-gradient(125deg, rgba(255, 255, 255, 0.05) 0%, transparent 46%, rgba(255, 255, 255, 0.03) 100%);
+-  mix-blend-mode: screen;
+-  opacity: 0.5;
++  mix-blend-mode: normal;
++  opacity: 0.15;
+   animation: liquidPan 26s linear infinite;
+ }
+ 
+ /* Ambient blobs */
+-body::before, body::after {
++body::before,
++body::after {
+   content: '';
+   position: fixed;
+   border-radius: 50%;
+@@ -121,37 +123,84 @@ body::before, body::after {
+   z-index: 0;
+   animation: glassBlob 14s ease-in-out infinite;
+ }
++
+ body::before {
+-  width: 520px; height: 520px; top: -120px; left: -120px;
+-  background: radial-gradient(circle, rgba(52,211,153,0.11) 0%, transparent 70%);
++  width: 520px;
++  height: 520px;
++  top: -120px;
++  left: -120px;
++  background: radial-gradient(circle, rgba(52, 211, 153, 0.11) 0%, transparent 70%);
+ }
++
+ body::after {
+-  width: 480px; height: 480px; bottom: -100px; right: -100px;
+-  background: radial-gradient(circle, rgba(96,165,250,0.11) 0%, transparent 70%);
++  width: 480px;
++  height: 480px;
++  bottom: -100px;
++  right: -100px;
++  background: radial-gradient(circle, rgba(96, 165, 250, 0.11) 0%, transparent 70%);
+   animation-delay: -6s;
+ }
++
+ @keyframes glassBlob {
+-  0%,100% { transform: translate(0,0) scale(1); }
+-  40%     { transform: translate(25px,-18px) scale(1.07); }
+-  70%     { transform: translate(-12px,14px) scale(0.95); }
++
++  0%,
++  100% {
++    transform: translate(0, 0) scale(1);
++  }
++
++  40% {
++    transform: translate(25px, -18px) scale(1.07);
++  }
++
++  70% {
++    transform: translate(-12px, 14px) scale(0.95);
++  }
+ }
+ 
+ @keyframes glassSweep {
+-  0%   { transform: translateX(-145%) skewX(-18deg); opacity: 0; }
+-  18%  { opacity: 0.26; }
+-  100% { transform: translateX(170%) skewX(-18deg); opacity: 0; }
++  0% {
++    transform: translateX(-145%) skewX(-18deg);
++    opacity: 0;
++  }
++
++  18% {
++    opacity: 0.26;
++  }
++
++  100% {
++    transform: translateX(170%) skewX(-18deg);
++    opacity: 0;
++  }
+ }
+ 
+ @keyframes buttonSweep {
+-  0%   { transform: translateX(-160%) rotate(16deg); opacity: 0; }
+-  22%  { opacity: 0.34; }
+-  100% { transform: translateX(210%) rotate(16deg); opacity: 0; }
++  0% {
++    transform: translateX(-160%) rotate(16deg);
++    opacity: 0;
++  }
++
++  22% {
++    opacity: 0.34;
++  }
++
++  100% {
++    transform: translateX(210%) rotate(16deg);
++    opacity: 0;
++  }
+ }
+ 
+ @keyframes liquidPan {
+-  0% { background-position: 0% 0%, 100% 100%, 0% 0%; }
+-  50% { background-position: 100% 0%, 0% 100%, 100% 100%; }
+-  100% { background-position: 0% 0%, 100% 100%, 0% 0%; }
++  0% {
++    background-position: 0% 0%, 100% 100%, 0% 0%;
++  }
++
++  50% {
++    background-position: 100% 0%, 0% 100%, 100% 100%;
++  }
++
++  100% {
++    background-position: 0% 0%, 100% 100%, 0% 0%;
++  }
+ }
+ 
+ @keyframes surfaceIn {
+@@ -159,6 +208,7 @@ body::after {
+     opacity: 0;
+     transform: translateY(10px) scale(0.988);
+   }
++
+   to {
+     opacity: 1;
+     transform: translateY(0) scale(1);
+@@ -170,18 +220,31 @@ body::after {
+     opacity: 0;
+     transform: translateY(8px) scale(0.985);
+   }
++
+   to {
+     opacity: 1;
+     transform: translateY(0) scale(1);
+   }
+ }
+ 
+-#root { background: transparent !important; position: relative; z-index: 1; }
++#root {
++  background: transparent !important;
++  position: relative;
++  z-index: 1;
++}
+ 
+ @keyframes liquidNoiseDrift {
+-  0% { transform: translate3d(0, 0, 0); }
+-  50% { transform: translate3d(-14px, -10px, 0); }
+-  100% { transform: translate3d(-28px, -18px, 0); }
++  0% {
++    transform: translate3d(0, 0, 0);
++  }
++
++  50% {
++    transform: translate3d(-14px, -10px, 0);
++  }
++
++  100% {
++    transform: translate3d(-28px, -18px, 0);
++  }
+ }
+ 
+ .liquid-shell::before,
+@@ -195,191 +258,110 @@ body::after {
+ 
+ .liquid-shell::before {
+   background:
+-    radial-gradient(130% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 54%),
+-    radial-gradient(110% 120% at 100% 100%, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0) 52%),
+-    linear-gradient(130deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.04) 100%);
+-  opacity: 0.55;
+-  mix-blend-mode: screen;
++    radial-gradient(130% 120% at 0% 0%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 54%),
++    radial-gradient(110% 120% at 100% 100%, rgba(56, 189, 248, 0.18) 0%, rgba(56, 189, 248, 0) 52%),
++    linear-gradient(130deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 42%, rgba(255, 255, 255, 0.03) 100%);
++  opacity: 0.15;
++  mix-blend-mode: normal;
+   animation: liquidPan 34s linear infinite;
+ }
+ 
+ .liquid-shell::after {
+   background-image:
+-    radial-gradient(circle at 20% 25%, rgba(255,255,255,0.16) 0 0.9px, transparent 1.2px),
+-    radial-gradient(circle at 65% 72%, rgba(255,255,255,0.13) 0 0.8px, transparent 1.1px),
+-    radial-gradient(circle at 82% 36%, rgba(255,255,255,0.1) 0 0.8px, transparent 1.1px);
++    radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.16) 0 0.9px, transparent 1.2px),
++    radial-gradient(circle at 65% 72%, rgba(255, 255, 255, 0.13) 0 0.8px, transparent 1.1px),
++    radial-gradient(circle at 82% 36%, rgba(255, 255, 255, 0.1) 0 0.8px, transparent 1.1px);
+   background-size: 3px 3px, 4px 4px, 5px 5px;
+   mix-blend-mode: soft-light;
+-  opacity: 0.07;
++  opacity: 0.05;
+   animation: liquidNoiseDrift 24s linear infinite;
+ }
+ 
+-.liquid-shell > * {
++.liquid-shell>* {
+   z-index: 1;
+ }
+ 
+ /* ΓöÇΓöÇ 3. Sidebar ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ aside {
+-  background: rgba(10,15,25,0.55) !important;
+-  backdrop-filter: blur(22px) saturate(1.4) !important;
+-  -webkit-backdrop-filter: blur(22px) saturate(1.4) !important;
+-  border-right: 1px solid rgba(255,255,255,0.12) !important;
+-  box-shadow: 0 12px 40px rgba(0,0,0,0.35) !important;
++  background: rgba(10, 15, 25, 0.55);
++  backdrop-filter: blur(22px) saturate(1.4);
++  -webkit-backdrop-filter: blur(22px) saturate(1.4);
++  border-right: 1px solid rgba(255, 255, 255, 0.12);
++  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+   animation: liquidPan 28s linear infinite;
+ }
+-aside input { background: rgba(255,255,255,0.07) !important; border: 1px solid rgba(255,255,255,0.14) !important; border-radius: 999px !important; color: var(--text-color) !important; }
+-aside input::placeholder { color: rgba(180,200,230,0.38) !important; }
+-aside nav button { border-radius: 10px !important; transition: all 0.25s var(--g-ease) !important; }
+-aside nav button:hover { background: rgba(255,255,255,0.09) !important; color: var(--heading-color) !important; }
++
++aside input {
++  background: rgba(255, 255, 255, 0.07);
++  border: 1px solid rgba(255, 255, 255, 0.14);
++  border-radius: 999px;
++  color: var(--text-color);
++}
++
++aside input::placeholder {
++  color: rgba(180, 200, 230, 0.38);
++}
++
++aside nav button {
++  border-radius: 10px;
++  transition: all 0.25s var(--g-ease);
++}
++
++aside nav button:hover {
++  background: rgba(255, 255, 255, 0.09);
++  color: var(--heading-color);
++}
+ 
+ /* ΓöÇΓöÇ 4. Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-header {
+-  background: rgba(255,255,255,0.04) !important;
+-  backdrop-filter: blur(20px) saturate(1.35) !important;
+-  -webkit-backdrop-filter: blur(20px) saturate(1.35) !important;
+-  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+-  box-shadow: 0 12px 40px rgba(0,0,0,0.18) !important;
++.top-glass-header {
++  background: rgba(255, 255, 255, 0.04);
++  backdrop-filter: blur(20px) saturate(1.35);
++  -webkit-backdrop-filter: blur(20px) saturate(1.35);
++  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+   animation: liquidPan 24s linear infinite;
+ }
+-header h1 { color: var(--heading-color) !important; }
+-header p  { color: var(--muted) !important; }
++
++header h1 {
++  color: var(--heading-color) !important;
++}
++
++header p {
++  color: var(--muted) !important;
++}
++
+ button.header-action-btn {
+   background:
+-    radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 48%, rgba(255,255,255,0) 72%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.1) 100%) !important;
++    radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 48%, rgba(255, 255, 255, 0) 72%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.1) 100%) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important;
+   color: var(--muted) !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) - 1px)) saturate(1.08) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) - 1px)) saturate(1.08) !important;
+-  box-shadow: 0 10px 28px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.16) !important;
++  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+   transition: all 0.2s var(--g-ease) !important;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+   button.header-action-btn:hover {
+     background:
+-      radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 48%, rgba(255,255,255,0) 72%),
+-      linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%),
+-      linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.14) 100%) !important;
++      radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.06) 48%, rgba(255, 255, 255, 0) 72%),
++      linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%),
++      linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.14) 100%) !important;
+     border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+     color: var(--text-color) !important;
+   }
+ }
+ 
+-/* ΓöÇΓöÇ 5. Stat Cards (StatCard ΓåÆ <article>) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-article {
+-  position: relative !important;
+-  overflow: hidden !important;
+-  isolation: isolate;
+-  background:
+-    radial-gradient(135% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 46%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
+-  background-size: 165% 165%, 100% 100%, 100% 100%;
+-  backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.12) !important;
+-  -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.12) !important;
+-  border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+-  border-radius: var(--window-glass-radius, 20px) !important;
+-  box-shadow: var(--window-glass-panel-shadow, 0 18px 48px rgba(0, 0, 0, 0.4)), inset 0 1px 0 rgba(255,255,255,0.16) !important;
+-  transition: transform 0.5s var(--g-fluid), box-shadow 0.45s var(--g-ease), border-color 0.3s var(--g-ease), filter 0.35s var(--g-ease), background-position 0.7s var(--g-ease) !important;
+-  animation: surfaceIn 420ms var(--g-ease);
+-}
+-article::before {
+-  content: '';
+-  position: absolute; inset: 0;
+-  background:
+-    radial-gradient(90% 80% at 0% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 58%, rgba(255,255,255,0) 72%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 55%);
+-  border-radius: inherit;
+-  pointer-events: none; z-index: 0;
+-  transition: opacity 0.35s var(--g-ease), transform 0.45s var(--g-ease);
+-}
+-article::after {
+-  content: '';
+-  position: absolute;
+-  inset: -24% auto -24% -42%;
+-  width: 36%;
+-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.26), transparent);
+-  pointer-events: none;
+-  opacity: 0;
+-  z-index: 0;
+-}
+-article > * { position: relative; z-index: 1; }
+-@media (hover: hover) and (pointer: fine) {
+-  article:hover {
+-    transform: translateY(-4px) scale(1.02) !important;
+-    background-position: 100% 0%, 0% 0%, 100% 100% !important;
+-    box-shadow: 0 24px 60px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+-    border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+-    filter: brightness(1.03) !important;
+-  }
+-  article:hover::before {
+-    transform: translateY(-2px);
+-    opacity: 0.9;
+-  }
+-  article:hover::after {
+-    animation: glassSweep 900ms var(--g-ease) 1;
+-  }
+-}
+-
+-/* ΓöÇΓöÇ 6. Panel Cards (PanelCard ΓåÆ <section>) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-main section, section {
+-  position: relative !important;
+-  overflow: hidden !important;
+-  isolation: isolate;
+-  background:
+-    radial-gradient(135% 120% at 0% 0%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 48%, rgba(255,255,255,0) 70%),
+-    linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.1) 100%) !important;
+-  background-size: 165% 165%, 100% 100%, 100% 100%;
+-  backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 2px)) saturate(1.1) !important;
+-  -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 2px)) saturate(1.1) !important;
+-  border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+-  border-radius: var(--window-glass-radius, 20px) !important;
+-  box-shadow: var(--window-glass-panel-shadow, 0 18px 48px rgba(0, 0, 0, 0.4)), inset 0 1px 0 rgba(255,255,255,0.14) !important;
+-  transition: transform 0.45s var(--g-fluid), box-shadow 0.4s var(--g-ease), border-color 0.3s var(--g-ease), filter 0.35s var(--g-ease), background-position 0.7s var(--g-ease) !important;
+-  animation: surfaceIn 460ms var(--g-ease);
+-}
+-main section::after, section::after {
+-  content: '';
+-  position: absolute;
+-  inset: -24% auto -24% -42%;
+-  width: 36%;
+-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+-  pointer-events: none;
+-  opacity: 0;
+-  z-index: 0;
+-}
+-main section > *, section > * {
+-  position: relative;
+-  z-index: 1;
+-}
+-@media (hover: hover) and (pointer: fine) {
+-  main section:hover, section:hover {
+-    transform: translateY(-4px) scale(1.02) !important;
+-    background-position: 100% 0%, 0% 0%, 100% 100% !important;
+-    box-shadow: 0 22px 56px rgba(0,0,0,0.44), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+-    border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+-    filter: brightness(1.03) !important;
+-  }
+-  main section:hover::after, section:hover::after {
+-    animation: glassSweep 900ms var(--g-ease) 1;
+-  }
+-}
+-
+-/* Hero panel (first section in dashboard) ΓÇô emerald tint */
+-main > div > section:first-of-type,
++/* ΓöÇΓöÇ 5. Standard Layout Elements ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
++/* Hero panel gets specific overrides in styled-components, but a global ambient effect can remain */
+ div[style*="hero-gradient"] {
+-  background: linear-gradient(135deg,
+-    rgba(56,189,248,0.24) 0%,
+-    rgba(14,165,233,0.14) 54%,
+-    rgba(8,47,73,0.08) 100%) !important;
+-  border: 1px solid rgba(56,189,248,0.28) !important;
++  border-color: rgba(56, 189, 248, 0.28);
+   box-shadow:
+-    0 8px 32px rgba(0,0,0,0.30),
+-    inset 0 1px 0 rgba(125,211,252,0.22),
+-    0 0 60px rgba(56,189,248,0.09) !important;
++    0 8px 32px rgba(0, 0, 0, 0.30),
++    inset 0 1px 0 rgba(125, 211, 252, 0.22),
++    0 0 60px rgba(56, 189, 248, 0.09);
+ }
+ 
+ /* ΓöÇΓöÇ 7. Buttons ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+@@ -396,6 +378,7 @@ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-bt
+     background-color 0.2s var(--g-ease),
+     background-position 0.2s var(--g-ease) !important;
+ }
++
+ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn)::before {
+   content: "";
+   position: absolute;
+@@ -403,24 +386,27 @@ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-bt
+   top: -32%;
+   width: 56%;
+   height: 164%;
+-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.34), transparent);
++  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+   transform: rotate(16deg);
+   opacity: 0;
+   pointer-events: none;
+ }
++
+ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn)::after {
+   content: "";
+   position: absolute;
+   inset: 0;
+   border-radius: inherit;
+   pointer-events: none;
+-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), inset 0 -1px 0 rgba(255,255,255,0.06);
++  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+   opacity: 0.7;
+   transition: opacity 0.3s var(--g-ease);
+ }
++
+ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):active {
+   transform: translateY(0) scale(0.98) !important;
+ }
++
+ button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):disabled {
+   transform: none !important;
+   filter: none !important;
+@@ -440,12 +426,14 @@ button.header-avatar-btn::after {
+ 
+ @media (hover: hover) and (pointer: fine) {
+   button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover {
+-    transform: translateY(-1px) scale(1.03);
+-    filter: saturate(1.1) brightness(1.04);
++    transform: translateY(-1px) scale(1.015);
++    filter: saturate(1.06) brightness(1.03);
+   }
++
+   button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover::before {
+     animation: buttonSweep 720ms var(--g-ease) 1;
+   }
++
+   button:not(.mobile-fluid-nav__item):not(.segmented-tab-btn):not(.sidebar-menu-btn):not(.header-action-btn):not(.header-avatar-btn):hover::after {
+     opacity: 1;
+   }
+@@ -466,6 +454,7 @@ button.segmented-tab-btn {
+     text-shadow 180ms var(--g-ease),
+     filter 180ms var(--g-ease) !important;
+ }
++
+ button.segmented-tab-btn::after {
+   content: "";
+   position: absolute;
+@@ -474,32 +463,37 @@ button.segmented-tab-btn::after {
+   bottom: 5px;
+   height: 2px;
+   border-radius: 999px;
+-  background: linear-gradient(90deg, rgba(125,211,252,0), rgba(125,211,252,0.95), rgba(125,211,252,0));
++  background: linear-gradient(90deg, rgba(125, 211, 252, 0), rgba(125, 211, 252, 0.95), rgba(125, 211, 252, 0));
+   opacity: 0;
+   transform: scaleX(0.36);
+   transform-origin: center;
+   transition: transform 180ms var(--g-fluid), opacity 180ms var(--g-ease);
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+   button.segmented-tab-btn:hover {
+-    transform: translateY(-1px) scale(1.018) !important;
++    transform: translateY(-1px) scale(1.01) !important;
+     color: #f8fbff !important;
+-    text-shadow: 0 1px 10px rgba(125,211,252,0.38) !important;
++    text-shadow: 0 1px 10px rgba(125, 211, 252, 0.38) !important;
+     filter: brightness(1.05);
+   }
++
+   button.segmented-tab-btn:hover::after {
+     opacity: 0.95;
+     transform: scaleX(1);
+   }
+ }
++
+ button.segmented-tab-btn:focus {
+   outline: none;
+ }
++
+ button.segmented-tab-btn:focus-visible {
+   box-shadow:
+-    inset 0 0 0 1px rgba(255,255,255,0.22),
+-    0 0 0 2px rgba(125,211,252,0.7);
++    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
++    0 0 0 2px rgba(125, 211, 252, 0.7);
+ }
++
+ button.segmented-tab-btn:active {
+   transform: translateY(0) scale(0.992) !important;
+ }
+@@ -514,12 +508,14 @@ button.sidebar-menu-btn {
+     border-color 200ms var(--g-ease),
+     color 200ms var(--g-ease) !important;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+   button.sidebar-menu-btn:hover {
+     transform: translateX(6px) !important;
+-    box-shadow: inset 0 0 0 1px rgba(186,230,253,0.2), 0 8px 18px rgba(2,6,23,0.26) !important;
++    box-shadow: inset 0 0 0 1px rgba(186, 230, 253, 0.2), 0 8px 18px rgba(2, 6, 23, 0.26) !important;
+   }
+ }
++
+ button.sidebar-menu-btn:active {
+   transform: translateX(2px) scale(0.995) !important;
+ }
+@@ -533,233 +529,325 @@ button.header-action-btn {
+     background-color 170ms var(--g-ease),
+     border-color 170ms var(--g-ease) !important;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+   button.header-action-btn:hover {
+-    transform: translateY(-2px) scale(1.06) !important;
+-    box-shadow: 0 10px 24px rgba(2,132,199,0.34) !important;
++    transform: translateY(-1px) scale(1.03) !important;
++    box-shadow: 0 10px 24px rgba(2, 132, 199, 0.34) !important;
+     filter: saturate(1.16) brightness(1.07) !important;
+   }
+ }
++
+ button.header-action-btn:active {
+   transform: translateY(0) scale(0.985) !important;
+ }
+ 
+ /* Primary / liquid blue */
+-button[style*="#38bdf8"], button[style*="38bdf8"], button[style*="#16a34a"], button[style*="16a34a"] {
++button[style*="#38bdf8"],
++button[style*="38bdf8"],
++button[style*="#16a34a"],
++button[style*="16a34a"] {
+   background:
+-    radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 44%, rgba(255,255,255,0) 70%),
+-    linear-gradient(135deg, rgba(56,189,248,0.34) 0%, rgba(14,165,233,0.24) 52%, rgba(6,182,212,0.18) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
++    radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 44%, rgba(255, 255, 255, 0) 70%),
++    linear-gradient(135deg, rgba(56, 189, 248, 0.34) 0%, rgba(14, 165, 233, 0.24) 52%, rgba(6, 182, 212, 0.18) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
+   background-size: 150% 150%, 100% 100%, 100% 100%;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+-  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important; color: white !important;
++  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important;
++  color: white !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) - 2px)) saturate(1.16) !important;
+-  box-shadow: 0 10px 26px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.22) !important;
++  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+   transition: all 0.2s var(--g-ease) !important;
+-  overflow: hidden; position: relative;
++  overflow: hidden;
++  position: relative;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+-  button[style*="#38bdf8"]:hover, button[style*="38bdf8"]:hover, button[style*="#16a34a"]:hover, button[style*="16a34a"]:hover {
+-    transform: translateY(-1px) scale(1.03) !important;
++
++  button[style*="#38bdf8"]:hover,
++  button[style*="38bdf8"]:hover,
++  button[style*="#16a34a"]:hover,
++  button[style*="16a34a"]:hover {
++    transform: translateY(-1px) scale(1.02) !important;
+     background-position: 100% 100%, 0% 0%, 0% 0% !important;
+-    box-shadow: 0 14px 34px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.28) !important;
++    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+     border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+   }
+ }
+ 
+ /* Danger / orange */
+-button[style*="var(--error"], button[style*="#f97316"], button[style*="f97316"], button[style*="#ef4444"], button[style*="ef4444"] {
++button[style*="var(--error"],
++button[style*="#f97316"],
++button[style*="f97316"],
++button[style*="#ef4444"],
++button[style*="ef4444"] {
+   background:
+-    radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 44%, rgba(255,255,255,0) 70%),
+-    linear-gradient(135deg, rgba(251,146,60,0.26) 0%, rgba(249,115,22,0.2) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
++    radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 44%, rgba(255, 255, 255, 0) 70%),
++    linear-gradient(135deg, rgba(251, 146, 60, 0.26) 0%, rgba(249, 115, 22, 0.2) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
+   background-size: 150% 150%, 100% 100%, 100% 100%;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+-  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important; color: white !important;
++  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important;
++  color: white !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) - 2px)) saturate(1.12) !important;
+-  box-shadow: 0 10px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.18) !important;
++  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+   transition: all 0.2s var(--g-ease) !important;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+-  button[style*="var(--error"]:hover, button[style*="#f97316"]:hover, button[style*="f97316"]:hover, button[style*="#ef4444"]:hover, button[style*="ef4444"]:hover {
+-    transform: translateY(-1px) scale(1.03) !important;
++
++  button[style*="var(--error"]:hover,
++  button[style*="#f97316"]:hover,
++  button[style*="f97316"]:hover,
++  button[style*="#ef4444"]:hover,
++  button[style*="ef4444"]:hover {
++    transform: translateY(-1px) scale(1.02) !important;
+     background-position: 100% 100%, 0% 0%, 0% 0% !important;
+-    box-shadow: 0 14px 30px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.24) !important;
++    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+   }
+ }
+ 
+ /* Secondary / ghost */
+-button:not(.header-avatar-btn)[style*="card-bg"], button:not(.header-avatar-btn)[style*="transparent"][style*="border"] {
++button:not(.header-avatar-btn)[style*="card-bg"],
++button:not(.header-avatar-btn)[style*="transparent"][style*="border"] {
+   background:
+-    radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 46%, rgba(255,255,255,0) 70%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.1) 100%) !important;
++    radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0) 70%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.1) 100%) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+-  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important; color: var(--text-color) !important;
++  border-radius: calc(var(--window-glass-radius, 20px) - 4px) !important;
++  color: var(--text-color) !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) - 2px)) saturate(1.08) !important;
+   transition: all 0.2s var(--g-ease) !important;
+ }
++
+ @media (hover: hover) and (pointer: fine) {
+   button:not(.header-avatar-btn)[style*="card-bg"]:hover {
+     background:
+-      radial-gradient(140% 140% at 0% 0%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.06) 46%, rgba(255,255,255,0) 70%),
+-      linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%),
+-      linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.14) 100%) !important;
++      radial-gradient(140% 140% at 0% 0%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.06) 46%, rgba(255, 255, 255, 0) 70%),
++      linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%),
++      linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.14) 100%) !important;
+     border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+     transform: translateY(-1px) scale(1.03) !important;
+   }
+ }
+ 
+ /* ΓöÇΓöÇ 8. Inputs & Selects ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-input[type="text"], input[type="number"], input[type="email"], input:not([type]), select, textarea {
++input[type="text"],
++input[type="number"],
++input[type="email"],
++input:not([type]),
++select,
++textarea {
+   background:
+-    radial-gradient(130% 150% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 54%, rgba(255,255,255,0) 72%),
+-    rgba(255,255,255,0.07) !important;
+-  border: 1px solid rgba(186,230,253,0.2) !important;
++    radial-gradient(130% 150% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 54%, rgba(255, 255, 255, 0) 72%),
++    rgba(255, 255, 255, 0.07) !important;
++  border: 1px solid rgba(186, 230, 253, 0.2) !important;
+   border-radius: 10px !important;
+-  color: rgba(230,240,255,0.92) !important;
++  color: rgba(230, 240, 255, 0.92) !important;
+   backdrop-filter: blur(12px) saturate(1.2) !important;
+   -webkit-backdrop-filter: blur(12px) saturate(1.2) !important;
+-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
++  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+   transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, filter 0.25s !important;
+ }
+-input::placeholder, textarea::placeholder { color: rgba(180,200,230,0.35) !important; }
+-input:focus, select:focus, textarea:focus {
+-  background: rgba(255,255,255,0.14) !important;
+-  border-color: rgba(125,211,252,0.62) !important;
+-  box-shadow: 0 0 0 3px rgba(56,189,248,0.16), inset 0 1px 0 rgba(255,255,255,0.2) !important;
++
++input::placeholder,
++textarea::placeholder {
++  color: rgba(180, 200, 230, 0.35) !important;
++}
++
++input:focus,
++select:focus,
++textarea:focus {
++  background: rgba(255, 255, 255, 0.14) !important;
++  border-color: rgba(125, 211, 252, 0.62) !important;
++  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+   filter: saturate(1.06);
+   outline: none !important;
+ }
+-input[type="checkbox"] { accent-color: #34d399; }
++
++input[type="checkbox"] {
++  accent-color: #34d399;
++}
++
+ select {
+   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(180,200,230,0.55)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") !important;
+-  background-repeat: no-repeat !important; background-position: right 12px center !important; padding-right: 32px !important;
++  background-repeat: no-repeat !important;
++  background-position: right 12px center !important;
++  padding-right: 32px !important;
++}
++
++select option {
++  background: #0b1428;
++  color: rgba(230, 240, 255, 0.92);
+ }
+-select option { background: #0b1428; color: rgba(230,240,255,0.92); }
+ 
+ /* ΓöÇΓöÇ 9. Tables ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-table { border-collapse: collapse !important; }
+-thead tr { background: rgba(255,255,255,0.05) !important; border-bottom: 1px solid rgba(255,255,255,0.10) !important; }
+-th { font-size: 0.65rem !important; letter-spacing: 0.10em !important; text-transform: uppercase !important; color: rgba(180,200,230,0.55) !important; padding: 10px 12px !important; background: transparent !important; border: none !important; font-weight: 700 !important; }
+-tbody tr { background: transparent !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; transition: background 0.2s, transform 0.2s !important; cursor: pointer; }
+-tbody tr:hover { background: rgba(255,255,255,0.08) !important; transform: translateX(3px) translateY(-1px) !important; }
+-tbody tr:last-child { border-bottom: none !important; }
+-td { padding: 11px 12px !important; color: rgba(230,240,255,0.88) !important; border: none !important; font-size: 13px !important; }
++table {
++  border-collapse: collapse !important;
++}
++
++thead tr {
++  background: rgba(255, 255, 255, 0.05) !important;
++  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
++}
++
++th {
++  font-size: 0.65rem !important;
++  letter-spacing: 0.10em !important;
++  text-transform: uppercase !important;
++  color: rgba(180, 200, 230, 0.55) !important;
++  padding: 10px 12px !important;
++  background: transparent !important;
++  border: none !important;
++  font-weight: 700 !important;
++}
++
++tbody tr {
++  background: transparent !important;
++  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
++  transition: background 0.2s, transform 0.2s !important;
++  cursor: pointer;
++}
++
++tbody tr:hover {
++  background: rgba(255, 255, 255, 0.08) !important;
++  transform: translateX(3px) translateY(-1px) !important;
++}
++
++tbody tr:last-child {
++  border-bottom: none !important;
++}
++
++td {
++  padding: 11px 12px !important;
++  color: rgba(230, 240, 255, 0.88) !important;
++  border: none !important;
++  font-size: 13px !important;
++}
+ 
+ /* ΓöÇΓöÇ 10. Modal Backdrop + Modal Card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ div[style*="position: fixed"][style*="inset: 0"],
+ div[style*="position:fixed"][style*="inset:0"] {
+-  background: rgba(8,12,20,0.85) !important;
++  background: rgba(8, 12, 20, 0.85) !important;
+   backdrop-filter: blur(8px) !important;
+   -webkit-backdrop-filter: blur(8px) !important;
+ }
++
+ div[style*="border-radius: 14px"][style*="overflow-y"],
+ div[style*="border-radius:14px"][style*="overflow"] {
+   background:
+-    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 72%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
+-  color: var(--modal-text, rgba(230,240,255,0.94)) !important;
++    radial-gradient(145% 125% at 0% 0%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0) 72%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
++  color: var(--modal-text, rgba(230, 240, 255, 0.94)) !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 5px)) saturate(1.06) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 5px)) saturate(1.06) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: var(--window-glass-radius, 20px) !important;
+-  box-shadow: var(--window-glass-modal-shadow, 0 24px 72px rgba(0, 0, 0, 0.46)), inset 0 1px 0 rgba(255,255,255,0.14) !important;
++  box-shadow: var(--window-glass-modal-shadow, 0 24px 72px rgba(0, 0, 0, 0.46)), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+   animation: modalLift 220ms var(--g-fluid);
+ }
+ 
+ /* ΓöÇΓöÇ 11. Popover ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ div[style*="position: absolute"][style*="right: 0"][style*="border-radius: 10px"] {
+   background:
+-    radial-gradient(135% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
++    radial-gradient(135% 120% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0) 68%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
+   background-size: 160% 160%, 100% 100%, 100% 100%;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.06) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.06) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: calc(var(--window-glass-radius, 20px) - 2px) !important;
+-  box-shadow: 0 18px 44px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12) !important;
++  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+   animation: modalLift 180ms var(--g-fluid), liquidPan 22s linear infinite;
+ }
+-div[style*="position: absolute"][style*="right: 0"] button { color: rgba(230,240,255,0.85) !important; border-radius: 8px !important; }
+-div[style*="position: absolute"][style*="right: 0"] button:hover { background: rgba(255,255,255,0.09) !important; color: white !important; }
++
++div[style*="position: absolute"][style*="right: 0"] button {
++  color: rgba(230, 240, 255, 0.85) !important;
++  border-radius: 8px !important;
++}
++
++div[style*="position: absolute"][style*="right: 0"] button:hover {
++  background: rgba(255, 255, 255, 0.09) !important;
++  color: white !important;
++}
+ 
+ /* ΓöÇΓöÇ 12. Toast ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-div[style*="position: fixed"][style*="right: 12px"] > div {
++div[style*="position: fixed"][style*="right: 12px"]>div {
+   backdrop-filter: blur(24px) !important;
+   -webkit-backdrop-filter: blur(24px) !important;
+   border-radius: 12px !important;
+-  border: 1px solid rgba(255,255,255,0.14) !important;
+-  box-shadow: 0 12px 32px rgba(0,0,0,0.40) !important;
++  border: 1px solid rgba(255, 255, 255, 0.14) !important;
++  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.40) !important;
+ }
+ 
+ /* ΓöÇΓöÇ 13. Mobile Nav ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ div[style*="position: fixed"][style*="bottom: 0"][style*="height: 66px"] {
+-  background: linear-gradient(0deg, rgba(8,14,28,0.95) 0%, rgba(12,20,38,0.90) 100%) !important;
++  background: linear-gradient(0deg, rgba(8, 14, 28, 0.95) 0%, rgba(12, 20, 38, 0.90) 100%) !important;
+   backdrop-filter: blur(28px) !important;
+   -webkit-backdrop-filter: blur(28px) !important;
+-  border-top: 1px solid rgba(255,255,255,0.10) !important;
+-  box-shadow: 0 -8px 32px rgba(0,0,0,0.35) !important;
++  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
++  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35) !important;
+ }
+ 
+ /* ΓöÇΓöÇ 14. Onboarding card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-div[style*="min-height"][style*="alignItems"][style*="justifyContent"] > div[style*="boxShadow"],
+-div[style*="min-height"][style*="align-items"][style*="justify-content"] > div[style*="box-shadow"] {
++div[style*="min-height"][style*="alignItems"][style*="justifyContent"]>div[style*="boxShadow"],
++div[style*="min-height"][style*="align-items"][style*="justify-content"]>div[style*="box-shadow"] {
+   background:
+-    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 72%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
++    radial-gradient(145% 125% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0) 72%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 7px)) saturate(1.08) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 7px)) saturate(1.08) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: calc(var(--window-glass-radius, 20px) + 4px) !important;
+-  box-shadow: var(--window-glass-modal-shadow, 0 24px 72px rgba(0, 0, 0, 0.46)), inset 0 1px 0 rgba(255,255,255,0.18) !important;
++  box-shadow: var(--window-glass-modal-shadow, 0 24px 72px rgba(0, 0, 0, 0.46)), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+ }
+ 
+ /* ΓöÇΓöÇ 15. Inline card divs (cardStyle) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ div[style*="--card-bg"][style*="border-radius: 16px"],
+ div[style*="card-bg"][style*="border-radius: 16px"] {
+   background:
+-    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%) !important;
++    radial-gradient(145% 125% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0) 68%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%) !important;
+   background-size: 165% 165%, 100% 100%, 100% 100%;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: var(--window-glass-radius, 20px) !important;
+-  box-shadow: var(--window-glass-panel-shadow, 0 18px 48px rgba(0, 0, 0, 0.4)), inset 0 1px 0 rgba(255,255,255,0.16) !important;
++  box-shadow: var(--window-glass-panel-shadow, 0 18px 48px rgba(0, 0, 0, 0.4)), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+   transition: transform 0.4s var(--g-fluid), box-shadow 0.35s var(--g-ease), border-color 0.3s var(--g-ease), background-position 0.6s var(--g-ease) !important;
+   animation: surfaceIn 360ms var(--g-ease);
+ }
+ 
+ div[style*="--card-bg"][style*="border-radius: 16px"]:hover,
+ div[style*="card-bg"][style*="border-radius: 16px"]:hover {
+-  transform: translateY(-3px) scale(1.006) !important;
++  transform: translateY(-2px) scale(1.004) !important;
+   background-position: 100% 0%, 0% 0%, 100% 100% !important;
+   border-color: var(--window-glass-border-hover, rgba(255, 255, 255, 0.22)) !important;
+-  box-shadow: 0 22px 52px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.2) !important;
++  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+ }
+ 
+ /* ΓöÇΓöÇ 16. Recharts ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ .recharts-tooltip-wrapper .recharts-default-tooltip {
+   background:
+-    radial-gradient(135% 120% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, rgba(8,14,28,0.96) 0%, rgba(12,18,32,0.94) 100%) !important;
++    radial-gradient(135% 120% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0) 68%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(12, 18, 32, 0.94) 100%) !important;
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32)) !important;
+   border-radius: calc(var(--window-glass-radius, 20px) - 6px) !important;
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08) !important;
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08) !important;
+-  box-shadow: 0 16px 38px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+-  color: rgba(230,240,255,0.96) !important;
++  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
++  color: rgba(230, 240, 255, 0.96) !important;
+   padding: 10px 12px !important;
+ }
+ 
+ .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label {
+-  color: rgba(248,250,252,0.96) !important;
++  color: rgba(248, 250, 252, 0.96) !important;
+   font-weight: 700 !important;
+   margin: 0 0 6px !important;
+ }
+@@ -775,38 +863,69 @@ div[style*="card-bg"][style*="border-radius: 16px"]:hover {
+ }
+ 
+ .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-name {
+-  color: rgba(191,219,254,0.92) !important;
++  color: rgba(191, 219, 254, 0.92) !important;
+ }
+ 
+ .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-separator,
+ .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-unit {
+-  color: rgba(203,213,225,0.8) !important;
++  color: rgba(203, 213, 225, 0.8) !important;
+ }
+ 
+ .recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item-value {
+-  color: rgba(255,255,255,0.98) !important;
++  color: rgba(255, 255, 255, 0.98) !important;
+   font-weight: 700 !important;
+ }
+-.recharts-cartesian-axis-tick text { fill: rgba(180,200,230,0.50) !important; }
++
++.recharts-cartesian-axis-tick text {
++  fill: rgba(180, 200, 230, 0.50) !important;
++}
+ 
+ /* ΓöÇΓöÇ 17. Empty state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+ div[style*="dashed"][style*="e2e8f0"][style*="border-radius: 10"] {
+-  background: rgba(255,255,255,0.03) !important;
+-  border: 1px dashed rgba(255,255,255,0.12) !important;
+-  border-radius: 10px !important; color: rgba(180,200,230,0.50) !important;
++  background: rgba(255, 255, 255, 0.03) !important;
++  border: 1px dashed rgba(255, 255, 255, 0.12) !important;
++  border-radius: 10px !important;
++  color: rgba(180, 200, 230, 0.50) !important;
+ }
+ 
+ /* ΓöÇΓöÇ 18. Progress bars ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-div[style*="height: 6px"][style*="border-radius: 99"] { background: rgba(255,255,255,0.08) !important; }
+-div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99px !important; box-shadow: 0 0 8px rgba(52,211,153,0.38) !important; }
++div[style*="height: 6px"][style*="border-radius: 99"] {
++  background: rgba(255, 255, 255, 0.08) !important;
++}
++
++div[style*="height: 6px"][style*="border-radius: 99"]>div {
++  border-radius: 99px !important;
++  box-shadow: 0 0 8px rgba(52, 211, 153, 0.38) !important;
++}
+ 
+ /* ΓöÇΓöÇ 19. Scrollbars ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+-::-webkit-scrollbar { width: 5px; height: 5px; }
+-::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 3px; }
+-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
+-::selection { background: rgba(52,211,153,0.25); color: white; }
+-*:focus-visible { outline: 2px solid rgba(52,211,153,0.60); outline-offset: 2px; }
++::-webkit-scrollbar {
++  width: 5px;
++  height: 5px;
++}
++
++::-webkit-scrollbar-track {
++  background: rgba(255, 255, 255, 0.02);
++}
++
++::-webkit-scrollbar-thumb {
++  background: rgba(255, 255, 255, 0.14);
++  border-radius: 3px;
++}
++
++::-webkit-scrollbar-thumb:hover {
++  background: rgba(255, 255, 255, 0.26);
++}
++
++::selection {
++  background: rgba(52, 211, 153, 0.25);
++  color: white;
++}
++
++*:focus-visible {
++  outline: 2px solid rgba(52, 211, 153, 0.60);
++  outline-offset: 2px;
++}
+ 
+ /* 20. Fluid mobile navbar */
+ .mobile-fluid-nav-wrap {
+@@ -859,9 +978,9 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+   width: 0;
+   border-radius: 14px;
+   background:
+-    radial-gradient(120% 130% at 0% 0%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.05) 44%, rgba(255,255,255,0) 68%),
+-    linear-gradient(135deg, rgba(56,189,248,0.9) 0%, rgba(6,182,212,0.84) 100%);
+-  box-shadow: 0 4px 14px rgba(0,150,255,0.25);
++    radial-gradient(120% 130% at 0% 0%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.05) 44%, rgba(255, 255, 255, 0) 68%),
++    linear-gradient(135deg, rgba(56, 189, 248, 0.9) 0%, rgba(6, 182, 212, 0.84) 100%);
++  box-shadow: 0 4px 14px rgba(0, 150, 255, 0.25);
+   opacity: 0.84;
+   z-index: 1;
+   will-change: transform, width, background-color;
+@@ -921,8 +1040,8 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+ 
+ .mobile-fluid-nav__item:focus-visible {
+   box-shadow:
+-    inset 0 0 0 1px rgba(255,255,255,0.2),
+-    0 0 0 2px rgba(125,211,252,0.7);
++    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
++    0 0 0 2px rgba(125, 211, 252, 0.7);
+ }
+ 
+ .mobile-fluid-nav__item:active .mobile-fluid-nav__icon {
+@@ -933,15 +1052,15 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+ .glass-card {
+   position: relative;
+   background:
+-    radial-gradient(145% 125% at 0% 0%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 52%, rgba(255,255,255,0) 68%),
+-    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+-    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96,96,96,0.12) 100%);
++    radial-gradient(145% 125% at 0% 0%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 52%, rgba(255, 255, 255, 0) 68%),
++    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%),
++    linear-gradient(180deg, var(--window-glass-surface-bg, rgba(128, 128, 128, 0.062745)) 0%, rgba(96, 96, 96, 0.12) 100%);
+   backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+   -webkit-backdrop-filter: blur(calc(var(--window-glass-blur, 15px) + 3px)) saturate(1.08);
+   border-radius: var(--window-glass-radius, 20px);
+   border: 1px solid var(--window-glass-border, rgba(128, 128, 128, 0.32));
+   box-shadow: var(--window-glass-panel-shadow, 0 18px 48px rgba(0, 0, 0, 0.4)),
+-              inset 0 1px 0 rgba(255, 255, 255, 0.16);
++    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+   overflow: hidden;
+   transition: transform 0.3s ease, box-shadow 0.3s ease;
+ }
+@@ -953,41 +1072,46 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+   top: 0;
+   left: 0;
+   right: 0;
+-  height: 120px; /* Area for the highlight */
+-  background: linear-gradient(
+-    180deg,
+-    rgba(255, 255, 255, 0.12) 0%,
+-    transparent 80%
+-  );
++  height: 120px;
++  /* Area for the highlight */
++  background: linear-gradient(180deg,
++      rgba(255, 255, 255, 0.12) 0%,
++      transparent 80%);
+   pointer-events: none;
+-  animation: none; /* Disable old animation */
++  animation: none;
++  /* Disable old animation */
+   opacity: 0.8;
+ }
+ 
+-.glass-card > * {
++.glass-card>* {
+   position: relative;
+   z-index: 1;
+ }
+ 
+ /* Remove old animation, it's no longer used */
+ @keyframes glassMove {
+-  from { opacity: 0; }
+-  to { opacity: 0; }
++  from {
++    opacity: 0;
++  }
++
++  to {
++    opacity: 0;
++  }
+ }
+ 
+ @media (hover: hover) and (pointer: fine) {
+   .glass-card:hover {
+     transform: translateY(-4px) scale(1.02);
+     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46),
+-                inset 0 1px 0 rgba(255, 255, 255, 0.2);
++      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+     transition: 0.3s ease;
+   }
+ }
+ 
+ .glass-primary {
+   box-shadow:
+-    0 0 30px rgba(0,150,255,0.25),
+-    inset 0 0 20px rgba(255,255,255,0.05);
++    0 0 30px rgba(0, 150, 255, 0.25),
++    inset 0 0 20px rgba(255, 255, 255, 0.05);
+ }
+ 
+ @media (min-width: 768px) {
+@@ -997,6 +1121,7 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+ }
+ 
+ @media (prefers-reduced-motion: reduce) {
++
+   *,
+   *::before,
+   *::after {
+@@ -1011,4 +1136,4 @@ div[style*="height: 6px"][style*="border-radius: 99"] > div { border-radius: 99p
+   html::before {
+     animation: none !important;
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/src/pages/AppPages.jsx b/src/pages/AppPages.jsx
+index 3867510..9cd5ad2 100644
+--- a/src/pages/AppPages.jsx
++++ b/src/pages/AppPages.jsx
+@@ -10,8 +10,11 @@ import { buildSnapshotChartData } from "../utils/formatting";
+ import { sanitizeInput } from "../utils/security";
+ import { useIsMobile } from "../hooks/useWindowSize";
+ import { parseHdfcStatementFile, buildImportedHdfcEntries } from "../services/hdfcImportService";
++import { parseAngelOneHoldingsFile, buildAngelOneAssetEntries } from "../services/angelOneImportService";
+ import { AddAssetForm, AddLiabilityForm } from "../components/forms/AssetForms";
+ import { buttonStyles, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, serifFontFamily, heroGradient } from "../styles";
++import LiquidGlassCard from "../components/LiquidGlassCard";
++
+ 
+ const TOAST_EVENT_NAME = "wealthtracker:toast";
+ const btnStyle = buttonStyles.primary;
+@@ -657,18 +660,14 @@ function SummaryCard({ icon, label, value, sub, color, negative, animated = fals
+     </>
+   );
+ 
+-  if (animated) {
+-    return <PanelCard style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>{content}</PanelCard>;
+-  }
+-
+   return (
+-    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
++    <LiquidGlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start", height: "100%" }}>
+       {content}
+-    </div>
++    </LiquidGlassCard>
+   );
+ }
+ 
+-export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
++export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImportHoldings, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
+   const isMobile = useIsMobile();
+   const [showAdd, setShowAdd] = useState(false);
+   const [editingAsset, setEditingAsset] = useState(null);
+@@ -679,6 +678,7 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
+   const [sortBy, setSortBy] = useState("value_desc");
+   const [currentPage, setCurrentPage] = useState(1);
+   const [selectedAssetIds, setSelectedAssetIds] = useState([]);
++  const importInputRef = useRef(null);
+   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
+ 
+   const assetRows = useMemo(() => {
+@@ -775,6 +775,37 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
+     closeAddModal();
+   };
+ 
++  const handleAngelOneImport = async (event) => {
++    const file = event.target.files?.[0];
++    if (!file) return;
++
++    try {
++      const parsedRows = await parseAngelOneHoldingsFile(file);
++      const assetEntries = buildAngelOneAssetEntries(parsedRows, currency);
++
++      if (!assetEntries || assetEntries.length === 0) {
++        notifyApp("No valid holdings found in this AngelOne statement.", "warning");
++        return;
++      }
++
++      if (typeof onImportHoldings === "function") {
++        onImportHoldings(assetEntries);
++      }
++
++      notifyApp(
++        `Imported ${assetEntries.length} holding${assetEntries.length === 1 ? "" : "s"} from AngelOne statement.`,
++        "success"
++      );
++    } catch (error) {
++      // Helpful for debugging in browser console
++      // eslint-disable-next-line no-console
++      console.error("AngelOne import failed", error);
++      notifyApp("Unable to import this file. Please upload a valid AngelOne holdings statement (.xls/.xlsx).", "error");
++    } finally {
++      event.target.value = "";
++    }
++  };
++
+   useEffect(() => {
+     if (!openAssetComposerRequest) return;
+ 
+@@ -796,6 +827,19 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
+           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(totalAssets, currency)}</p>
+         </div>
+         <PageHeaderActions $isMobile={isMobile}>
++          <input
++            ref={importInputRef}
++            type="file"
++            accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
++            onChange={handleAngelOneImport}
++            style={{ display: "none" }}
++          />
++          <button
++            onClick={() => importInputRef.current?.click()}
++            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}
++          >
++            Import AngelOne Holdings
++          </button>
+           <button
+             onClick={() => {
+               setEditingAsset(null);
+@@ -1490,14 +1534,14 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
+       )}
+ 
+       {incomes.length === 0 ? (
+-        <div style={{ ...cardStyle, textAlign: 'center', padding: 60, color: '#94a3b8' }}>
++        <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
+           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F4BC}"}</div>
+           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No income recorded</div>
+           <div>Add recurring or one-time income to track cashflow</div>
+-        </div>
++        </LiquidGlassCard>
+       ) : (
+-        <>
+-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
++        <LiquidGlassCard>
++          <div style={{ marginBottom: 12, padding: 12 }}>
+             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
+               <Field
+                 value={searchQuery}
+@@ -1620,7 +1664,7 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
+               />
+             </>
+           )}
+-        </>
++        </LiquidGlassCard>
+       )}
+     </PageSection>
+   );
+@@ -1829,14 +1873,14 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
+       )}
+ 
+       {expenses.length === 0 ? (
+-        <div style={{ ...cardStyle, textAlign: 'center', padding: 60, color: '#94a3b8' }}>
++        <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
+           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F6D2}"}</div>
+           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No expenses recorded</div>
+           <div>Add your expenses to track cashflow</div>
+-        </div>
++        </LiquidGlassCard>
+       ) : (
+-        <>
+-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
++        <LiquidGlassCard>
++          <div style={{ marginBottom: 12, padding: 12 }}>
+             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
+               <Field
+                 value={searchQuery}
+@@ -1959,7 +2003,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
+               />
+             </>
+           )}
+-        </>
++        </LiquidGlassCard>
+       )}
+     </PageSection>
+   );
+@@ -1989,9 +2033,13 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
+   }, [snapshotRows.length, currentPage]);
+ 
+   return (
+-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 900, width: "100%", boxSizing: "border-box" }}>
+-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Net Worth</h2>
+-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Track your wealth journey over time</p>
++    <PageSection $isMobile={isMobile}>
++      <PageHeader $isMobile={isMobile}>
++        <div>
++          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Net Worth</h2>
++          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Track your wealth journey over time</p>
++        </div>
++      </PageHeader>
+ 
+       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
+         <SummaryCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" />
+@@ -1999,7 +2047,7 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
+         <SummaryCard icon={"\u2728"} label="NET WORTH" value={formatCurrency(netWorth, currency)} sub="Assets minus Liabilities" color="#3b82f6" />
+       </div>
+ 
+-      <div style={cardStyle}>
++      <LiquidGlassCard>
+         <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: 16 }}>
+           <div>
+             <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 16 }}>Wealth Timeline</div>
+@@ -2030,10 +2078,10 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
+             </LineChart>
+           </ResponsiveContainer>
+         )}
+-      </div>
++      </LiquidGlassCard>
+ 
+       {snapshots.length > 0 && (
+-        <div style={{ ...cardStyle, marginTop: 16 }}>
++        <LiquidGlassCard style={{ marginTop: 16 }}>
+           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Snapshot History</div>
+           <TableResultsText>
+             Showing {pagedSnapshotRows.length} of {snapshotRows.length} snapshots
+@@ -2081,9 +2129,9 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
+             currentPage={currentPage}
+             onPageChange={setCurrentPage}
+           />
+-        </div>
++        </LiquidGlassCard>
+       )}
+-    </div>
++    </PageSection>
+   );
+ }
+ 
+@@ -2240,14 +2288,14 @@ export function GoalsPage({ assets, currency }) {
+       )}
+ 
+       {goals.length === 0 ? (
+-        <div style={{ ...cardStyle, textAlign: "center", padding: 60, color: "#94a3b8" }}>
++        <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
+           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F3AF}"}</div>
+           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--muted, #64748b)" }}>No goals yet</div>
+           <div>Set financial goals to track your progress</div>
+-        </div>
++        </LiquidGlassCard>
+       ) : (
+-        <>
+-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
++        <LiquidGlassCard>
++          <div style={{ marginBottom: 12, padding: 12 }}>
+             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(170px, 210px)", gap: 8 }}>
+               <Field
+                 value={searchQuery}
+@@ -2382,7 +2430,7 @@ export function GoalsPage({ assets, currency }) {
+               />
+             </>
+           )}
+-        </>
++        </LiquidGlassCard>
+       )}
+     </PageSection>
+   );
+@@ -2452,14 +2500,15 @@ const AppShell = styled.div(({ $isMobile }) => ({
+   flexDirection: $isMobile ? "column" : "row",
+ }));
+ 
+-const PageSection = styled.div(({ $isMobile }) => ({
++export const PageSection = styled.div(({ $isMobile }) => ({
+   padding: $isMobile ? "24px 16px" : "20px 24px",
+-  maxWidth: 900,
++  maxWidth: 1180,
+   width: "100%",
++  margin: "0 auto",
+   boxSizing: "border-box",
+ }));
+ 
+-const PageHeader = styled.div(({ $isMobile }) => ({
++export const PageHeader = styled.div(({ $isMobile }) => ({
+   display: "flex",
+   justifyContent: "space-between",
+   alignItems: $isMobile ? "flex-start" : "center",
+@@ -2479,6 +2528,7 @@ const DashboardWrap = styled.div(({ $isMobile }) => ({
+   padding: $isMobile ? "24px 16px" : "20px 24px",
+   maxWidth: 1180,
+   width: "100%",
++  margin: "0 auto",
+   boxSizing: "border-box",
+ }));
+ 
+@@ -2565,35 +2615,11 @@ const StatGrid = styled.div(({ $isMobile }) => ({
+   marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
+ }));
+ 
+-const StatCard = styled.article`
+-  border-radius: 18px;
+-  padding: 20px;
+-  display: grid;
+-  gap: 6px;
+-  animation: ${surfaceIn} 240ms ease;
+-
+-  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+-  backdrop-filter: blur(20px);
+-  -webkit-backdrop-filter: blur(20px);
+-  border: 1px solid rgba(255,255,255,0.08);
+-  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
+-  position: relative;
+-  transition: all 0.3s ease;
+-
+-  &::after {
+-    content: "";
+-    position: absolute;
+-    inset: 0;
+-    border-radius: inherit;
+-    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+-    pointer-events: none;
+-  }
+-
+-  &:hover {
+-    transform: translateY(-4px);
+-    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
+-  }
+-`;
++const StatCard = ({ children, className }) => (
++  <LiquidGlassCard className={className} style={{ display: "grid", gap: 6, height: "100%" }}>
++    {children}
++  </LiquidGlassCard>
++);
+ 
+ const StatLabel = styled.div({
+   fontSize: TYPE_SCALE.micro,
+@@ -2683,33 +2709,11 @@ const PanelGrid = styled.div(({ $isMobile }) => ({
+   gap: DASHBOARD_LAYOUT.cardGap,
+ }));
+ 
+-const PanelCard = styled.section`
+-  border-radius: 18px;
+-  padding: 22px;
+-  animation: ${surfaceIn} 240ms ease;
+-
+-  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
+-  backdrop-filter: blur(20px);
+-  -webkit-backdrop-filter: blur(20px);
+-  border: 1px solid rgba(255,255,255,0.08);
+-  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
+-  position: relative;
+-  transition: all 0.3s ease;
+-
+-  &::after {
+-    content: "";
+-    position: absolute;
+-    inset: 0;
+-    border-radius: inherit;
+-    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+-    pointer-events: none;
+-  }
+-
+-  &:hover {
+-    transform: translateY(-4px);
+-    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
+-  }
+-`;
++const PanelCard = ({ children, className, style }) => (
++  <LiquidGlassCard className={className} style={{ height: "100%", ...style }}>
++    {children}
++  </LiquidGlassCard>
++);
+ 
+ const PanelTitle = styled.h2({
+   margin: "0 0 8px",
+diff --git a/src/pages/Plan/Plan.jsx b/src/pages/Plan/Plan.jsx
+index 976b42d..4214857 100644
+--- a/src/pages/Plan/Plan.jsx
++++ b/src/pages/Plan/Plan.jsx
+@@ -1,7 +1,8 @@
+ import { serifFontFamily } from "../../styles";
+ import { formatCurrency } from "../../utils/formatCurrency";
+ import StatCard from "../../components/cards/StatCard";
+-import GlassCard from "../../components/ui/GlassCard";
++import LiquidGlassCard from "../../components/LiquidGlassCard";
++import { PageSection, PageHeader } from "../AppPages";
+ 
+ export default function Plan({ assets, liabilities, currency, isMobile = false }) {
+   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
+@@ -19,9 +20,13 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
+   ];
+ 
+   return (
+-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 900, width: "100%", boxSizing: "border-box" }}>
+-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Insights</h2>
+-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Smart observations about your financial health</p>
++    <PageSection $isMobile={isMobile}>
++      <PageHeader $isMobile={isMobile}>
++        <div>
++          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Insights</h2>
++          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Smart observations about your financial health</p>
++        </div>
++      </PageHeader>
+ 
+       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 24 }}>
+         <StatCard
+@@ -44,15 +49,15 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
+ 
+       <div style={{ display: "grid", gap: isMobile ? 12 : 14 }}>
+         {insights.map((ins, i) => (
+-          <GlassCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both", padding: isMobile ? 18 : 22 }}>
++          <LiquidGlassCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both", padding: isMobile ? 18 : 22 }}>
+             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ins.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{ins.icon}</div>
+             <div>
+               <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 4 }}>{ins.title}</div>
+               <div style={{ color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>{ins.desc}</div>
+             </div>
+-          </GlassCard>
++          </LiquidGlassCard>
+         ))}
+       </div>
+-    </div>
++    </PageSection>
+   );
+ }
+diff --git a/src/pages/Wealth/Wealth.jsx b/src/pages/Wealth/Wealth.jsx
+index 9944030..2f156db 100644
+--- a/src/pages/Wealth/Wealth.jsx
++++ b/src/pages/Wealth/Wealth.jsx
+@@ -3,7 +3,8 @@ import { ASSET_TYPES } from "../../constants";
+ import { serifFontFamily } from "../../styles";
+ import { formatCurrency } from "../../utils/formatCurrency";
+ import StatCard from "../../components/cards/StatCard";
+-import GlassCard from "../../components/ui/GlassCard";
++import LiquidGlassCard from "../../components/LiquidGlassCard";
++import { PageSection, PageHeader } from "../AppPages";
+ 
+ export default function Wealth({ assets, currency, isMobile = false }) {
+   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
+@@ -14,9 +15,13 @@ export default function Wealth({ assets, currency, isMobile = false }) {
+   const currenciesTracked = new Set(assets.map((a) => a.currency)).size;
+ 
+   return (
+-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 980, width: "100%", boxSizing: "border-box" }}>
+-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Allocation</h2>
+-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Understand diversification across asset classes and currencies.</p>
++    <PageSection $isMobile={isMobile}>
++      <PageHeader $isMobile={isMobile}>
++        <div>
++          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Allocation</h2>
++          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
++        </div>
++      </PageHeader>
+ 
+       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
+         <StatCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" animated />
+@@ -25,7 +30,7 @@ export default function Wealth({ assets, currency, isMobile = false }) {
+       </div>
+ 
+       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+-        <GlassCard style={{ padding: isMobile ? 18 : 22 }}>
++        <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
+           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>Allocation Mix</div>
+           {grouped.length === 0 ? (
+             <div style={{ textAlign: "center", color: "var(--muted, #64748b)", padding: "36px 0" }}>Add assets to view allocation.</div>
+@@ -55,9 +60,9 @@ export default function Wealth({ assets, currency, isMobile = false }) {
+               </div>
+             </>
+           )}
+-        </GlassCard>
++        </LiquidGlassCard>
+ 
+-        <GlassCard style={{ padding: isMobile ? 18 : 22 }}>
++        <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
+           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>By Value</div>
+           {grouped.length === 0 ? (
+             <div style={{ color: "var(--muted, #64748b)", fontSize: 13 }}>No allocation data available.</div>
+@@ -78,8 +83,8 @@ export default function Wealth({ assets, currency, isMobile = false }) {
+                 ))}
+             </div>
+           )}
+-        </GlassCard>
++        </LiquidGlassCard>
+       </div>
+-    </div>
++    </PageSection>
+   );
+ }
+diff --git a/src/routes.jsx b/src/routes.jsx
+index 2a52c0a..224723c 100644
+--- a/src/routes.jsx
++++ b/src/routes.jsx
+@@ -40,6 +40,7 @@ export function renderAppRoute({
+   deleteExpense,
+   importIncomeEntries,
+   importExpenseEntries,
++  importAssetHoldings,
+ }) {
+   switch (activeNav) {
+     case "dashboard":
+@@ -66,6 +67,7 @@ export function renderAppRoute({
+           onAdd={addAsset}
+           onUpdate={updateAsset}
+           onDelete={deleteAsset}
++          onImportHoldings={importAssetHoldings}
+           openAssetComposerRequest={assetComposerRequest}
+           onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
+         />
+diff --git a/src/styles/index.js b/src/styles/index.js
+index 0b3e98b..fc91941 100644
+--- a/src/styles/index.js
++++ b/src/styles/index.js
+@@ -65,16 +65,7 @@ export const buttonStyles = {
+   },
+ };
+ 
+-export const cardStyle = {
+-  background: windowGlassSurface,
+-  border: windowGlassBorder,
+-  borderRadius: windowGlassRadius,
+-  padding: "20px",
+-  color: "rgba(230,240,255,0.92)",
+-  backdropFilter: windowGlassBlur,
+-  WebkitBackdropFilter: windowGlassBlur,
+-  boxShadow: windowGlassPanelShadow,
+-};
++export const cardStyle = {};
+ 
+ export const inputStyle = {
+   width: "100%",

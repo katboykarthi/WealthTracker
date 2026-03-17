@@ -62,7 +62,7 @@ const MainMenuTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) =>
     backdropFilter: "blur(25px)",
     WebkitBackdropFilter: "blur(25px)",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.18), 0 10px 28px rgba(2,6,23,0.3)",
-    margin: $isMobile ? "16px 12px 0" : "20px 28px 0",
+    margin: $isMobile ? "16px auto 0" : "20px auto 0",
     overflow: "hidden",
     width: $isMobile ? "calc(100% - 24px)" : "min(620px, calc(100% - 56px))",
     maxWidth: "100%",

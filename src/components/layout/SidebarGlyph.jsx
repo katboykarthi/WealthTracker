@@ -15,6 +15,7 @@ export default function SidebarGlyph({ name, size = 16 }) {
     insights: "\u{1F4A1}",
     settings: "\u2699\uFE0F",
     logout: "\u{1F6AA}",
+    menu: "\u2630",
   };
 
   const icon = map[String(name || "").toLowerCase()] || "\u2022";

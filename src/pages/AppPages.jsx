@@ -10,8 +10,11 @@ import { buildSnapshotChartData } from "../utils/formatting";
 import { sanitizeInput } from "../utils/security";
 import { useIsMobile } from "../hooks/useWindowSize";
 import { parseHdfcStatementFile, buildImportedHdfcEntries } from "../services/hdfcImportService";
+import { parseAngelOneHoldingsFile, buildAngelOneAssetEntries } from "../services/angelOneImportService";
 import { AddAssetForm, AddLiabilityForm } from "../components/forms/AssetForms";
 import { buttonStyles, cardStyle as sharedCardStyle, inputStyle as sharedInputStyle, labelStyle as sharedLabelStyle, serifFontFamily, heroGradient } from "../styles";
+import LiquidGlassCard from "../components/LiquidGlassCard";
+
 
 const TOAST_EVENT_NAME = "wealthtracker:toast";
 const btnStyle = buttonStyles.primary;
@@ -657,18 +660,14 @@ function SummaryCard({ icon, label, value, sub, color, negative, animated = fals
     </>
   );
 
-  if (animated) {
-    return <PanelCard style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>{content}</PanelCard>;
-  }
-
   return (
-    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
+    <LiquidGlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start", height: "100%" }}>
       {content}
-    </div>
+    </LiquidGlassCard>
   );
 }
 
-export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
+export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImportHoldings, openAssetComposerRequest, onConsumeAssetComposerRequest }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
@@ -679,6 +678,7 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
   const [sortBy, setSortBy] = useState("value_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedAssetIds, setSelectedAssetIds] = useState([]);
+  const importInputRef = useRef(null);
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
 
   const assetRows = useMemo(() => {
@@ -775,6 +775,37 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
     closeAddModal();
   };
 
+  const handleAngelOneImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const parsedRows = await parseAngelOneHoldingsFile(file);
+      const assetEntries = buildAngelOneAssetEntries(parsedRows, currency);
+
+      if (!assetEntries || assetEntries.length === 0) {
+        notifyApp("No valid holdings found in this AngelOne statement.", "warning");
+        return;
+      }
+
+      if (typeof onImportHoldings === "function") {
+        onImportHoldings(assetEntries);
+      }
+
+      notifyApp(
+        `Imported ${assetEntries.length} holding${assetEntries.length === 1 ? "" : "s"} from AngelOne statement.`,
+        "success"
+      );
+    } catch (error) {
+      // Helpful for debugging in browser console
+      // eslint-disable-next-line no-console
+      console.error("AngelOne import failed", error);
+      notifyApp("Unable to import this file. Please upload a valid AngelOne holdings statement (.xls/.xlsx).", "error");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   useEffect(() => {
     if (!openAssetComposerRequest) return;
 
@@ -796,6 +827,19 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, openAs
           <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(totalAssets, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleAngelOneImport}
+            style={{ display: "none" }}
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}
+          >
+            Import AngelOne Holdings
+          </button>
           <button
             onClick={() => {
               setEditingAsset(null);
@@ -1490,14 +1534,14 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
       )}
 
       {incomes.length === 0 ? (
-        <div style={{ ...cardStyle, textAlign: 'center', padding: 60, color: '#94a3b8' }}>
+        <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F4BC}"}</div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No income recorded</div>
           <div>Add recurring or one-time income to track cashflow</div>
-        </div>
+        </LiquidGlassCard>
       ) : (
-        <>
-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
+        <LiquidGlassCard>
+          <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
@@ -1620,7 +1664,7 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
               />
             </>
           )}
-        </>
+        </LiquidGlassCard>
       )}
     </PageSection>
   );
@@ -1829,14 +1873,14 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
       )}
 
       {expenses.length === 0 ? (
-        <div style={{ ...cardStyle, textAlign: 'center', padding: 60, color: '#94a3b8' }}>
+        <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F6D2}"}</div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No expenses recorded</div>
           <div>Add your expenses to track cashflow</div>
-        </div>
+        </LiquidGlassCard>
       ) : (
-        <>
-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
+        <LiquidGlassCard>
+          <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
                 value={searchQuery}
@@ -1959,7 +2003,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
               />
             </>
           )}
-        </>
+        </LiquidGlassCard>
       )}
     </PageSection>
   );
@@ -1989,9 +2033,13 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
   }, [snapshotRows.length, currentPage]);
 
   return (
-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 900, width: "100%", boxSizing: "border-box" }}>
-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Net Worth</h2>
-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Track your wealth journey over time</p>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
+        <div>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Net Worth</h2>
+          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Track your wealth journey over time</p>
+        </div>
+      </PageHeader>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 16, marginBottom: 24 }}>
         <SummaryCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" />
@@ -1999,7 +2047,7 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
         <SummaryCard icon={"\u2728"} label="NET WORTH" value={formatCurrency(netWorth, currency)} sub="Assets minus Liabilities" color="#3b82f6" />
       </div>
 
-      <div style={cardStyle}>
+      <LiquidGlassCard>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: 16 }}>
           <div>
             <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 16 }}>Wealth Timeline</div>
@@ -2030,10 +2078,10 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
             </LineChart>
           </ResponsiveContainer>
         )}
-      </div>
+      </LiquidGlassCard>
 
       {snapshots.length > 0 && (
-        <div style={{ ...cardStyle, marginTop: 16 }}>
+        <LiquidGlassCard style={{ marginTop: 16 }}>
           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Snapshot History</div>
           <TableResultsText>
             Showing {pagedSnapshotRows.length} of {snapshotRows.length} snapshots
@@ -2081,9 +2129,9 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
             currentPage={currentPage}
             onPageChange={setCurrentPage}
           />
-        </div>
+        </LiquidGlassCard>
       )}
-    </div>
+    </PageSection>
   );
 }
 
@@ -2240,14 +2288,14 @@ export function GoalsPage({ assets, currency }) {
       )}
 
       {goals.length === 0 ? (
-        <div style={{ ...cardStyle, textAlign: "center", padding: 60, color: "#94a3b8" }}>
+        <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F3AF}"}</div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--muted, #64748b)" }}>No goals yet</div>
           <div>Set financial goals to track your progress</div>
-        </div>
+        </LiquidGlassCard>
       ) : (
-        <>
-          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
+        <LiquidGlassCard>
+          <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(170px, 210px)", gap: 8 }}>
               <Field
                 value={searchQuery}
@@ -2382,7 +2430,7 @@ export function GoalsPage({ assets, currency }) {
               />
             </>
           )}
-        </>
+        </LiquidGlassCard>
       )}
     </PageSection>
   );
@@ -2452,14 +2500,15 @@ const AppShell = styled.div(({ $isMobile }) => ({
   flexDirection: $isMobile ? "column" : "row",
 }));
 
-const PageSection = styled.div(({ $isMobile }) => ({
+export const PageSection = styled.div(({ $isMobile }) => ({
   padding: $isMobile ? "24px 16px" : "20px 24px",
-  maxWidth: 900,
+  maxWidth: 1180,
   width: "100%",
+  margin: "0 auto",
   boxSizing: "border-box",
 }));
 
-const PageHeader = styled.div(({ $isMobile }) => ({
+export const PageHeader = styled.div(({ $isMobile }) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: $isMobile ? "flex-start" : "center",
@@ -2479,6 +2528,7 @@ const DashboardWrap = styled.div(({ $isMobile }) => ({
   padding: $isMobile ? "24px 16px" : "20px 24px",
   maxWidth: 1180,
   width: "100%",
+  margin: "0 auto",
   boxSizing: "border-box",
 }));
 
@@ -2565,35 +2615,11 @@ const StatGrid = styled.div(({ $isMobile }) => ({
   marginBottom: $isMobile ? DASHBOARD_LAYOUT.cardGap : DASHBOARD_LAYOUT.sectionGap,
 }));
 
-const StatCard = styled.article`
-  border-radius: 18px;
-  padding: 20px;
-  display: grid;
-  gap: 6px;
-  animation: ${surfaceIn} 240ms ease;
-
-  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
-  position: relative;
-  transition: all 0.3s ease;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
-    pointer-events: none;
-  }
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
-  }
-`;
+const StatCard = ({ children, className }) => (
+  <LiquidGlassCard className={className} style={{ display: "grid", gap: 6, height: "100%" }}>
+    {children}
+  </LiquidGlassCard>
+);
 
 const StatLabel = styled.div({
   fontSize: TYPE_SCALE.micro,
@@ -2683,33 +2709,11 @@ const PanelGrid = styled.div(({ $isMobile }) => ({
   gap: DASHBOARD_LAYOUT.cardGap,
 }));
 
-const PanelCard = styled.section`
-  border-radius: 18px;
-  padding: 22px;
-  animation: ${surfaceIn} 240ms ease;
-
-  background: linear-gradient(135deg, rgba(30,41,59,0.65), rgba(15,23,42,0.55));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.45), inset 0 1px rgba(255,255,255,0.05);
-  position: relative;
-  transition: all 0.3s ease;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
-    pointer-events: none;
-  }
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 60px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.1);
-  }
-`;
+const PanelCard = ({ children, className, style }) => (
+  <LiquidGlassCard className={className} style={{ height: "100%", ...style }}>
+    {children}
+  </LiquidGlassCard>
+);
 
 const PanelTitle = styled.h2({
   margin: "0 0 8px",

@@ -72,14 +72,26 @@ Located in `utils/security.js`:
 
 ```
 WealthTracker/
-├── wealth-tracker.jsx          # Main application component
-├── utils/
-│   ├── security.js             # Security utilities & input validation
-│   └── formatting.js           # Formatting utilities for currency & dates
-├── constants/
-│   └── index.js                # Application constants & configurations
-├── styles/
-│   └── index.js                # Shared component styles
+├── public/                     # Static assets (index.html, manifest, etc.)
+├── src/
+│   ├── App.jsx                 # Root application component
+│   ├── main.jsx                # React entry point
+│   ├── routes.jsx              # Route configuration
+│   ├── firebase.js             # Firebase initialization & config
+│   ├── liquid-glass.css        # Global / special visual effect styles
+│   ├── assets/                 # Images, icons and other static assets
+│   ├── components/             # Reusable UI components
+│   ├── constants/              # App-wide constants & configuration
+│   ├── hooks/                  # Custom React hooks
+│   ├── layouts/                # Layout components (shell, dashboards, etc.)
+│   ├── pages/                  # Route-level pages/screens
+│   ├── services/               # API/Firebase/data access services
+│   ├── store/                  # State management (e.g. context/reducers)
+│   └── utils/                  # Utilities (security, formatting, helpers)
+├── build/                      # Production build output (generated)
+├── node_modules/               # Installed dependencies (generated)
+├── package.json                # Project metadata & scripts
+├── package-lock.json           # Locked dependency versions
 └── README.md                   # This file
 ```
 
@@ -147,8 +159,12 @@ WealthTracker/
 
 ## 📦 Dependencies
 
-- React 18+
-- Recharts (for charting)
+- React 19+
+- Firebase (Authentication + Firestore)
+- Recharts (charts & visualizations)
+- Emotion (styled components & theming)
+- GSAP (animations)
+- XLSX (Excel export/import utilities)
 
 ## 🎯 Future Security Enhancements
 
@@ -159,7 +175,30 @@ WealthTracker/
 - [ ] Backup & recovery mechanisms
 - [ ] Two-factor authentication support
 
-## 📝 Usage
+## 🧪 Local Development
+
+Make sure you have Node.js installed, then:
+
+```bash
+npm install
+npm start
+```
+
+This runs `react-scripts start` and serves the app at `http://localhost:3000`.
+
+For a production build:
+
+```bash
+npm run build
+```
+
+To deploy to GitHub Pages (from the `main` branch, with Firebase env configured as described above):
+
+```bash
+npm run deploy
+```
+
+## 📝 App Usage
 
 ### Adding Assets
 1. Click "Add Asset" in the dashboard
@@ -192,4 +231,4 @@ Private Project - Karthick Wealth-tracker
 
 ---
 
-**Last Updated**: March 2, 2026
+**Last Updated**: March 17, 2026

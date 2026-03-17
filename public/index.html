@@ -6,7 +6,13 @@
     <title>Karthick Wealth-tracker</title>
   </head>
   <body>
-    <svg
+    <div id="bg-blobs">
+      <span class="bg-b3"></span>
+      <span class="bg-b4"></span>
+      <span class="bg-b5"></span>
+      <span class="bg-b6"></span>
+    </div>
+    <!-- <svg
       style="display: none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -21,7 +27,7 @@
           <feDisplacementMap
             in="SourceGraphic"
             in2="turbulence"
-            scale="200"
+            scale="4"
             xChannelSelector="R"
             yChannelSelector="G"
           />
@@ -42,8 +48,12 @@
             yChannelSelector="G"
           />
         </filter>
+        <filter id="glassFilter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.009" numOctaves="3" seed="4" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
       </defs>
-    </svg>
+    </svg> -->
     <div id="root"></div>
   </body>
 </html>

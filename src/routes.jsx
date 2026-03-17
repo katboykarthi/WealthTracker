@@ -40,6 +40,7 @@ export function renderAppRoute({
   deleteExpense,
   importIncomeEntries,
   importExpenseEntries,
+  importAssetHoldings,
 }) {
   switch (activeNav) {
     case "dashboard":
@@ -66,6 +67,7 @@ export function renderAppRoute({
           onAdd={addAsset}
           onUpdate={updateAsset}
           onDelete={deleteAsset}
+          onImportHoldings={importAssetHoldings}
           openAssetComposerRequest={assetComposerRequest}
           onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
         />

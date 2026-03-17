@@ -1,0 +1,285 @@
+/* ================================================================
+   background.css — Premium Liquid Glass Background
+   Import in src/index.js:  import './background.css';
+   ================================================================ */
+
+/* ── Base canvas ─────────────────────────────────────────── */
+html {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 18% 22%, rgba(99, 60, 220, 0.55) 0%, transparent 42%),
+    radial-gradient(ellipse at 78% 15%, rgba(220, 50, 130, 0.48) 0%, transparent 38%),
+    radial-gradient(ellipse at 62% 82%, rgba(20, 140, 255, 0.45) 0%, transparent 42%),
+    radial-gradient(ellipse at 12% 78%, rgba(30, 200, 120, 0.38) 0%, transparent 36%),
+    radial-gradient(ellipse at 88% 60%, rgba(255, 160, 40, 0.32) 0%, transparent 34%),
+    radial-gradient(ellipse at 45% 45%, rgba(140, 50, 200, 0.28) 0%, transparent 40%),
+    linear-gradient(150deg, #060610 0%, #08091a 40%, #07091c 100%) !important;
+}
+
+body {
+  background: transparent !important;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+}
+
+/* ── Blob 1 — top-left purple ───────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  width: 600px;
+  height: 600px;
+  top: -160px;
+  left: -140px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  background: radial-gradient(circle,
+      rgba(100, 60, 230, 0.55) 0%,
+      transparent 68%);
+  animation: blob1 18s ease-in-out infinite;
+}
+
+/* ── Blob 2 — bottom-right blue ─────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  width: 560px;
+  height: 560px;
+  bottom: -130px;
+  right: -100px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  background: radial-gradient(circle,
+      rgba(20, 150, 255, 0.48) 0%,
+      transparent 68%);
+  animation: blob2 20s ease-in-out infinite;
+  animation-delay: -9s;
+}
+
+#bg-blobs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+#bg-blobs span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+}
+
+/* Blob 3 — top-right pink */
+#bg-blobs .bg-b3 {
+  width: 460px;
+  height: 460px;
+  top: -80px;
+  right: -80px;
+  background: radial-gradient(circle,
+      rgba(210, 45, 130, 0.50) 0%,
+      transparent 68%);
+  animation: blob3 22s ease-in-out infinite;
+  animation-delay: -6s;
+}
+
+/* Blob 4 — bottom-left green */
+#bg-blobs .bg-b4 {
+  width: 420px;
+  height: 420px;
+  bottom: -90px;
+  left: 5%;
+  background: radial-gradient(circle,
+      rgba(30, 200, 120, 0.40) 0%,
+      transparent 68%);
+  animation: blob4 16s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+/* Blob 5 — center-right amber */
+#bg-blobs .bg-b5 {
+  width: 340px;
+  height: 340px;
+  bottom: 10%;
+  right: 6%;
+  background: radial-gradient(circle,
+      rgba(255, 155, 30, 0.38) 0%,
+      transparent 68%);
+  animation: blob5 19s ease-in-out infinite;
+  animation-delay: -11s;
+}
+
+/* Blob 6 — center violet */
+#bg-blobs .bg-b6 {
+  width: 300px;
+  height: 300px;
+  top: 35%;
+  left: 30%;
+  background: radial-gradient(circle,
+      rgba(130, 40, 210, 0.30) 0%,
+      transparent 68%);
+  animation: blob6 24s ease-in-out infinite;
+  animation-delay: -15s;
+}
+
+/* ── Keyframes ───────────────────────────────────────────── */
+@keyframes blob1 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  25% {
+    transform: translate(28px, -22px) scale(1.07);
+  }
+
+  50% {
+    transform: translate(10px, 18px) scale(0.95);
+  }
+
+  75% {
+    transform: translate(-18px, -8px) scale(1.03);
+  }
+}
+
+@keyframes blob2 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  25% {
+    transform: translate(-24px, 20px) scale(1.05);
+  }
+
+  50% {
+    transform: translate(14px, -14px) scale(0.94);
+  }
+
+  75% {
+    transform: translate(22px, 10px) scale(1.04);
+  }
+}
+
+@keyframes blob3 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  33% {
+    transform: translate(-20px, 24px) scale(1.06);
+  }
+
+  66% {
+    transform: translate(16px, -12px) scale(0.96);
+  }
+}
+
+@keyframes blob4 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  30% {
+    transform: translate(22px, -18px) scale(1.05);
+  }
+
+  60% {
+    transform: translate(-14px, 14px) scale(0.97);
+  }
+}
+
+@keyframes blob5 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  40% {
+    transform: translate(-18px, -20px) scale(1.06);
+  }
+
+  70% {
+    transform: translate(20px, 10px) scale(0.94);
+  }
+}
+
+@keyframes blob6 {
+
+  0%,
+  100% {
+    transform: translate(0px, 0px) scale(1.00);
+  }
+
+  35% {
+    transform: translate(24px, 16px) scale(1.07);
+  }
+
+  65% {
+    transform: translate(-16px, -18px) scale(0.95);
+  }
+}
+
+/* ── Grain noise overlay ─────────────────────────────────── */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.040;
+}
+
+/* ── Edge vignette (Temporarily removed for debug) ───────────────────────────────────────── */
+/* html::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at 50% 50%,
+      transparent 52%,
+      rgba(4, 5, 16, 0.20) 100%);
+} */
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+/* ── Text selection ─────────────────────────────────────── */
+::selection {
+  background: rgba(99, 60, 220, 0.35);
+  color: #fff;
+}

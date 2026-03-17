@@ -23,7 +23,6 @@ export const AppShell = styled.div(({ $isMobile }) => ({
   height: "100dvh",
   overflow: "hidden",
   position: "relative",
-  isolation: "isolate",
   fontFamily: APP_FONT_STACK,
   background: "transparent",
   color: "var(--text-color, #1e293b)",

@@ -61,8 +61,6 @@ export default function AppWorkspace({
           <TopNavbar
             isMobile={isMobile}
             headerScrolled={headerScrolled}
-            sidebarSearch={sidebarSearch}
-            onSidebarSearchChange={setSidebarSearch}
             onDashboardClick={() => setActiveNav("dashboard")}
             userAvatar={userAvatar}
             userName={userName}

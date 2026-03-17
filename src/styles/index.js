@@ -65,16 +65,7 @@ export const buttonStyles = {
   },
 };
 
-export const cardStyle = {
-  background: windowGlassSurface,
-  border: windowGlassBorder,
-  borderRadius: windowGlassRadius,
-  padding: "20px",
-  color: "rgba(230,240,255,0.92)",
-  backdropFilter: windowGlassBlur,
-  WebkitBackdropFilter: windowGlassBlur,
-  boxShadow: windowGlassPanelShadow,
-};
+export const cardStyle = {};
 
 export const inputStyle = {
   width: "100%",

@@ -42,6 +42,7 @@ export default function App() {
     deleteExpense,
     importIncomeEntries,
     importExpenseEntries,
+    importAssetHoldings,
     takeSnapshot,
     openAssetComposer,
     authUser,
@@ -119,6 +120,7 @@ export default function App() {
     deleteExpense,
     importIncomeEntries,
     importExpenseEntries,
+    importAssetHoldings,
   });
 
   return (

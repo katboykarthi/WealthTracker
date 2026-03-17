@@ -60,6 +60,7 @@ export function useTrackerRuntime() {
     deleteExpense,
     importIncomeEntries,
     importExpenseEntries,
+    importAssetHoldings,
     takeSnapshot,
     openAssetComposer,
   } = useTrackerActions({
@@ -181,6 +182,7 @@ export function useTrackerRuntime() {
     deleteExpense,
     importIncomeEntries,
     importExpenseEntries,
+    importAssetHoldings,
     takeSnapshot,
     openAssetComposer,
     authUser,

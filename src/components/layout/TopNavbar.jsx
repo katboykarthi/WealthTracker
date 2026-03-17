@@ -16,47 +16,30 @@ const MOBILE_LAYOUT = {
 const MainHeader = styled.header(({ $isMobile }) => ({
   position: $isMobile ? "fixed" : "sticky",
   top: $isMobile ? "env(safe-area-inset-top, 0px)" : 10,
-  left: $isMobile ? 12 : "auto",
-  right: $isMobile ? 12 : "auto",
+  left: 0,
+  right: 0,
   zIndex: 140,
   display: "flex",
   alignItems: "center",
-  justifyContent: $isMobile ? "space-between" : "flex-start",
+  justifyContent: "space-between",
   height: MOBILE_LAYOUT.topNavHeight,
   gap: $isMobile ? 16 : 12,
-  padding: $isMobile ? "0 16px" : "0 28px",
-  margin: $isMobile ? 0 : "0 20px",
-  borderRadius: 24,
+  padding: $isMobile ? "0 16px" : "0 24px",
+  margin: "0 auto",
+  maxWidth: 1180,
+  width: "100%",
   boxSizing: "border-box",
-  overflow: $isMobile ? "visible" : "hidden",
-  isolation: "isolate",
-  transition: "transform 220ms ease",
+  background: "transparent",
+  transition: "padding 220ms ease",
   "@media (max-width: 1180px)": {
-    gap: $isMobile ? 16 : 10,
-    padding: $isMobile ? "0 16px" : "0 16px",
-    margin: $isMobile ? 0 : "0 12px",
+    padding: $isMobile ? "0 16px" : "0 24px",
   },
-  "@media (max-width: 980px)": {
-    gap: $isMobile ? 16 : 8,
-    padding: $isMobile ? "0 16px" : "0 12px",
-    margin: $isMobile ? 0 : "0 8px",
-  },
-  "&::before": {
-    content: '""',
-    position: "absolute",
-    left: 1,
-    right: 1,
-    top: 1,
-    height: 1,
-    borderRadius: 999,
-    background: "linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.34), rgba(255,255,255,0.18))",
-    pointerEvents: "none",
-    zIndex: 1,
-    opacity: 0.9,
-  },
-  "& > *": {
-    position: "relative",
-    zIndex: 2,
+  "&.is-scrolled": {
+    background: "rgba(10, 15, 25, 0.45)",
+    backdropFilter: "blur(24px) saturate(1.2)",
+    WebkitBackdropFilter: "blur(24px) saturate(1.2)",
+    boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+    borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
 }));
 
@@ -81,20 +64,12 @@ const BrandLockup = styled.div(({ $isMobile }) => ({
 }));
 
 const BrandLogo = styled.div(({ $isMobile }) => ({
-  width: $isMobile ? 30 : 34,
-  height: $isMobile ? 30 : 34,
-  borderRadius: 11,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   color: "#e2f5ff",
-  fontSize: $isMobile ? 13 : 14,
+  fontSize: $isMobile ? 22 : 26,
   fontWeight: 800,
-  letterSpacing: 0.4,
-  border: "1px solid rgba(186, 230, 253, 0.45)",
-  background:
-    "radial-gradient(130% 120% at 18% 14%, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 48%, rgba(255,255,255,0) 72%), linear-gradient(145deg, rgba(56,189,248,0.95) 0%, rgba(14,165,233,0.86) 52%, rgba(2,132,199,0.8) 100%)",
-  boxShadow: "0 8px 18px rgba(2,132,199,0.35), inset 0 1px 0 rgba(255,255,255,0.4)",
   flexShrink: 0,
 }));
 
@@ -151,37 +126,11 @@ const HeaderSearch = styled.input(({ $isMobile }) => ({
   },
 }));
 
-function ProfileAvatar({ userAvatar, userName }) {
-  if (userAvatar) {
-    return <img src={userAvatar} alt={userName} style={{ width: 36, height: 36, borderRadius: "50%" }} />;
-  }
-
-  return (
-    <div
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: "50%",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        color: "#f8fafc",
-        background: "linear-gradient(145deg, rgba(56,189,248,0.95), rgba(14,165,233,0.75))",
-        border: "1px solid rgba(186,230,253,0.45)",
-        fontSize: TYPE_SCALE.micro,
-      }}
-    >
-      {(userName || "U").charAt(0).toUpperCase()}
-    </div>
-  );
-}
+// Profile avatar removed per user request
 
 export default function TopNavbar({
   isMobile,
   headerScrolled,
-  sidebarSearch,
-  onSidebarSearchChange,
   onDashboardClick,
   userAvatar,
   userName,
@@ -191,96 +140,19 @@ export default function TopNavbar({
 }) {
   return (
     <MainHeader
-      className={headerScrolled ? "top-glass-header is-scrolled" : "top-glass-header"}
+      className={headerScrolled ? "is-scrolled" : ""}
       $isMobile={isMobile}
     >
-      {isMobile && (
-        <BrandLockup $isMobile={isMobile}>
-          <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
-          <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
-        </BrandLockup>
-      )}
-      {!isMobile && (
-        <HeaderSearch
-          $isMobile={isMobile}
-          value={sidebarSearch}
-          onChange={(event) => onSidebarSearchChange(event.target.value)}
-          placeholder="Search menus, sections, and pages"
-        />
-      )}
+      <BrandLockup $isMobile={isMobile}>
+        <BrandLogo $isMobile={isMobile} aria-hidden="true">🌿</BrandLogo>
+        <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
+      </BrandLockup>
       <HeaderActions $isMobile={isMobile}>
-        {!isMobile && (
-          <BrandLockup $isMobile={isMobile}>
-            <BrandLogo $isMobile={isMobile} aria-hidden="true">WT</BrandLogo>
-            <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
-          </BrandLockup>
-        )}
-        {isMobile && (
+        {isMobile ? (
           <>
             <HeaderButton className="header-action-btn" title="Dashboard" onClick={onDashboardClick}>{"\u{1F3E0}"}</HeaderButton>
-            <div style={{ position: "relative" }} onClick={(event) => event.stopPropagation()}>
-              <button
-                className="header-avatar-btn"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setMobileProfileMenuOpen((prev) => !prev);
-                }}
-                title="Profile menu"
-                aria-haspopup="menu"
-                aria-expanded={mobileProfileMenuOpen}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  padding: 0,
-                  borderRadius: "50%",
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ProfileAvatar userAvatar={userAvatar} userName={userName} />
-              </button>
-              {mobileProfileMenuOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "calc(100% + 8px)",
-                    border: "1px solid var(--border, #e2e8f0)",
-                    borderRadius: 10,
-                    background: "var(--card-bg, #fff)",
-                    boxShadow: "0 12px 26px rgba(2, 6, 23, 0.2)",
-                    padding: 6,
-                    minWidth: 140,
-                    zIndex: 80,
-                  }}
-                >
-                  <button
-                    onClick={() => {
-                      setMobileProfileMenuOpen(false);
-                      onSignOut();
-                    }}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      textAlign: "left",
-                      borderRadius: 8,
-                      padding: "8px 10px",
-                      color: "var(--text-color, #1e293b)",
-                      fontSize: TYPE_SCALE.meta,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
           </>
-        )}
+        ) : null}
       </HeaderActions>
     </MainHeader>
   );

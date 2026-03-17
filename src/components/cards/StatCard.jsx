@@ -1,5 +1,5 @@
-import GlassCard from "../ui/GlassCard";
-import { cardStyle, serifFontFamily } from "../../styles";
+import LiquidGlassCard from "../LiquidGlassCard";
+import { serifFontFamily } from "../../styles";
 
 const TYPE_SCALE = {
   h1: 30,
@@ -21,13 +21,9 @@ export default function StatCard({ icon, label, value, sub, color, negative, ani
     </>
   );
 
-  if (animated) {
-    return <GlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>{content}</GlassCard>;
-  }
-
   return (
-    <div style={{ ...cardStyle, display: "flex", gap: 16, alignItems: "flex-start" }}>
+    <LiquidGlassCard style={{ display: "flex", gap: 16, alignItems: "flex-start", height: "100%" }}>
       {content}
-    </div>
+    </LiquidGlassCard>
   );
 }

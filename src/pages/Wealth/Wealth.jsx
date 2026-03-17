@@ -3,7 +3,8 @@ import { ASSET_TYPES } from "../../constants";
 import { serifFontFamily } from "../../styles";
 import { formatCurrency } from "../../utils/formatCurrency";
 import StatCard from "../../components/cards/StatCard";
-import GlassCard from "../../components/ui/GlassCard";
+import LiquidGlassCard from "../../components/LiquidGlassCard";
+import { PageSection, PageHeader } from "../AppPages";
 
 export default function Wealth({ assets, currency, isMobile = false }) {
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
@@ -14,9 +15,13 @@ export default function Wealth({ assets, currency, isMobile = false }) {
   const currenciesTracked = new Set(assets.map((a) => a.currency)).size;
 
   return (
-    <div style={{ padding: isMobile ? "24px 16px" : "28px 32px", maxWidth: 980, width: "100%", boxSizing: "border-box" }}>
-      <h2 style={{ fontFamily: serifFontFamily, fontSize: isMobile ? 24 : 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Allocation</h2>
-      <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Understand diversification across asset classes and currencies.</p>
+    <PageSection $isMobile={isMobile}>
+      <PageHeader $isMobile={isMobile}>
+        <div>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Allocation</h2>
+          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
+        </div>
+      </PageHeader>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
         <StatCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" animated />
@@ -25,7 +30,7 @@ export default function Wealth({ assets, currency, isMobile = false }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-        <GlassCard style={{ padding: isMobile ? 18 : 22 }}>
+        <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>Allocation Mix</div>
           {grouped.length === 0 ? (
             <div style={{ textAlign: "center", color: "var(--muted, #64748b)", padding: "36px 0" }}>Add assets to view allocation.</div>
@@ -55,9 +60,9 @@ export default function Wealth({ assets, currency, isMobile = false }) {
               </div>
             </>
           )}
-        </GlassCard>
+        </LiquidGlassCard>
 
-        <GlassCard style={{ padding: isMobile ? 18 : 22 }}>
+        <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
           <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>By Value</div>
           {grouped.length === 0 ? (
             <div style={{ color: "var(--muted, #64748b)", fontSize: 13 }}>No allocation data available.</div>
@@ -78,8 +83,8 @@ export default function Wealth({ assets, currency, isMobile = false }) {
                 ))}
             </div>
           )}
-        </GlassCard>
+        </LiquidGlassCard>
       </div>
-    </div>
+    </PageSection>
   );
 }

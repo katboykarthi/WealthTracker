@@ -66,12 +66,124 @@ export function useTrackerActions({
   }, [setExpenses]);
 
   const importIncomeEntries = useCallback((entries) => {
-    setIncomes((prev) => [...prev, ...entries]);
+    if (!Array.isArray(entries) || entries.length === 0) return;
+
+    setIncomes((prev) => {
+      const next = [...prev];
+
+      entries.forEach((incoming) => {
+        const incomingName = String(incoming.name || "").trim().toLowerCase();
+        if (!incomingName || !Number.isFinite(incoming.amount) || incoming.amount <= 0) {
+          return;
+        }
+
+        const existingIndex = next.findIndex(
+          (item) => String(item.name || "").trim().toLowerCase() === incomingName
+        );
+
+        if (existingIndex >= 0) {
+          const existing = next[existingIndex];
+          next[existingIndex] = {
+            ...existing,
+            amount: incoming.amount,
+            currency: incoming.currency || existing.currency,
+          };
+        } else {
+          next.push({
+            id: Date.now() + Math.random(),
+            name: incoming.name,
+            amount: incoming.amount,
+            currency: incoming.currency,
+          });
+        }
+      });
+
+      return next;
+    });
   }, [setIncomes]);
 
   const importExpenseEntries = useCallback((entries) => {
-    setExpenses((prev) => [...prev, ...entries]);
+    if (!Array.isArray(entries) || entries.length === 0) return;
+
+    setExpenses((prev) => {
+      const next = [...prev];
+
+      entries.forEach((incoming) => {
+        const incomingName = String(incoming.name || "").trim().toLowerCase();
+        if (!incomingName || !Number.isFinite(incoming.amount) || incoming.amount <= 0) {
+          return;
+        }
+
+        const existingIndex = next.findIndex(
+          (item) => String(item.name || "").trim().toLowerCase() === incomingName
+        );
+
+        if (existingIndex >= 0) {
+          const existing = next[existingIndex];
+          next[existingIndex] = {
+            ...existing,
+            amount: incoming.amount,
+            currency: incoming.currency || existing.currency,
+          };
+        } else {
+          next.push({
+            id: Date.now() + Math.random(),
+            name: incoming.name,
+            amount: incoming.amount,
+            currency: incoming.currency,
+          });
+        }
+      });
+
+      return next;
+    });
   }, [setExpenses]);
+
+  const importAssetHoldings = useCallback((entries) => {
+    if (!Array.isArray(entries) || entries.length === 0) return;
+
+    setAssets((prev) => {
+      const next = [...prev];
+
+      entries.forEach((incoming) => {
+        const incomingName = String(incoming.name || "").trim().toLowerCase();
+        const incomingTypeId = incoming.typeId;
+
+        if (!incomingName || !incomingTypeId || !Number.isFinite(incoming.value) || incoming.value <= 0) {
+          return;
+        }
+
+        const existingIndex = next.findIndex(
+          (asset) =>
+            String(asset.name || "").trim().toLowerCase() === incomingName &&
+            asset.typeId === incomingTypeId
+        );
+
+        if (existingIndex >= 0) {
+          const existing = next[existingIndex];
+          next[existingIndex] = {
+            ...existing,
+            value: incoming.value,
+            currency: incoming.currency || existing.currency,
+            notes: incoming.notes || existing.notes || "",
+          };
+        } else {
+          next.push({
+            id: Date.now() + Math.random(),
+            typeId: incomingTypeId,
+            name: incoming.name,
+            value: incoming.value,
+            currency: incoming.currency,
+            notes: incoming.notes || "",
+          });
+        }
+      });
+
+      return next;
+    });
+
+    pushToast("AngelOne holdings imported successfully.", "success");
+  }, [setAssets, pushToast]);
 
   const takeSnapshot = useCallback((navigateToNetWorth = false) => {
     const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
@@ -115,6 +227,7 @@ export function useTrackerActions({
     deleteExpense,
     importIncomeEntries,
     importExpenseEntries,
+    importAssetHoldings,
     takeSnapshot,
     openAssetComposer,
   };
