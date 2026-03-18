@@ -51,7 +51,7 @@ export function AddAssetForm({ typeId, onSave, onCancel, editData }) {
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)" }}>{t.icon} {t.label}</div>
+      <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)" }}>{t.icon} {t.label}</div>
       <div>
         <label style={labelStyle}>Name</label>
         <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} placeholder="e.g. HDFC Bank, Gold ETF, Flat" />

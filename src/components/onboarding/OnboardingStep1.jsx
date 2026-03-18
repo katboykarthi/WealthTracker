@@ -6,10 +6,10 @@ export default function OnboardingStep1({ onNext }) {
   return (
     <div style={{ textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
       <div style={{ fontSize: 56, marginBottom: 16 }}>{"\u{1F33F}"}</div>
-      <h1 style={{ fontFamily: serifFontFamily, fontSize: 32, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>
+      <h1 style={{ fontFamily: serifFontFamily, fontSize: 32, color: "rgba(255, 255, 255, 0.95)", marginBottom: 8 }}>
         Welcome to Karthick Wealth-tracker
       </h1>
-      <p style={{ color: "var(--muted, #64748b)", fontSize: 16, lineHeight: 1.6, marginBottom: 32 }}>
+      <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 16, lineHeight: 1.6, marginBottom: 32 }}>
         Your <strong>privacy-first</strong> net worth tracker. No broker connections, no third-party tracking.{" "}
         <em>Just you and your data.</em>
       </p>

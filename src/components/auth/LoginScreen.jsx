@@ -9,7 +9,7 @@ export default function LoginScreen({ onLogin, busy, error, configError }) {
         alignItems: "center",
         justifyContent: "center",
         background: "var(--bg, #f8fafc)",
-        color: "var(--text-color, #1e293b)",
+        color: "rgba(255, 255, 255, 0.95)",
         fontFamily,
         padding: 20,
       }}
@@ -27,10 +27,10 @@ export default function LoginScreen({ onLogin, busy, error, configError }) {
         }}
       >
         <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F33F}"}</div>
-        <h1 style={{ fontFamily: serifFontFamily, fontSize: 28, margin: "0 0 8px", color: "var(--heading-color, #1a2e1a)" }}>
+        <h1 style={{ fontFamily: serifFontFamily, fontSize: 28, margin: "0 0 8px", color: "rgba(255, 255, 255, 0.95)" }}>
           Karthick Wealth Tracker
         </h1>
-        <p style={{ margin: "0 0 22px", color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 22px", color: "rgba(255, 255, 255, 0.65)", fontSize: 14, lineHeight: 1.5 }}>
           Sign in with Google to securely load and save your data from anywhere.
         </p>
         {configError ? (

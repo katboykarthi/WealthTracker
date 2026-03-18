@@ -47,7 +47,7 @@ const HeaderTitle = styled.h1(({ $isMobile }) => ({
   margin: 0,
   fontSize: $isMobile ? 22 : "clamp(18px, 2.2vw, 26px)",
   fontWeight: 700,
-  color: "var(--heading-color, #1a2e1a)",
+  color: "rgba(255, 255, 255, 0.95)",
   lineHeight: 1,
   letterSpacing: 0.2,
   whiteSpace: "nowrap",
@@ -93,10 +93,31 @@ const HeaderButton = styled.button({
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
   cursor: "pointer",
-  transition: "transform 0.2s ease, background 0.2s ease, color 0.2s ease",
+  transition: "transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease",
   "&:hover": {
     background: "rgba(255,255,255,0.12)",
     color: "var(--text-color, #e5e7eb)",
+    transform: "scale(1.03)",
+  },
+});
+
+const SignOutButton = styled.button({
+  border: "1px solid rgba(255,255,255,0.10)",
+  borderRadius: 12,
+  background: "rgba(255,255,255,0.05)",
+  color: "rgba(180,200,230,0.65)",
+  padding: "8px 14px",
+  fontSize: TYPE_SCALE.meta,
+  fontWeight: 600,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  transition: "transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease",
+  "&:hover": {
+    background: "rgba(249,115,22,0.14)",
+    color: "#fca5a5",
+    borderColor: "rgba(249,115,22,0.30)",
     transform: "scale(1.03)",
   },
 });
@@ -148,11 +169,18 @@ export default function TopNavbar({
         <HeaderTitle $isMobile={isMobile}>WealthTracker</HeaderTitle>
       </BrandLockup>
       <HeaderActions $isMobile={isMobile}>
-        {isMobile ? (
-          <>
-            <HeaderButton className="header-action-btn" title="Dashboard" onClick={onDashboardClick}>{"\u{1F3E0}"}</HeaderButton>
-          </>
-        ) : null}
+        {isMobile && (
+          <HeaderButton className="header-action-btn" title="Dashboard" onClick={onDashboardClick}>{"\u{1F3E0}"}</HeaderButton>
+        )}
+        <SignOutButton
+          className="header-action-btn"
+          title="Sign out"
+          onClick={onSignOut}
+          style={isMobile ? { padding: "8px", background: "transparent", border: "none" } : {}}
+        >
+          <span style={{ fontSize: isMobile ? 18 : 15, lineHeight: 1 }}>⎋</span>
+          {!isMobile && "Sign Out"}
+        </SignOutButton>
       </HeaderActions>
     </MainHeader>
   );

@@ -124,6 +124,8 @@ export default function App() {
   });
 
   return (
+    <>
+      <div className="app-bg-blob" />
     <AppWorkspace
       isMobile={isMobile}
       auroraStyles={auroraStyles}
@@ -156,5 +158,6 @@ export default function App() {
       renderedPage={renderedPage}
       toast={toast}
     />
+    </>
   );
 }

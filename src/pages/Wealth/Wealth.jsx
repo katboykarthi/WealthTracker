@@ -18,8 +18,8 @@ export default function Wealth({ assets, currency, isMobile = false }) {
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Allocation</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 4 }}>Allocation</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
         </div>
       </PageHeader>
 
@@ -31,9 +31,9 @@ export default function Wealth({ assets, currency, isMobile = false }) {
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
-          <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>Allocation Mix</div>
+          <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 12 }}>Allocation Mix</div>
           {grouped.length === 0 ? (
-            <div style={{ textAlign: "center", color: "var(--muted, #64748b)", padding: "36px 0" }}>Add assets to view allocation.</div>
+            <div style={{ textAlign: "center", color: "rgba(255, 255, 255, 0.65)", padding: "36px 0" }}>Add assets to view allocation.</div>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
@@ -52,8 +52,8 @@ export default function Wealth({ assets, currency, isMobile = false }) {
                   return (
                     <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.color }} />
-                      <span style={{ flex: 1, fontSize: 13, color: "var(--muted, #64748b)" }}>{item.label}</span>
-                      <span style={{ fontSize: 12, color: "var(--text-color, #1e293b)", fontWeight: 700 }}>{pct.toFixed(1)}%</span>
+                      <span style={{ flex: 1, fontSize: 13, color: "rgba(255, 255, 255, 0.65)" }}>{item.label}</span>
+                      <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.95)", fontWeight: 700 }}>{pct.toFixed(1)}%</span>
                     </div>
                   );
                 })}
@@ -63,20 +63,20 @@ export default function Wealth({ assets, currency, isMobile = false }) {
         </LiquidGlassCard>
 
         <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
-          <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 12 }}>By Value</div>
+          <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 12 }}>By Value</div>
           {grouped.length === 0 ? (
-            <div style={{ color: "var(--muted, #64748b)", fontSize: 13 }}>No allocation data available.</div>
+            <div style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 13 }}>No allocation data available.</div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {grouped
                 .sort((a, b) => b.value - a.value)
                 .map((item) => (
-                  <div key={item.id} style={{ border: "1px solid var(--border, #e2e8f0)", borderRadius: 10, padding: "10px 12px" }}>
+                  <div key={item.id} style={{ border: "1px solid rgba(255, 255, 255, 0.15)", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, color: "var(--text-color, #1e293b)", fontWeight: 600 }}>{item.icon} {item.label}</span>
-                      <span style={{ fontSize: 13, color: "var(--text-color, #1e293b)", fontWeight: 700 }}>{formatCurrency(item.value, currency)}</span>
+                      <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.95)", fontWeight: 600 }}>{item.icon} {item.label}</span>
+                      <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.95)", fontWeight: 700 }}>{formatCurrency(item.value, currency)}</span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 99, background: "var(--muted-bg, #f1f5f9)" }}>
+                    <div style={{ height: 6, borderRadius: 99, background: "rgba(255, 255, 255, 0.15)" }}>
                       <div style={{ height: "100%", borderRadius: 99, background: item.color, width: `${totalAssets > 0 ? (item.value / totalAssets) * 100 : 0}%` }} />
                     </div>
                   </div>

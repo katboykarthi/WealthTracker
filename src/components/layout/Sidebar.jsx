@@ -49,7 +49,11 @@ const ToggleButton = styled.button(({ $collapsed }) => ({
   "&:hover": {
     background: "rgba(255,255,255,0.1)",
     color: "#f8fafc",
+    transform: $collapsed ? "translateX(10px) scale(1.08)" : "scale(1.08)",
   },
+  "&:active": {
+    transform: $collapsed ? "translateX(10px) scale(0.93)" : "scale(0.93)",
+  }
 }));
 
 const SidebarNav = styled.nav({
@@ -138,6 +142,7 @@ export default function Sidebar({
     <SidebarRail $collapsed={collapsed}>
       <SidebarTop $collapsed={collapsed}>
         <ToggleButton
+          className="sidebar-toggle-btn"
           $collapsed={collapsed}
           onClick={onToggleCollapsed}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -169,18 +174,6 @@ export default function Sidebar({
         })}
       </SidebarNav>
 
-      <SidebarBottom $collapsed={collapsed}>
-        <MenuButton
-          className="sidebar-menu-btn"
-          $active={false}
-          $collapsed={collapsed}
-          onClick={onSignOut}
-          title="Sign out"
-        >
-          <SidebarGlyph name="logout" />
-          <LabelText $collapsed={collapsed}>Sign Out</LabelText>
-        </MenuButton>
-      </SidebarBottom>
     </SidebarRail>
   );
 }

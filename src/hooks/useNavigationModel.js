@@ -2,7 +2,7 @@ import { useMemo, useRef, useEffect, useCallback } from "react";
 import { gsap } from "gsap";
 import { NAV_ITEMS } from "../constants/navigation";
 
-const MOBILE_NAV_COLORS = ["#38bdf8", "#22d3ee", "#0ea5e9", "#7dd3fc", "#0284c7", "#14b8a6"];
+const MOBILE_NAV_COLORS = ["rgba(56, 189, 248, 0.25)", "rgba(34, 211, 238, 0.25)", "rgba(14, 165, 233, 0.25)", "rgba(125, 211, 252, 0.25)", "rgba(2, 132, 199, 0.25)", "rgba(20, 184, 166, 0.25)"];
 
 export function useNavigationModel({
   activeNav,
@@ -102,7 +102,7 @@ export function useNavigationModel({
         duration: immediate ? 0 : 0.38,
         x,
         width: targetWidth,
-        backgroundColor: mobileNavColorBySection[section] || "var(--primary, #16a34a)",
+        backgroundColor: mobileNavColorBySection[section] || "rgba(22, 163, 74, 0.25)",
         ease: immediate ? "none" : "power3.out",
         overwrite: "auto",
       });

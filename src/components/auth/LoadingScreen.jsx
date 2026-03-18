@@ -9,7 +9,7 @@ export default function LoadingScreen({ title, detail }) {
         alignItems: "center",
         justifyContent: "center",
         background: "var(--bg, #f8fafc)",
-        color: "var(--text-color, #1e293b)",
+        color: "rgba(255, 255, 255, 0.95)",
         fontFamily,
         padding: 20,
       }}
@@ -27,7 +27,7 @@ export default function LoadingScreen({ title, detail }) {
       >
         <div style={{ fontSize: 40, marginBottom: 10 }}>{"\u{23F3}"}</div>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{title}</div>
-        <div style={{ fontSize: 13, color: "var(--muted, #64748b)" }}>{detail}</div>
+        <div style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.65)" }}>{detail}</div>
       </div>
     </div>
   );

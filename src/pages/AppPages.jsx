@@ -295,16 +295,6 @@ export function Dashboard({
         <ActionCluster>
           <PrimaryButton onClick={() => setShowSnapshotModal(true)}>Take Snapshot</PrimaryButton>
           <SecondaryButton onClick={() => setShowAddModal(true)}>Add Asset</SecondaryButton>
-          <FloatingArea ref={quickPopoverAnchorRef} onClick={(event) => event.stopPropagation()}>
-            <GhostButton
-              aria-haspopup="menu"
-              aria-expanded={showQuickPopover}
-              onClick={() => setShowQuickPopover((prev) => !prev)}
-            >
-              Quick Actions
-            </GhostButton>
-          </FloatingArea>
-          {quickActionsPopover}
         </ActionCluster>
       </HeroPanel>
 
@@ -402,7 +392,7 @@ export function Dashboard({
                   {allocationData.map((slice) => (
                     <div key={slice.name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: TYPE_SCALE.meta }}>
                       <span style={{ width: 9, height: 9, borderRadius: 99, background: slice.color }} />
-                      <span style={{ flex: 1, color: "var(--muted, #64748b)" }}>{slice.name}</span>
+                      <span style={{ flex: 1, color: "rgba(255, 255, 255, 0.65)" }}>{slice.name}</span>
                       <strong>{formatCurrency(slice.value, currency)}</strong>
                     </div>
                   ))}
@@ -595,7 +585,7 @@ export function Dashboard({
               </div>
             )}
 
-            <div style={{ marginTop: 8, fontSize: TYPE_SCALE.meta, color: "var(--muted, #64748b)", display: "grid", gap: 6 }}>
+            <div style={{ marginTop: 8, fontSize: TYPE_SCALE.meta, color: "rgba(255, 255, 255, 0.65)", display: "grid", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span>Income</span>
                 <strong style={{ color: "#16a34a" }}>{formatCurrency(totalIncome, currency)}</strong>
@@ -823,8 +813,8 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Assets</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(totalAssets, currency)}</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Assets</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: {formatCurrency(totalAssets, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input
@@ -869,14 +859,14 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
                         setPickingType(false);
                       }}
                       style={{
-                        background: "var(--bg-light, #f8fafc)",
-                        border: "1.5px solid var(--border, #e2e8f0)",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
                         borderRadius: 10,
                         padding: "10px 8px",
                         cursor: "pointer",
                         textAlign: "center",
                         fontSize: 12,
-                        color: "var(--text-color, #334155)",
+                        color: "rgba(255, 255, 255, 0.95)",
                       }}
                     >
                       <div style={{ fontSize: 22, marginBottom: 4 }}>{t.icon}</div>
@@ -909,7 +899,7 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
       {assets.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: "center", padding: 60, color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F3DB}\uFE0F"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--muted, #64748b)" }}>No assets yet</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No assets yet</div>
           <div>Add your first asset to start tracking your wealth</div>
         </div>
       ) : (
@@ -1166,8 +1156,8 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Liabilities</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: <span style={{ color: "#ef4444" }}>{formatCurrency(total, currency)}</span></p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Liabilities</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: <span style={{ color: "#ef4444" }}>{formatCurrency(total, currency)}</span></p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <button onClick={() => { setEditingLiability(null); setShowAdd(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Liability</button>
@@ -1189,7 +1179,7 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
       {liabilities.length === 0 ? (
         <div style={{ ...cardStyle, textAlign: "center", padding: 60, color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u2705"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--muted, #64748b)" }}>No liabilities!</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No liabilities!</div>
           <div>You're debt free or haven't added any loans yet</div>
         </div>
       ) : (
@@ -1489,8 +1479,8 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Income</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Income</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input
@@ -1525,7 +1515,7 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
                 <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
-                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
+                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
                 <button onClick={handleSave} style={btnStyle}>{editingIncome ? "Update" : "Save"}</button>
               </div>
             </div>
@@ -1536,7 +1526,7 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
       {incomes.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F4BC}"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No income recorded</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No income recorded</div>
           <div>Add recurring or one-time income to track cashflow</div>
         </LiquidGlassCard>
       ) : (
@@ -1828,8 +1818,8 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Expenses</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Expenses</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input
@@ -1864,7 +1854,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                 <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
-                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: 'var(--muted, #64748b)' }}>Cancel</button>
+                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
                 <button onClick={handleSave} style={{ ...btnStyle, background: "var(--error, #f97316)" }}>{editingExpense ? "Update" : "Save"}</button>
               </div>
             </div>
@@ -1875,7 +1865,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
       {expenses.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F6D2}"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: 'var(--muted, #64748b)' }}>No expenses recorded</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No expenses recorded</div>
           <div>Add your expenses to track cashflow</div>
         </LiquidGlassCard>
       ) : (
@@ -2036,8 +2026,8 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Net Worth</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Track your wealth journey over time</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 4 }}>Net Worth</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Track your wealth journey over time</p>
         </div>
       </PageHeader>
 
@@ -2050,7 +2040,7 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
       <LiquidGlassCard>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 0, marginBottom: 16 }}>
           <div>
-            <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", fontSize: 16 }}>Wealth Timeline</div>
+            <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", fontSize: 16 }}>Wealth Timeline</div>
             <div style={{ fontSize: 13, color: "#94a3b8" }}>{snapshots.length} snapshot{snapshots.length !== 1 ? "s" : ""} recorded</div>
           </div>
           <button onClick={onSnapshot} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>{"\u{1F4F8}"} Take Snapshot</button>
@@ -2082,7 +2072,7 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
 
       {snapshots.length > 0 && (
         <LiquidGlassCard style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 16 }}>Snapshot History</div>
+          <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 16 }}>Snapshot History</div>
           <TableResultsText>
             Showing {pagedSnapshotRows.length} of {snapshotRows.length} snapshots
           </TableResultsText>
@@ -2245,8 +2235,8 @@ export function GoalsPage({ assets, currency }) {
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)" }}>Financial Goals</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Set targets and track your progress</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Financial Goals</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Set targets and track your progress</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ New Goal</button>
@@ -2280,7 +2270,7 @@ export function GoalsPage({ assets, currency }) {
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
-              <button onClick={closeAddModal} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "var(--muted, #64748b)" }}>Cancel</button>
+              <button onClick={closeAddModal} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
               <button onClick={addGoal} style={btnStyle}>Create Goal</button>
             </div>
           </ModalCard>
@@ -2290,7 +2280,7 @@ export function GoalsPage({ assets, currency }) {
       {goals.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F3AF}"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "var(--muted, #64748b)" }}>No goals yet</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No goals yet</div>
           <div>Set financial goals to track your progress</div>
         </LiquidGlassCard>
       ) : (
@@ -2496,7 +2486,7 @@ const AppShell = styled.div(({ $isMobile }) => ({
   isolation: "isolate",
   fontFamily: APP_FONT_STACK,
   background: "transparent",
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
   flexDirection: $isMobile ? "column" : "row",
 }));
 
@@ -2551,7 +2541,7 @@ const HeroLabel = styled.div({
   fontSize: TYPE_SCALE.micro,
   fontWeight: 700,
   letterSpacing: 0.8,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   textTransform: "uppercase",
   marginBottom: 4,
 });
@@ -2565,7 +2555,7 @@ const HeroValue = styled.div({
 
 const HeroMeta = styled.div({
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
 });
 
 const ActionCluster = styled.div({
@@ -2590,7 +2580,7 @@ const SecondaryButton = styled.button({
   border: "1px solid var(--border, #e2e8f0)",
   borderRadius: 10,
   background: "var(--card-bg, #fff)",
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
   padding: "9px 12px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
@@ -2601,7 +2591,7 @@ const GhostButton = styled.button({
   border: "none",
   borderRadius: 10,
   background: "transparent",
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   padding: "9px 10px",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
@@ -2626,18 +2616,18 @@ const StatLabel = styled.div({
   textTransform: "uppercase",
   letterSpacing: 0.7,
   fontWeight: 700,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
 });
 
 const StatValue = styled.div({
   fontSize: 26,
   fontWeight: 700,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
 });
 
 const StatSub = styled.div({
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
 });
 
 const DashboardTabs = styled.div(({ $isMobile, $count = 1, $activeIndex = 0 }) => {
@@ -2719,12 +2709,12 @@ const PanelTitle = styled.h2({
   margin: "0 0 8px",
   fontSize: TYPE_SCALE.h2,
   lineHeight: 1.2,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
 });
 
 const PanelHint = styled.div({
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   marginBottom: 14,
 });
 
@@ -2738,10 +2728,10 @@ const Toolbar = styled.div(({ $isMobile }) => ({
 const Field = styled.input({
   width: "100%",
   minHeight: 44,
-  border: "1px solid var(--border, #e2e8f0)",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
   borderRadius: 10,
-  background: "var(--input-bg, #fff)",
-  color: "var(--text-color, #1e293b)",
+  background: "rgba(255, 255, 255, 0.05)",
+  color: "rgba(255, 255, 255, 0.9)",
   padding: "10px 12px",
   fontSize: TYPE_SCALE.meta,
   outline: "none",
@@ -2752,10 +2742,10 @@ const Field = styled.input({
 const Select = styled.select({
   width: "100%",
   minHeight: 44,
-  border: "1px solid var(--border, #e2e8f0)",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
   borderRadius: 10,
-  background: "var(--input-bg, #fff)",
-  color: "var(--text-color, #1e293b)",
+  background: "rgba(255, 255, 255, 0.05)",
+  color: "rgba(255, 255, 255, 0.9)",
   padding: "10px 38px 10px 12px",
   fontSize: TYPE_SCALE.meta,
   outline: "none",
@@ -2763,6 +2753,10 @@ const Select = styled.select({
   lineHeight: 1.2,
   appearance: "none",
   WebkitAppearance: "none",
+  "& option": {
+    background: "#0d0d1a",
+    color: "rgba(255, 255, 255, 0.9)",
+  }
 });
 
 const TableWrap = styled.div({
@@ -2788,16 +2782,16 @@ const TableHead = styled.th({
   fontSize: TYPE_SCALE.micro,
   textTransform: "uppercase",
   letterSpacing: 0.7,
-  color: "var(--muted, #64748b)",
-  borderBottom: "1px solid var(--border, #e2e8f0)",
-  background: "var(--bg-light, #f8fafc)",
+  color: "rgba(255, 255, 255, 0.65)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+  background: "rgba(255, 255, 255, 0.04)",
 });
 
 const TableCell = styled.td({
   padding: "10px 10px",
-  borderBottom: "1px solid var(--border, #e2e8f0)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
   fontSize: TYPE_SCALE.body,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.9)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -2814,7 +2808,7 @@ const TablePager = styled.div({
 
 const TablePagerInfo = styled.div({
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
 });
 
 const TablePagerActions = styled.div({
@@ -2824,10 +2818,10 @@ const TablePagerActions = styled.div({
 });
 
 const TablePagerButton = styled.button(({ disabled }) => ({
-  border: "1px solid var(--border, #e2e8f0)",
+  border: "1px solid rgba(255, 255, 255, 0.15)",
   borderRadius: 8,
-  background: "var(--card-bg, #fff)",
-  color: "var(--text-color, #1e293b)",
+  background: "rgba(255, 255, 255, 0.05)",
+  color: "rgba(255, 255, 255, 0.9)",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
   padding: "5px 9px",
@@ -2838,23 +2832,23 @@ const TablePagerButton = styled.button(({ disabled }) => ({
 const TablePagerBadge = styled.span({
   fontSize: TYPE_SCALE.meta,
   fontWeight: 700,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   minWidth: 56,
   textAlign: "center",
 });
 
 const EmptyBlock = styled.div({
-  border: "1px dashed var(--border, #e2e8f0)",
+  border: "1px dashed rgba(255, 255, 255, 0.15)",
   borderRadius: 10,
   padding: "18px 12px",
   textAlign: "center",
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   fontSize: TYPE_SCALE.meta,
 });
 
 const TableResultsText = styled.div({
   fontSize: TYPE_SCALE.meta,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   marginBottom: 12,
 });
 
@@ -2887,14 +2881,14 @@ const MobileDataTitle = styled.div({
   fontSize: 15,
   fontWeight: 700,
   lineHeight: 1.3,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
   wordBreak: "break-word",
 });
 
 const MobileDataSubtitle = styled.div({
   fontSize: TYPE_SCALE.meta,
   lineHeight: 1.4,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
   wordBreak: "break-word",
 });
 
@@ -2910,7 +2904,7 @@ const MobileDataBadge = styled.div({
   background: "rgba(255,255,255,0.06)",
   fontSize: TYPE_SCALE.micro,
   fontWeight: 700,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
   textAlign: "center",
 });
 
@@ -2921,7 +2915,7 @@ const MobileDataSelection = styled.label({
   width: "fit-content",
   fontSize: TYPE_SCALE.meta,
   fontWeight: 600,
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.65)",
 });
 
 const MobileDataGrid = styled.div({
@@ -2940,14 +2934,14 @@ const MobileDataLabel = styled.div({
   fontWeight: 700,
   letterSpacing: 0.7,
   textTransform: "uppercase",
-  color: "var(--muted, #64748b)",
+  color: "rgba(255, 255, 255, 0.5)",
 });
 
 const MobileDataValue = styled.div({
   fontSize: TYPE_SCALE.body,
   lineHeight: 1.4,
   fontWeight: 600,
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.9)",
   wordBreak: "break-word",
 });
 
@@ -3077,13 +3071,13 @@ const ModalCard = styled.div(({ $maxWidth = 460 }) => ({
 const ModalTitle = styled.h2({
   margin: "0 0 6px",
   fontSize: TYPE_SCALE.h2,
-  color: "var(--modal-text, var(--text-color, #1e293b))",
+  color: "rgba(255, 255, 255, 0.95)",
 });
 
 const ModalText = styled.p({
   margin: "0 0 14px",
   fontSize: TYPE_SCALE.meta,
-  color: "var(--modal-muted, var(--muted, #64748b))",
+  color: "rgba(255, 255, 255, 0.7)",
   lineHeight: 1.45,
 });
 

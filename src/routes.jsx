@@ -126,12 +126,12 @@ export function renderAppRoute({
     case "settings":
       return (
         <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 8 }}>Settings</h2>
-          <p style={{ color: "var(--muted, #64748b)", marginBottom: 24 }}>Manage your preferences</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 8 }}>Settings</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", marginBottom: 24 }}>Manage your preferences</p>
           <div style={{ display: "grid", gap: 16, maxWidth: 500 }}>
             <div style={cardStyle}>
-              <div style={{ fontWeight: 600, marginBottom: 6, color: "var(--text-color, #1e293b)" }}>Display</div>
-              <div style={{ color: "var(--muted, #64748b)", fontSize: 13 }}>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: "rgba(255, 255, 255, 0.95)" }}>Display</div>
+              <div style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 13 }}>
                 Liquid glass dark theme is enabled by default.
               </div>
             </div>
@@ -142,7 +142,7 @@ export function renderAppRoute({
       return (
         <div style={{ padding: "28px 32px", color: "#94a3b8", textAlign: "center", paddingTop: 80 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F6A7}"}</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "var(--muted, #64748b)" }}>{activeNav.charAt(0).toUpperCase() + activeNav.slice(1)}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "rgba(255, 255, 255, 0.65)" }}>{activeNav.charAt(0).toUpperCase() + activeNav.slice(1)}</div>
           <div style={{ marginTop: 8, fontSize: 14 }}>Coming soon...</div>
         </div>
       );

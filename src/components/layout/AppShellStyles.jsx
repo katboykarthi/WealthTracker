@@ -25,7 +25,7 @@ export const AppShell = styled.div(({ $isMobile }) => ({
   position: "relative",
   fontFamily: APP_FONT_STACK,
   background: "transparent",
-  color: "var(--text-color, #1e293b)",
+  color: "rgba(255, 255, 255, 0.95)",
   flexDirection: $isMobile ? "column" : "row",
 }));
 

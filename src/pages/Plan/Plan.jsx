@@ -15,16 +15,16 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
     ...(assets.length === 0 ? [{ icon: "\u{1F4CA}", color: "#3b82f6", title: "Start Tracking", desc: "Add your first asset to start building your financial picture." }] : []),
     ...(assets.length > 0 ? [{ icon: "\u2705", color: "#22c55e", title: "Tracking Active", desc: `You're tracking ${assets.length} asset${assets.length > 1 ? "s" : ""} worth ${formatCurrency(totalAssets, currency)}.` }] : []),
     ...(debtRatio < 20 && assets.length > 0 ? [{ icon: "\u{1F389}", color: "#16a34a", title: "Healthy Finances", desc: "Your debt ratio is excellent. Keep building your asset base!" }] : []),
-    { icon: "\u{1F4A1}", color: "#8b5cf6", title: "Diversification Tip", desc: "Consider spreading investments across stocks, real estate, and fixed income for stability." },
-    { icon: "\u{1F4F8}", color: "var(--muted, #64748b)", title: "Take Regular Snapshots", desc: "Monthly net worth snapshots help you see your wealth trajectory over time." },
+    { icon: "💡", color: "#8b5cf6", title: "Diversification Tip", desc: "Consider spreading investments across stocks, real estate, and fixed income for stability." },
+    { icon: "📸", color: "rgba(255, 255, 255, 0.65)", title: "Take Regular Snapshots", desc: "Monthly net worth snapshots help you see your wealth trajectory over time." },
   ];
 
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "var(--heading-color, #1a2e1a)", marginBottom: 4 }}>Insights</h2>
-          <p style={{ color: "var(--muted, #64748b)", fontSize: 14 }}>Smart observations about your financial health</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 4 }}>Insights</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Smart observations about your financial health</p>
         </div>
       </PageHeader>
 
@@ -52,8 +52,8 @@ export default function Plan({ assets, liabilities, currency, isMobile = false }
           <LiquidGlassCard key={i} style={{ display: "flex", gap: 16, alignItems: "flex-start", animationDelay: `${Math.min(i, 8) * 40}ms`, animationFillMode: "both", padding: isMobile ? 18 : 22 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `${ins.color}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{ins.icon}</div>
             <div>
-              <div style={{ fontWeight: 700, color: "var(--text-color, #1e293b)", marginBottom: 4 }}>{ins.title}</div>
-              <div style={{ color: "var(--muted, #64748b)", fontSize: 14, lineHeight: 1.5 }}>{ins.desc}</div>
+              <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 4 }}>{ins.title}</div>
+              <div style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14, lineHeight: 1.5 }}>{ins.desc}</div>
             </div>
           </LiquidGlassCard>
         ))}
