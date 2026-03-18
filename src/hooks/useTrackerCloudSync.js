@@ -10,6 +10,7 @@ export function useTrackerCloudSync({
   liabilities,
   incomes,
   expenses,
+  goals,
   snapshots,
   activeNav,
   setPhase,
@@ -17,6 +18,7 @@ export function useTrackerCloudSync({
   setLiabilities,
   setIncomes,
   setExpenses,
+  setGoals,
   setSnapshots,
   setActiveNav,
   resetTrackerState,
@@ -86,6 +88,7 @@ export function useTrackerCloudSync({
           setLiabilities(Array.isArray(cloud.liabilities) ? cloud.liabilities : []);
           setIncomes(Array.isArray(cloud.incomes) ? cloud.incomes : []);
           setExpenses(Array.isArray(cloud.expenses) ? cloud.expenses : []);
+          setGoals(Array.isArray(cloud.goals) ? cloud.goals : []);
           setSnapshots(Array.isArray(cloud.snapshots) ? cloud.snapshots : []);
           setActiveNav(typeof cloud.activeNav === "string" ? cloud.activeNav : "dashboard");
         } else {
@@ -98,6 +101,7 @@ export function useTrackerCloudSync({
               liabilities: [],
               incomes: [],
               expenses: [],
+              goals: [],
               snapshots: [],
               activeNav: "dashboard",
               darkMode: true,
@@ -122,7 +126,7 @@ export function useTrackerCloudSync({
     });
 
     return () => unsubscribe();
-  }, [resetTrackerState, setPhase, setAssets, setLiabilities, setIncomes, setExpenses, setSnapshots, setActiveNav]);
+  }, [resetTrackerState, setPhase, setAssets, setLiabilities, setIncomes, setExpenses, setGoals, setSnapshots, setActiveNav]);
 
   useEffect(() => {
     if (!authUser || !cloudHydrated || !db) return;
@@ -145,6 +149,7 @@ export function useTrackerCloudSync({
               liabilities,
               incomes,
               expenses,
+              goals,
               snapshots,
               activeNav,
               darkMode: true,
@@ -176,7 +181,7 @@ export function useTrackerCloudSync({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [authUser, cloudHydrated, phase, assets, liabilities, incomes, expenses, snapshots, activeNav]);
+  }, [authUser, cloudHydrated, phase, assets, liabilities, incomes, expenses, goals, snapshots, activeNav]);
 
   return {
     authUser,

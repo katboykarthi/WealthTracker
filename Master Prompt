@@ -1,0 +1,206 @@
+You are a senior React developer. I have a WealthTracker app built with:
+- React 19, Firebase (Auth + Firestore), Recharts, Emotion CSS-in-JS, GSAP
+- Repo: https://github.com/katboykarthi/WealthTracker
+- Currency: INR, styled with dark theme + liquid-glass aesthetic
+
+Implement ALL the following features. Read the existing code structure first before making changes.
+The app uses src/styles/index.js for shared styles, src/store/ for state, src/pages/ for views,
+src/components/ for UI, and src/constants/index.js for enums/config.
+
+════════════════════════════════════════
+SECTION 1 — DASHBOARD ENHANCEMENTS
+════════════════════════════════════════
+
+1.1 INSIGHTS CARD on Dashboard
+- Show: Savings Rate %, Top Spending Category, Month-over-Month Net Worth Change %, 
+  Debt-to-Asset Ratio, Emergency Fund Coverage (months), Best Performing Asset
+- Each insight as a small tile with icon, label, value, and color-coded trend arrow
+
+1.2 GOALS SUMMARY CARD on Dashboard
+- Show top 3 active goals with: goal name, progress bar (%), amount saved vs target,
+  days remaining, and linked asset current value if any
+- "View All Goals" link at bottom
+
+════════════════════════════════════════
+SECTION 2 — INCOME & CASHFLOW
+════════════════════════════════════════
+
+2.1 MONTHLY INCOME ENTRY
+- Add income entry form with: source name, amount, type (Salary/Freelance/Rental/Dividend/Other),
+  month (month+year picker), notes
+- Store in Firestore under user's incomeEntries array
+
+2.2 CASHFLOW PAGE UPDATES
+- Add date filter tabs: This Month | Last Month | 3M | 6M | 12M | Custom Range
+- Apply same filter to both income and expense data
+- Monthly Trend Chart: grouped bar chart (Income vs Expense per month) using Recharts
+- Remove the Cash Balance chart card — replace with 3 stat tiles:
+  "Total Income", "Total Expenses", "Net Cash Flow" (value + color coded)
+
+2.3 EXPENSES/INCOME TABLE FILTER
+- Single unified table showing all transactions
+- Add filter bar at top: This Month | Last Month | 3M | 6M | 12M | Custom Date Range
+- Table columns: Date, Type (Income/Expense), Category, Description, Amount
+
+════════════════════════════════════════
+SECTION 3 — ENHANCED ADD ASSET FORM
+════════════════════════════════════════
+
+Build a multi-step dynamic form. Step 1 = select asset type. Step 2+ = type-specific fields.
+Use Google Finance URL pattern for live prices:
+  https://www.google.com/finance/quote/{SYMBOL}:{EXCHANGE}
+Fetch via a CORS proxy or display a manual refresh button with last updated timestamp.
+Store all extra fields in Firestore alongside existing asset data.
+
+3.1 STOCKS
+Fields: Stock Name (autocomplete from NSE/BSE list — use a static JSON of top 500 NSE stocks 
+        with symbols), Exchange (NSE/BSE), Number of Shares, Avg Purchase Price (auto-calculates
+        Total Invested = shares × avg price), Current Market Price (fetched from Google Finance 
+        using symbol, with manual refresh button + last updated time), Current Value (auto = 
+        shares × CMP), P&L (Current Value - Total Invested), P&L % 
+
+3.2 MUTUAL FUNDS
+Fields: Fund Name (free text), Units Held, Avg NAV (auto-calculates Total Invested = units × avgNAV),
+        Current NAV (manual entry or Google Finance fetch by fund ticker if available, 
+        with refresh button), Current Value (auto = units × currentNAV), P&L, P&L %
+
+3.3 GOLD / PRECIOUS METALS
+Fields: Metal Type (Gold / Silver / Other), Holding Type:
+  → If PHYSICAL: Weight in grams, Price per gram (fetch from Google Finance: GOLD or SILVER),
+    Current Value (auto = weight × price/gram), Total Invested (manual)
+  → If DIGITAL (SGB/ETF): Units Held, Avg Purchase Price, Live Price (Google Finance),
+    Current Value (auto = units × live price), Total Invested (auto = units × avg price)
+
+3.4 FIXED DEPOSIT
+Fields: Bank Name, Principal Amount, Interest Rate (% p.a.), Tenure (months),
+        Start Date, Maturity Date (auto-calculated), Maturity Amount (auto = compound interest),
+        Current Value (auto = accrued till today)
+
+3.5 REAL ESTATE
+Fields: Property Name, Property Type (Residential/Commercial/Plot), Location,
+        Purchase Price, Current Market Value (manual), Purchase Date, 
+        Is Mortgaged? (Yes/No → if Yes, link to a liability entry)
+
+3.6 CRYPTO
+Fields: Coin Name, Symbol, Quantity, Avg Buy Price, Total Invested (auto),
+        Live Price (Google Finance or note: manual), Current Value (auto), P&L, P&L %
+
+3.7 PPF / EPF / NPS
+Fields: Account Type (PPF/EPF/NPS), Account Number (optional), Total Contributed,
+        Current Balance, Last Updated Date, Expected Maturity Date
+
+3.8 SAVINGS / BANK ACCOUNT
+Fields: Bank Name, Account Type (Savings/Current/RD), Current Balance, Interest Rate %
+
+════════════════════════════════════════
+SECTION 4 — ASSETS TAB OVERHAUL
+════════════════════════════════════════
+
+4.1 SUMMARY BAR (top of Assets tab)
+Show 3 summary tiles:
+- Total Invested (sum of all asset invested amounts)
+- Current Value (sum of all current values, live where available)
+- Overall P&L = Current Value - Total Invested, shown as ₹ amount AND % with color coding
+  (green if positive, red if negative)
+
+4.2 ASSETS TABLE columns:
+Name | Type | Qty/Units (label changes by asset type) | Invested ₹ | Current Value ₹ | 
+P&L ₹ | P&L % | Allocation % (this asset's current value / total portfolio × 100)
+
+- P&L column: color-coded green/red
+- Allocation: shown as % badge or mini progress bar
+- Sort by any column
+- Show "Live" badge on rows where price was fetched from Google Finance
+
+════════════════════════════════════════
+SECTION 5 — LIABILITIES OVERHAUL
+════════════════════════════════════════
+
+5.1 ADD LIABILITY FORM — new fields:
+Loan Name, Loan Type (Home/Car/Personal/Education/Credit Card/Other),
+Principal Amount, Monthly EMI, Start Date, End Date (auto-calculate from 
+principal + EMI if not provided), Interest Rate % p.a. (optional)
+
+5.2 OUTSTANDING AMOUNT CALCULATION
+Do NOT use Principal Amount for Net Worth. Instead calculate:
+  Total EMIs = (End Date - Start Date) in months
+  EMIs Paid = (Today - Start Date) in months  
+  Outstanding = Principal - (EMIs Paid × EMI) 
+  [cap Outstanding at 0, never negative]
+  Use Outstanding Amount in Net Worth = Assets - Outstanding Liabilities
+
+5.3 LIABILITIES TABLE columns:
+Name | Type | Principal | EMI/month | Start Date | End Date | Outstanding ₹ | Closing In
+  → "Closing In" = human readable: "8 months", "2 years 3 months", "CLOSED" if past end date
+  → Outstanding bar: mini progress bar showing % paid off
+  → Auto-update Outstanding every time user opens the app (recalculate from today's date)
+
+════════════════════════════════════════
+SECTION 6 — INSIGHTS TAB (full page)
+════════════════════════════════════════
+
+6.1 STAT TILES ROW
+- Total Income (filtered period)
+- Total Expenses (filtered period)  
+- Gap = Income - Expenses (color coded)
+- Avg Monthly Income
+- Avg Monthly Expense
+- Highest Single Expense (amount + category + date)
+- Last Expense (description + amount + date)
+
+6.2 DATE FILTER (same as Cashflow): This Month | Last Month | 3M | 6M | 12M | Custom
+
+6.3 MONTHLY TREND CHART
+- Recharts BarChart with grouped bars: Income (green) vs Expense (red) per month
+- Apply selected date filter
+- Show net line overlay (Income - Expense) as a Line on the same chart (ComposedChart)
+- X-axis: month labels (Mar 26, Feb 26, etc.), Y-axis: ₹ values in K/L format
+
+════════════════════════════════════════
+SECTION 7 — GOALS OVERHAUL
+════════════════════════════════════════
+
+7.1 ADD GOAL FORM fields:
+- Goal Name (text)
+- Template (dropdown: Emergency Fund / Retirement / House Down Payment / 
+            Car / Vacation / Education / Wedding / Custom)
+  → Selecting template pre-fills suggested target amount and horizon
+- Target Amount (₹)
+- Target Date (date picker)
+- Starting Amount (₹, optional, default 0)
+- Track Progress By:
+  → Option A: Manual (user enters current saved amount periodically)
+  → Option B: Link to Asset (dropdown of existing assets — use that asset's current value
+    as the goal's current progress automatically)
+  → Option C: Link to Savings (auto-sum of a specific income category minus expenses)
+
+7.2 GOAL CARD display:
+- Goal name + template icon
+- Progress bar: current/target with % label
+- ₹ Current vs ₹ Target
+- Days remaining + Target date
+- Monthly required savings to hit target on time =
+  (Target - Current) / months remaining
+- Color: green if on track, amber if behind, red if very behind
+
+════════════════════════════════════════
+GENERAL ENGINEERING RULES
+════════════════════════════════════════
+
+- All new Firestore fields should be backward compatible (use optional chaining)
+- All monetary values stored in paise (×100) or as floats with 2 decimal precision
+- Google Finance price fetch: use fetch() to 
+  https://www.google.com/finance/quote/RELIANCE:NSE and parse the price from the page,
+  OR fallback to showing a manual "Enter current price" input with a "Fetch" button
+  that opens Google Finance in a new tab for the user to reference
+- All new forms must follow existing security.js sanitization patterns
+- Reuse existing styles from src/styles/index.js — extend don't replace
+- All new components go in src/components/ with descriptive names
+- All new pages go in src/pages/
+- Update src/constants/index.js with any new enums (asset sub-types, goal templates etc.)
+- Maintain the liquid-glass visual aesthetic: backdrop-filter blur, 
+  rgba backgrounds, shimmer borders on all new cards/modals
+- All charts use Recharts — maintain existing chart styling patterns
+- Keep mobile responsiveness intact
+- For live price fetching, add a global PriceService in src/services/priceService.js
+  that caches prices for 15 minutes in sessionStorage to avoid excessive requests

@@ -6,6 +6,7 @@ export function useTrackerState() {
   const [liabilities, setLiabilities] = useState([]);
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [snapshots, setSnapshots] = useState([]);
   const [activeNav, setActiveNav] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,6 +22,7 @@ export function useTrackerState() {
     setLiabilities([]);
     setIncomes([]);
     setExpenses([]);
+    setGoals([]);
     setSnapshots([]);
     setActiveNav("dashboard");
     setSectionSelection({});
@@ -39,6 +41,8 @@ export function useTrackerState() {
     setIncomes,
     expenses,
     setExpenses,
+    goals,
+    setGoals,
     snapshots,
     setSnapshots,
     activeNav,

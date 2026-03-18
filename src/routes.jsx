@@ -7,6 +7,7 @@ import IncomePage from "./pages/Income/Income";
 import ExpensesPage from "./pages/Expenses/Expenses";
 import NetWorthPage from "./pages/NetWorth/NetWorth";
 import GoalsPage from "./pages/Goals/Goals";
+import InsightsPage from "./pages/Insights/Insights";
 import { cardStyle as sharedCardStyle, serifFontFamily } from "./styles";
 
 const cardStyle = sharedCardStyle;
@@ -17,6 +18,8 @@ export function renderAppRoute({
   liabilities,
   incomes,
   expenses,
+  goals,
+  setGoals,
   currency,
   snapshots,
   isMobile,
@@ -50,6 +53,7 @@ export function renderAppRoute({
           liabilities={liabilities}
           incomes={incomes}
           expenses={expenses}
+          goals={goals}
           currency={currency}
           snapshots={snapshots}
           onSnapshot={() => takeSnapshot(false)}
@@ -94,13 +98,14 @@ export function renderAppRoute({
         />
       );
     case "goals":
-      return <GoalsPage assets={assets} currency={currency} />;
+      return <GoalsPage assets={assets} goals={goals} setGoals={setGoals} currency={currency} />;
     case "allocation":
       return <WealthPage assets={assets} currency={currency} isMobile={isMobile} />;
     case "income":
       return (
         <IncomePage
           incomes={incomes}
+          expenses={expenses}
           currency={currency}
           onAdd={addIncome}
           onUpdate={updateIncome}
@@ -108,6 +113,7 @@ export function renderAppRoute({
           onImportIncome={importIncomeEntries}
           onImportExpense={importExpenseEntries}
         />
+
       );
     case "expenses":
       return (
@@ -122,7 +128,13 @@ export function renderAppRoute({
         />
       );
     case "insights":
-      return <PlanPage assets={assets} liabilities={liabilities} currency={currency} isMobile={isMobile} />;
+      return (
+        <InsightsPage
+          incomes={incomes}
+          expenses={expenses}
+          currency={currency}
+        />
+      );
     case "settings":
       return (
         <div style={{ padding: "28px 32px", maxWidth: 900 }}>

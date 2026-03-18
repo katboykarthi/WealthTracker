@@ -3,11 +3,12 @@ import styled from "@emotion/styled";
 import { keyframes } from "@emotion/react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, BarChart, Bar, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid, Legend } from "recharts";
 import { CURRENCIES, ASSET_TYPES, LIABILITY_TYPES, GOAL_ICONS } from "../constants";
 import { formatCurrency } from "../utils/formatCurrency";
 import { buildSnapshotChartData } from "../utils/formatting";
 import { sanitizeInput } from "../utils/security";
+import { calcOutstanding, formatClosingIn, calcPctPaid } from "../utils/liabilityCalc";
 import { useIsMobile } from "../hooks/useWindowSize";
 import { parseHdfcStatementFile, buildImportedHdfcEntries } from "../services/hdfcImportService";
 import { parseAngelOneHoldingsFile, buildAngelOneAssetEntries } from "../services/angelOneImportService";
@@ -39,6 +40,7 @@ export function Dashboard({
   liabilities,
   incomes,
   expenses,
+  goals,
   currency,
   snapshots,
   onSnapshot,
@@ -400,6 +402,73 @@ export function Dashboard({
               </>
             )}
           </PanelCard>
+          
+          <PanelCard className="dashboard-anim">
+            <PanelTitle>Cashflow Insights</PanelTitle>
+            <PanelHint>Income vs Expenses track record.</PanelHint>
+            <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "rgba(34, 197, 94, 0.08)", borderRadius: 12, border: "1px solid rgba(34, 197, 94, 0.2)" }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255, 255, 255, 0.5)", marginBottom: 4 }}>TOTAL INCOME</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: "#22c55e" }}>{formatCurrency(totalIncome, currency)}</div>
+                </div>
+                <div style={{ fontSize: 24 }}>💸</div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "rgba(239, 68, 68, 0.08)", borderRadius: 12, border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255, 255, 255, 0.5)", marginBottom: 4 }}>TOTAL EXPENSES</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: "#ef4444" }}>{formatCurrency(totalExpenses, currency)}</div>
+                </div>
+                <div style={{ fontSize: 24 }}>🧾</div>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: totalIncome >= totalExpenses ? "rgba(56, 189, 248, 0.08)" : "rgba(249, 115, 22, 0.08)", borderRadius: 12, border: `1px solid ${totalIncome >= totalExpenses ? 'rgba(56, 189, 248, 0.2)' : 'rgba(249, 115, 22, 0.2)'}` }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255, 255, 255, 0.5)", marginBottom: 4 }}>NET CASHFLOW</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: totalIncome >= totalExpenses ? "#38bdf8" : "#f97316" }}>{formatCurrency(totalIncome - totalExpenses, currency)}</div>
+                </div>
+                <div style={{ fontSize: 24 }}>{totalIncome >= totalExpenses ? "📈" : "📉"}</div>
+              </div>
+            </div>
+            <button onClick={() => handleNavigate("insights")} style={{ ...btnStyle, width: "100%", marginTop: 16, background: "rgba(255,255,255,0.05)", color: "white" }}>View Full Insights</button>
+          </PanelCard>
+
+          <PanelCard className="dashboard-anim">
+            <PanelTitle>Active Goals</PanelTitle>
+            <PanelHint>Track your financial targets.</PanelHint>
+            {goals && goals.length > 0 ? (
+              <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+                {goals.slice(0, 3).map(goal => {
+                  let current = goal.manualCurrent ?? goal.current ?? 0;
+                  if (goal.trackBy === "asset" && goal.linkedAssetId) {
+                    const asset = assets.find(a => a.id === goal.linkedAssetId);
+                    if (asset) current = asset.value;
+                  }
+                  const pct = goal.target > 0 ? Math.min((current / goal.target) * 100, 100) : 0;
+                  return (
+                    <div key={goal.id} style={{ background: "rgba(0,0,0,0.2)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>{goal.icon} {goal.name}</div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 700 }}>{pct.toFixed(0)}%</div>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,0.1)" }}>
+                        <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: pct >= 100 ? "#22c55e" : pct >= 60 ? "#22c55e" : pct >= 25 ? "#f97316" : "#ef4444" }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 6, display: "flex", justifyContent: "space-between", fontWeight: 600 }}>
+                        <span>{formatCurrency(current, currency)}</span>
+                        <span>{formatCurrency(goal.target, currency)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {goals.length > 3 && (
+                  <div style={{ textAlign: "center", fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>+ {goals.length - 3} more goals</div>
+                )}
+              </div>
+            ) : (
+              <EmptyBlock>Create a goal to see progress here.</EmptyBlock>
+            )}
+            <button onClick={() => handleNavigate("goals")} style={{ ...btnStyle, width: "100%", marginTop: 16, background: "rgba(255,255,255,0.05)", color: "white" }}>Manage Goals</button>
+          </PanelCard>
         </PanelGrid>
       )}
 
@@ -670,6 +739,9 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
   const [selectedAssetIds, setSelectedAssetIds] = useState([]);
   const importInputRef = useRef(null);
   const totalAssets = assets.reduce((s, a) => s + a.value, 0);
+  const totalInvested = assets.reduce((s, a) => s + (a.invested ?? a.value), 0);
+  const overallPnl = totalAssets - totalInvested;
+  const overallPnlPct = totalInvested > 0 ? (overallPnl / totalInvested) * 100 : 0;
 
   const assetRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -687,6 +759,9 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
       if (sortBy === "value_asc") return a.value - b.value;
       if (sortBy === "value_desc") return b.value - a.value;
       if (sortBy === "name_desc") return String(b.name || "").localeCompare(String(a.name || ""));
+      if (sortBy === "pnl_desc") return ((b.pnl ?? 0)) - ((a.pnl ?? 0));
+      if (sortBy === "pnl_asc") return ((a.pnl ?? 0)) - ((b.pnl ?? 0));
+      if (sortBy === "invested_desc") return (b.invested ?? b.value) - (a.invested ?? a.value);
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
 
@@ -904,6 +979,39 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
         </div>
       ) : (
         <>
+          {/* 4.1 SUMMARY BAR */}
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {[
+              { label: "TOTAL INVESTED", value: formatCurrency(totalInvested, currency), color: "#38bdf8", icon: "💼" },
+              { label: "CURRENT VALUE", value: formatCurrency(totalAssets, currency), color: "#22c55e", icon: "📊" },
+              {
+                label: "OVERALL P&L",
+                value: `${overallPnl >= 0 ? "+" : ""}${formatCurrency(overallPnl, currency)} (${overallPnlPct >= 0 ? "+" : ""}${overallPnlPct.toFixed(2)}%)`,
+                color: overallPnl >= 0 ? "#22c55e" : "#ef4444",
+                icon: overallPnl >= 0 ? "📈" : "📉",
+              },
+            ].map((tile) => (
+              <div
+                key={tile.label}
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: `1px solid ${tile.color}30`,
+                  borderRadius: 14,
+                  padding: "14px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div style={{ fontSize: 24 }}>{tile.icon}</div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.45)", marginBottom: 3 }}>{tile.label}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: tile.color }}>{tile.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(140px, 180px) minmax(160px, 190px)", gap: 8 }}>
               <Field
@@ -918,10 +1026,13 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
                 ))}
               </Select>
               <Select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                <option value="value_desc">Sort: Value High-Low</option>
-                <option value="value_asc">Sort: Value Low-High</option>
-                <option value="name_asc">Sort: Name A-Z</option>
-                <option value="name_desc">Sort: Name Z-A</option>
+                <option value="value_desc">Sort: Value High→Low</option>
+                <option value="value_asc">Sort: Value Low→High</option>
+                <option value="pnl_desc">Sort: P&L High→Low</option>
+                <option value="pnl_asc">Sort: P&L Low→High</option>
+                <option value="invested_desc">Sort: Invested High→Low</option>
+                <option value="name_asc">Sort: Name A→Z</option>
+                <option value="name_desc">Sort: Name Z→A</option>
               </Select>
             </div>
             <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
@@ -965,21 +1076,30 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
                   </MobileDataCard>
                   {pagedAssetRows.map((asset) => {
                     const type = ASSET_TYPES.find((item) => item.id === asset.typeId);
+                    const assetInvested = asset.invested ?? asset.value;
+                    const pnl = asset.pnl ?? (asset.value - assetInvested);
+                    const pnlPct = asset.pnlPct ?? (assetInvested > 0 ? (pnl / assetInvested) * 100 : 0);
+                    const allocPct = totalAssets > 0 ? ((asset.value / totalAssets) * 100).toFixed(1) : "0";
+                    const isLive = !!asset.priceUpdatedAt;
+                    const qty = asset.shares ?? asset.units ?? asset.weightGrams ?? null;
+                    const qtyLabel = asset.typeId === "stocks" ? "shares" : asset.typeId === "gold" ? "g" : "units";
                     return (
                       <MobileRecordCard
                         key={asset.id}
                         title={asset.name}
-                        subtitle={asset.notes || "No notes"}
-                        badge={type?.label || "Other"}
+                        subtitle={type?.label || "Other"}
+                        badge={isLive ? "🟢 Live" : type?.label || "Other"}
                         selected={selectedAssetIds.includes(asset.id)}
                         onToggleSelect={() => toggleAssetSelection(asset.id)}
                         selectLabel={`Select ${asset.name}`}
                         fields={[
                           { label: "Type", value: `${type?.icon || ""} ${type?.label || "Other"}`.trim() },
-                          { label: "Value", value: formatCurrency(asset.value, asset.currency || currency) },
-                          { label: "Currency", value: asset.currency || currency },
-                          asset.notes ? { label: "Notes", value: asset.notes, fullWidth: true } : null,
-                        ]}
+                          qty !== null ? { label: `Qty (${qtyLabel})`, value: qty.toLocaleString("en-IN") } : null,
+                          { label: "Invested", value: formatCurrency(assetInvested, currency) },
+                          { label: "Current Value", value: formatCurrency(asset.value, currency) },
+                          { label: "P&L", value: <span style={{ color: pnl >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>{pnl >= 0 ? "+" : ""}{formatCurrency(pnl, currency)} ({pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%)</span> },
+                          { label: "Allocation", value: `${allocPct}%` },
+                        ].filter(Boolean)}
                         actions={(
                           <button onClick={() => handleEdit(asset)} style={{ ...buttonStyles.secondary, padding: "8px 12px", fontSize: 12, width: "100%" }}>
                             Modify
@@ -994,44 +1114,65 @@ export function AssetsPage({ assets, currency, onAdd, onUpdate, onDelete, onImpo
                   <DataTable>
                     <thead>
                       <tr>
-                        <TableHead style={{ width: "5%" }}>
-                          <input
-                            type="checkbox"
-                            checked={allAssetsOnPageSelected}
-                            onChange={toggleSelectAllAssetsOnPage}
-                            aria-label="Select all assets on this page"
-                          />
+                        <TableHead style={{ width: "3%" }}>
+                          <input type="checkbox" checked={allAssetsOnPageSelected} onChange={toggleSelectAllAssetsOnPage} aria-label="Select all assets on this page" />
                         </TableHead>
-                        <TableHead style={{ width: "22%" }}>Asset</TableHead>
-                        <TableHead style={{ width: "18%" }}>Type</TableHead>
-                        <TableHead style={{ width: "27%" }}>Notes</TableHead>
-                        <TableHead style={{ width: "16%" }}>Value</TableHead>
-                        <TableHead style={{ width: "12%" }}>Actions</TableHead>
+                        <TableHead style={{ width: "18%" }}>Asset</TableHead>
+                        <TableHead style={{ width: "10%" }}>Type</TableHead>
+                        <TableHead style={{ width: "8%" }}>Qty / Units</TableHead>
+                        <TableHead style={{ width: "12%" }}>Invested ₹</TableHead>
+                        <TableHead style={{ width: "12%" }}>Current Value</TableHead>
+                        <TableHead style={{ width: "13%" }}>P&amp;L</TableHead>
+                        <TableHead style={{ width: "8%" }}>Alloc %</TableHead>
+                        <TableHead style={{ width: "9%" }}>Actions</TableHead>
                       </tr>
                     </thead>
                     <tbody>
                       {pagedAssetRows.map((asset) => {
                         const type = ASSET_TYPES.find((item) => item.id === asset.typeId);
+                        const assetInvested = asset.invested ?? asset.value;
+                        const pnl = asset.pnl ?? (asset.value - assetInvested);
+                        const pnlPct = asset.pnlPct ?? (assetInvested > 0 ? (pnl / assetInvested) * 100 : 0);
+                        const allocPct = totalAssets > 0 ? ((asset.value / totalAssets) * 100).toFixed(1) : "0";
+                        const isLive = !!asset.priceUpdatedAt;
+                        const qty = asset.shares ?? asset.units ?? asset.weightGrams ?? null;
                         return (
                           <tr key={asset.id}>
                             <TableCell>
-                              <input
-                                type="checkbox"
-                                checked={selectedAssetIds.includes(asset.id)}
-                                onChange={() => toggleAssetSelection(asset.id)}
-                                aria-label={`Select ${asset.name}`}
-                              />
+                              <input type="checkbox" checked={selectedAssetIds.includes(asset.id)} onChange={() => toggleAssetSelection(asset.id)} aria-label={`Select ${asset.name}`} />
                             </TableCell>
-                            <TableCell title={asset.name}>{asset.name}</TableCell>
-                            <TableCell title={type?.label || "Other"}>{type?.icon || ""} {type?.label || "Other"}</TableCell>
-                            <TableCell title={asset.notes || "-"}>{asset.notes || "-"}</TableCell>
-                            <TableCell title={formatCurrency(asset.value, asset.currency || currency)}>
-                              {formatCurrency(asset.value, asset.currency || currency)}
+                            <TableCell title={asset.name}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>{asset.name}</div>
+                                  {isLive && <span style={{ fontSize: 10, background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: 99, padding: "1px 6px", color: "#22c55e", fontWeight: 600 }}>LIVE</span>}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{type?.icon || ""} {type?.label || "Other"}</TableCell>
+                            <TableCell style={{ color: "rgba(255,255,255,0.7)" }}>
+                              {qty !== null ? qty.toLocaleString("en-IN") : "—"}
+                            </TableCell>
+                            <TableCell>{formatCurrency(assetInvested, currency)}</TableCell>
+                            <TableCell style={{ fontWeight: 600 }}>{formatCurrency(asset.value, currency)}</TableCell>
+                            <TableCell>
+                              <div style={{ fontWeight: 700, color: pnl >= 0 ? "#22c55e" : "#ef4444" }}>
+                                {pnl >= 0 ? "+" : ""}{formatCurrency(pnl, currency)}
+                              </div>
+                              <div style={{ fontSize: 11, color: pnl >= 0 ? "#22c55e" : "#ef4444", opacity: 0.8 }}>
+                                {pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+                              </div>
                             </TableCell>
                             <TableCell>
-                              <button onClick={() => handleEdit(asset)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
-                                Modify
-                              </button>
+                              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                <div style={{ flex: 1, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.1)", maxWidth: 40 }}>
+                                  <div style={{ height: "100%", borderRadius: 99, background: "#38bdf8", width: `${Math.min(100, parseFloat(allocPct))}%` }} />
+                                </div>
+                                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>{allocPct}%</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <button onClick={() => handleEdit(asset)} style={{ ...buttonStyles.secondary, padding: "4px 8px", fontSize: 12 }}>Modify</button>
                             </TableCell>
                           </tr>
                         );
@@ -1237,20 +1378,36 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
                       <span>Select all items on this page</span>
                     </MobileDataSelection>
                   </MobileDataCard>
-                  {pagedLiabilityRows.map((liability) => (
+                  {pagedLiabilityRows.map((liability) => {
+                    const outstanding = calcOutstanding(liability);
+                    const closingIn = formatClosingIn(liability.endDate);
+                    const pct = calcPctPaid(liability);
+                    return (
                     <MobileRecordCard
                       key={liability.id}
                       title={liability.name}
                       subtitle={liability.label || "Liability"}
-                      badge={liability.interest > 0 ? `${liability.interest}%` : "No interest"}
+                      badge={liability.interest > 0 ? `${liability.interest}% p.a.` : "No interest"}
                       selected={selectedLiabilityIds.includes(liability.id)}
                       onToggleSelect={() => toggleLiabilitySelection(liability.id)}
                       selectLabel={`Select ${liability.name}`}
                       fields={[
                         { label: "Type", value: `${liability.icon || ""} ${liability.label || "-"}`.trim() },
-                        { label: "Amount", value: formatCurrency(liability.value, liability.currency || currency) },
-                        { label: "Interest", value: liability.interest > 0 ? `${liability.interest}% p.a.` : "-" },
-                        { label: "Currency", value: liability.currency || currency },
+                        { label: "Principal", value: liability.principal ? formatCurrency(liability.principal, currency) : formatCurrency(liability.value, currency) },
+                        { label: "EMI / mo", value: liability.emi ? formatCurrency(liability.emi, currency) : "-" },
+                        { label: "Outstanding", value: formatCurrency(outstanding, currency) },
+                        { label: "Closing In", value: closingIn },
+                        {
+                          label: "% Paid",
+                          value: (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ flex: 1, height: 6, borderRadius: 99, background: "rgba(255,255,255,0.12)" }}>
+                                <div style={{ height: "100%", borderRadius: 99, background: "#22c55e", width: `${pct}%`, transition: "width 0.4s" }} />
+                              </div>
+                              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>{pct}%</span>
+                            </div>
+                          ),
+                        },
                       ]}
                       actions={(
                         <button onClick={() => handleEdit(liability)} style={{ ...buttonStyles.secondary, padding: "8px 12px", fontSize: 12, width: "100%" }}>
@@ -1258,14 +1415,15 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
                         </button>
                       )}
                     />
-                  ))}
+                    );
+                  })}
                 </MobileDataList>
               ) : (
                 <TableWrap>
                   <DataTable>
                     <thead>
                       <tr>
-                        <TableHead style={{ width: "5%" }}>
+                        <TableHead style={{ width: "4%" }}>
                           <input
                             type="checkbox"
                             checked={allLiabilitiesOnPageSelected}
@@ -1273,15 +1431,21 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
                             aria-label="Select all liabilities on this page"
                           />
                         </TableHead>
-                        <TableHead style={{ width: "25%" }}>Liability</TableHead>
-                        <TableHead style={{ width: "25%" }}>Type</TableHead>
-                        <TableHead style={{ width: "15%" }}>Interest</TableHead>
-                        <TableHead style={{ width: "18%" }}>Amount</TableHead>
+                        <TableHead style={{ width: "20%" }}>Liability</TableHead>
+                        <TableHead style={{ width: "14%" }}>Type</TableHead>
+                        <TableHead style={{ width: "11%" }}>EMI / mo</TableHead>
+                        <TableHead style={{ width: "10%" }}>Start</TableHead>
+                        <TableHead style={{ width: "16%" }}>Outstanding ₹</TableHead>
+                        <TableHead style={{ width: "13%" }}>Closing In</TableHead>
                         <TableHead style={{ width: "12%" }}>Actions</TableHead>
                       </tr>
                     </thead>
                     <tbody>
-                      {pagedLiabilityRows.map((liability) => (
+                      {pagedLiabilityRows.map((liability) => {
+                        const outstanding = calcOutstanding(liability);
+                        const closingIn = formatClosingIn(liability.endDate);
+                        const pct = calcPctPaid(liability);
+                        return (
                         <tr key={liability.id}>
                           <TableCell>
                             <input
@@ -1291,19 +1455,35 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
                               aria-label={`Select ${liability.name}`}
                             />
                           </TableCell>
-                          <TableCell title={liability.name}>{liability.name}</TableCell>
-                          <TableCell title={liability.label || "-"}>{liability.icon || ""} {liability.label || "-"}</TableCell>
-                          <TableCell>{liability.interest > 0 ? `${liability.interest}% p.a.` : "-"}</TableCell>
-                          <TableCell title={formatCurrency(liability.value, liability.currency || currency)}>
-                            {formatCurrency(liability.value, liability.currency || currency)}
+                          <TableCell title={liability.name}>
+                            <div style={{ fontWeight: 600 }}>{liability.name}</div>
+                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{liability.icon} {liability.label || "—"}</div>
+                          </TableCell>
+                          <TableCell>{liability.icon || ""} {liability.label || "—"}</TableCell>
+                          <TableCell>{liability.emi ? formatCurrency(liability.emi, currency) : "—"}</TableCell>
+                          <TableCell style={{ fontSize: 12 }}>{liability.startDate || "—"}</TableCell>
+                          <TableCell>
+                            <div style={{ fontWeight: 700, color: outstanding > 0 ? "#ef4444" : "#22c55e" }}>
+                              {formatCurrency(outstanding, currency)}
+                            </div>
+                            <div style={{ marginTop: 4, height: 4, borderRadius: 99, background: "rgba(255,255,255,0.1)" }}>
+                              <div style={{ height: "100%", borderRadius: 99, background: "#22c55e", width: `${pct}%`, transition: "width 0.4s" }} />
+                            </div>
+                            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 2 }}>{pct}% paid</div>
                           </TableCell>
                           <TableCell>
-                            <button onClick={() => handleEdit(liability)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
+                            <span style={{ fontWeight: closingIn === "CLOSED" ? 700 : 400, color: closingIn === "CLOSED" ? "#22c55e" : "rgba(255,255,255,0.75)" }}>
+                              {closingIn}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <button onClick={() => handleEdit(liability)} style={{...buttonStyles.secondary, padding: "4px 8px", fontSize: 12}}>
                               Modify
                             </button>
                           </TableCell>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </DataTable>
                 </TableWrap>
@@ -1321,13 +1501,103 @@ export function LiabilitiesPage({ liabilities, currency, onAdd, onUpdate, onDele
   );
 }
 
-export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
+
+/* ─── INCOME TYPE CONSTANTS ────────────────────────────────────────────── */
+const INCOME_TYPES = [
+  { id: "salary", label: "Salary", icon: "💼" },
+  { id: "freelance", label: "Freelance", icon: "🖥️" },
+  { id: "rental", label: "Rental", icon: "🏠" },
+  { id: "dividend", label: "Dividend", icon: "📈" },
+  { id: "business", label: "Business", icon: "🏢" },
+  { id: "other", label: "Other", icon: "💰" },
+];
+
+/* ─── DATE FILTER HELPERS ───────────────────────────────────────────────── */
+function getDateRangeForFilter(filterKey) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch (filterKey) {
+    case "this_month": {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { start, end: new Date(today.getFullYear(), today.getMonth() + 1, 0) };
+    }
+    case "last_month": {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      return { start, end: new Date(today.getFullYear(), today.getMonth(), 0) };
+    }
+    case "3m": return { start: new Date(today.getFullYear(), today.getMonth() - 2, 1), end: today };
+    case "6m": return { start: new Date(today.getFullYear(), today.getMonth() - 5, 1), end: today };
+    case "12m": return { start: new Date(today.getFullYear(), today.getMonth() - 11, 1), end: today };
+    default: return null; // "all" — no filter
+  }
+}
+
+function parseEntryDate(entry) {
+  // entries may have a `month` field like "2026-03" or a `date` ISO string
+  if (entry.month) {
+    const [y, m] = entry.month.split("-").map(Number);
+    return new Date(y, m - 1, 1);
+  }
+  if (entry.date) return new Date(entry.date);
+  return null;
+}
+
+function filterByRange(entries, range) {
+  if (!range) return entries;
+  return entries.filter((e) => {
+    const d = parseEntryDate(e);
+    if (!d) return true; // no date → include for backward compat
+    return d >= range.start && d <= range.end;
+  });
+}
+
+/* ─── Monthly trend chart data builder ─────────────────────────────────── */
+function buildMonthlyTrendData(incomes, expenses, range) {
+  const monthMap = {};
+  const addToMap = (entries, key) => {
+    entries.forEach((e) => {
+      const d = parseEntryDate(e);
+      if (!d) return;
+      if (range && (d < range.start || d > range.end)) return;
+      const label = d.toLocaleString("default", { month: "short", year: "2-digit" });
+      if (!monthMap[label]) monthMap[label] = { month: label, income: 0, expense: 0, _ts: d.getTime() };
+      monthMap[label][key] += e.amount || 0;
+    });
+  };
+  addToMap(incomes, "income");
+  addToMap(expenses, "expense");
+  return Object.values(monthMap)
+    .sort((a, b) => a._ts - b._ts)
+    .map(({ month, income, expense }) => ({ month, income, expense, net: income - expense }));
+}
+
+export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
-  const total = incomes.reduce((s, i) => s + i.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [editingIncome, setEditingIncome] = useState(null);
+
+  // Form fields
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [incomeType, setIncomeType] = useState("salary");
+  const [incomeMonth, setIncomeMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [incomeNotes, setIncomeNotes] = useState("");
+
+  // Date filter
+  const DATE_FILTERS = [
+    { key: "this_month", label: "This Month" },
+    { key: "last_month", label: "Last Month" },
+    { key: "3m", label: "3M" },
+    { key: "6m", label: "6M" },
+    { key: "12m", label: "12M" },
+    { key: "all", label: "All" },
+  ];
+  const [dateFilter, setDateFilter] = useState("this_month");
+  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("amount_desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1337,47 +1607,48 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
   useEffect(() => {
     if (editingIncome) {
       setName(editingIncome.name || "");
-      setAmount(editingIncome.amount || "");
+      setAmount(editingIncome.amount?.toString() || "");
+      setIncomeType(editingIncome.incomeType || "salary");
+      setIncomeMonth(editingIncome.month || incomeMonth);
+      setIncomeNotes(editingIncome.notes || "");
     } else {
-      setName("");
-      setAmount("");
+      setName(""); setAmount(""); setIncomeType("salary"); setIncomeNotes("");
     }
   }, [editingIncome]);
 
+  // Filtered income & expenses
+  const filteredIncomes = useMemo(() => filterByRange(incomes, dateRange), [incomes, dateRange]);
+  const filteredExpenses = useMemo(() => filterByRange(expenses || [], dateRange), [expenses, dateRange]);
+  const totalIncome = filteredIncomes.reduce((s, i) => s + (i.amount || 0), 0);
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const netCashflow = totalIncome - totalExpenses;
+
+  // Monthly trend chart data
+  const trendData = useMemo(() => buildMonthlyTrendData(incomes, expenses || [], dateRange), [incomes, expenses, dateRange]);
+
   const incomeRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-
-    let rows = incomes.filter((income) => {
+    let rows = filteredIncomes.filter((income) => {
       if (!query) return true;
-      return String(income.name || "").toLowerCase().includes(query);
+      return String(income.name || "").toLowerCase().includes(query) ||
+        String(income.notes || "").toLowerCase().includes(query);
     });
-
     rows = [...rows].sort((a, b) => {
       if (sortBy === "amount_asc") return a.amount - b.amount;
       if (sortBy === "amount_desc") return b.amount - a.amount;
       if (sortBy === "name_desc") return String(b.name || "").localeCompare(String(a.name || ""));
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
-
     return rows;
-  }, [incomes, searchQuery, sortBy]);
+  }, [filteredIncomes, searchQuery, sortBy]);
 
-  const pagedIncomeRows = useMemo(
-    () => getPaginatedRows(incomeRows, currentPage),
-    [incomeRows, currentPage]
-  );
+  const pagedIncomeRows = useMemo(() => getPaginatedRows(incomeRows, currentPage), [incomeRows, currentPage]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, sortBy]);
-
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, sortBy, dateFilter]);
   useEffect(() => {
     const totalPages = getTotalPages(incomeRows.length);
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [incomeRows.length, currentPage]);
-
   useEffect(() => {
     setSelectedIncomeIds((prev) => prev.filter((id) => incomeRows.some((item) => item.id === id)));
   }, [incomeRows]);
@@ -1385,147 +1656,179 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
   const incomePageIds = pagedIncomeRows.map((item) => item.id);
   const allIncomeOnPageSelected = incomePageIds.length > 0 && incomePageIds.every((id) => selectedIncomeIds.includes(id));
 
-  const toggleIncomeSelection = (incomeId) => {
-    setSelectedIncomeIds((prev) =>
-      prev.includes(incomeId) ? prev.filter((id) => id !== incomeId) : [...prev, incomeId]
-    );
-  };
+  const toggleIncomeSelection = (id) => setSelectedIncomeIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const toggleSelectAllIncomeOnPage = () => setSelectedIncomeIds((prev) => {
+    if (allIncomeOnPageSelected) return prev.filter((id) => !incomePageIds.includes(id));
+    const next = [...prev];
+    incomePageIds.forEach((id) => { if (!next.includes(id)) next.push(id); });
+    return next;
+  });
+  const deleteSelectedIncomes = () => { selectedIncomeIds.forEach((id) => onDelete(id)); setSelectedIncomeIds([]); };
 
-  const toggleSelectAllIncomeOnPage = () => {
-    setSelectedIncomeIds((prev) => {
-      if (allIncomeOnPageSelected) {
-        return prev.filter((id) => !incomePageIds.includes(id));
-      }
-      const next = [...prev];
-      incomePageIds.forEach((id) => {
-        if (!next.includes(id)) {
-          next.push(id);
-        }
-      });
-      return next;
-    });
-  };
-
-  const deleteSelectedIncomes = () => {
-    selectedIncomeIds.forEach((incomeId) => onDelete(incomeId));
-    setSelectedIncomeIds([]);
-  };
-
-  const closeAddModal = () => {
-    setShowAdd(false);
-    setEditingIncome(null);
-  };
-
-  const handleEdit = (income) => {
-    setEditingIncome(income);
-    setShowAdd(true);
-  };
+  const closeAddModal = () => { setShowAdd(false); setEditingIncome(null); };
+  const handleEdit = (income) => { setEditingIncome(income); setShowAdd(true); };
 
   const handleSave = () => {
-    const n = sanitizeInput(name, 'text');
-    const a = sanitizeInput(amount, 'number');
-    if (!n || a <= 0) {
-      notifyApp("Enter valid income name and positive amount.", "error");
-      return;
-    }
-    
-    const payload = { 
-      id: editingIncome?.id || Date.now(), 
-      name: n, 
-      amount: a, 
-      currency 
+    const n = sanitizeInput(name, "text");
+    const a = sanitizeInput(amount, "number");
+    if (!n || a <= 0) { notifyApp("Enter valid income source and positive amount.", "error"); return; }
+    const payload = {
+      id: editingIncome?.id || Date.now(),
+      name: n, amount: a, currency,
+      incomeType, month: incomeMonth,
+      notes: sanitizeInput(incomeNotes, "text"),
+      date: new Date(incomeMonth + "-01").toISOString(),
     };
-
-    if (editingIncome) {
-      onUpdate(payload);
-    } else {
-      onAdd(payload);
-    }
+    if (editingIncome) { onUpdate(payload); } else { onAdd(payload); }
     closeAddModal();
   };
 
   const handleCsvImport = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     try {
       const parsedEntries = await parseHdfcStatementFile(file);
       const { incomeEntries, expenseEntries } = buildImportedHdfcEntries(parsedEntries, currency);
-
       if (incomeEntries.length === 0 && expenseEntries.length === 0) {
-        notifyApp("No valid debit or credit transactions found in this HDFC statement file.", "warning");
-        return;
+        notifyApp("No valid transactions found in this HDFC statement file.", "warning"); return;
       }
-
-      if (incomeEntries.length > 0) {
-        onImportIncome(incomeEntries);
-      }
-      if (expenseEntries.length > 0) {
-        onImportExpense(expenseEntries);
-      }
-
-      notifyApp(
-        `Imported ${incomeEntries.length} income entr${incomeEntries.length === 1 ? "y" : "ies"} and ${expenseEntries.length} expense entr${expenseEntries.length === 1 ? "y" : "ies"} from HDFC statement.`,
-        "success"
-      );
-    } catch (error) {
-      notifyApp("Unable to import this file. Please upload a valid HDFC statement (.csv/.xls/.xlsx).", "error");
-    } finally {
-      event.target.value = "";
-    }
+      if (incomeEntries.length > 0) onImportIncome(incomeEntries);
+      if (expenseEntries.length > 0) onImportExpense(expenseEntries);
+      notifyApp(`Imported ${incomeEntries.length} income and ${expenseEntries.length} expense entries.`, "success");
+    } catch { notifyApp("Unable to import this file. Please upload a valid HDFC statement.", "error"); }
+    finally { event.target.value = ""; }
   };
+
+  const fmtK = (v) => Math.abs(v) >= 100000 ? `${(v / 100000).toFixed(1)}L` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`;
 
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Income</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Income & Cashflow</h2>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{DATE_FILTERS.find(f => f.key === dateFilter)?.label} — Net: <span style={{ color: netCashflow >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>{formatCurrency(netCashflow, currency)}</span></p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={handleCsvImport}
-            style={{ display: "none" }}
-          />
-          <button
-            onClick={() => importInputRef.current?.click()}
-            style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}
-          >
-            Import HDFC Statement
-          </button>
+          <input ref={importInputRef} type="file" accept=".csv,.xls,.xlsx" onChange={handleCsvImport} style={{ display: "none" }} />
+          <button onClick={() => importInputRef.current?.click()} style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}>Import HDFC Statement</button>
           <button onClick={() => { setEditingIncome(null); setShowAdd(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Income</button>
         </PageHeaderActions>
       </PageHeader>
 
+      {/* Add/Edit Modal */}
       {showAdd && (
         <ModalBackdrop onClick={closeAddModal}>
-          <ModalCard $maxWidth={520} onClick={(event) => event.stopPropagation()}>
+          <ModalCard $maxWidth={520} onClick={(e) => e.stopPropagation()}>
             <ModalTitle>{editingIncome ? "Edit Income" : "Add Income"}</ModalTitle>
-            <ModalText>Record recurring or one-time income entries.</ModalText>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: "grid", gap: 12 }}>
               <div>
-                <label style={labelStyle}>Source</label>
-                <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary, Freelance" />
+                <label style={labelStyle}>Source Name</label>
+                <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Salary, Consulting" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Type</label>
+                  <select style={inputStyle} value={incomeType} onChange={(e) => setIncomeType(e.target.value)}>
+                    {INCOME_TYPES.map((t) => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Month</label>
+                  <input style={inputStyle} type="month" value={incomeMonth} onChange={(e) => setIncomeMonth(e.target.value)} />
+                </div>
               </div>
               <div>
-                <label style={labelStyle}>Amount</label>
-                <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+                <label style={labelStyle}>Amount (₹)</label>
+                <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" min="0" />
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
-                <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
-                <button onClick={handleSave} style={btnStyle}>{editingIncome ? "Update" : "Save"}</button>
+              <div>
+                <label style={labelStyle}>Notes (optional)</label>
+                <input style={inputStyle} value={incomeNotes} onChange={(e) => setIncomeNotes(e.target.value)} placeholder="Any extra details" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button onClick={closeAddModal} style={{ ...buttonStyles.secondary, padding: "10px 14px" }}>Cancel</button>
+                <button onClick={handleSave} style={{ ...btnStyle, padding: "10px 14px" }}>{editingIncome ? "Update" : "Save"}</button>
               </div>
             </div>
           </ModalCard>
         </ModalBackdrop>
       )}
 
+      {/* Date Filter Tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {DATE_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setDateFilter(f.key)}
+            style={{
+              padding: "6px 16px", fontSize: 13, borderRadius: 99, cursor: "pointer",
+              border: dateFilter === f.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
+              background: dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+              color: dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+              fontWeight: dateFilter === f.key ? 700 : 400,
+              transition: "all 0.2s",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 2.2 Stat Tiles replacing cash balance chart */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+        {[
+          { label: "TOTAL INCOME", value: formatCurrency(totalIncome, currency), color: "#22c55e", icon: "💸" },
+          { label: "TOTAL EXPENSES", value: formatCurrency(totalExpenses, currency), color: "#ef4444", icon: "🛒" },
+          {
+            label: "NET CASH FLOW",
+            value: `${netCashflow >= 0 ? "+" : ""}${formatCurrency(netCashflow, currency)}`,
+            color: netCashflow >= 0 ? "#22c55e" : "#ef4444",
+            icon: netCashflow >= 0 ? "✅" : "⚠️",
+          },
+        ].map((tile) => (
+          <div
+            key={tile.label}
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${tile.color}30`,
+              borderRadius: 14, padding: "14px 18px",
+              display: "flex", alignItems: "center", gap: 12,
+            }}
+          >
+            <div style={{ fontSize: 24 }}>{tile.icon}</div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.45)", marginBottom: 3 }}>{tile.label}</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: tile.color }}>{tile.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Monthly Trend Chart — grouped Income vs Expense bars + net line */}
+      {trendData.length > 0 && (
+        <div style={{ ...cardStyle, marginBottom: 20, padding: "16px 16px 8px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 12 }}>Monthly Income vs Expenses</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={trendData} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+              <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={fmtK} tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ background: "rgba(15,23,42,0.97)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontSize: 12 }}
+                formatter={(v, name) => [formatCurrency(v, currency), name]}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }} />
+              <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} fillOpacity={0.85} />
+              <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} fillOpacity={0.85} />
+              <Line dataKey="net" name="Net" type="monotone" stroke="#38bdf8" strokeWidth={2} dot={{ r: 3, fill: "#38bdf8" }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {incomes.length === 0 ? (
-        <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F4BC}"}</div>
+        <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{"💼"}</div>
           <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No income recorded</div>
           <div>Add recurring or one-time income to track cashflow</div>
         </LiquidGlassCard>
@@ -1533,31 +1836,19 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
         <LiquidGlassCard>
           <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
-              <Field
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search income records"
-              />
-              <Select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                <option value="amount_desc">Sort: Amount High-Low</option>
-                <option value="amount_asc">Sort: Amount Low-High</option>
-                <option value="name_asc">Sort: Name A-Z</option>
-                <option value="name_desc">Sort: Name Z-A</option>
+              <Field value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search income records" />
+              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="amount_desc">Sort: Amount High→Low</option>
+                <option value="amount_asc">Sort: Amount Low→High</option>
+                <option value="name_asc">Sort: Name A→Z</option>
+                <option value="name_desc">Sort: Name Z→A</option>
               </Select>
             </div>
             <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
               <button
                 onClick={deleteSelectedIncomes}
                 disabled={selectedIncomeIds.length === 0}
-                style={{
-                  ...btnStyle,
-                  background: "var(--error, #f97316)",
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  width: isMobile ? "100%" : "auto",
-                  opacity: selectedIncomeIds.length === 0 ? 0.55 : 1,
-                  cursor: selectedIncomeIds.length === 0 ? "not-allowed" : "pointer",
-                }}
+                style={{ ...btnStyle, background: "var(--error, #f97316)", padding: "8px 12px", fontSize: 12, width: isMobile ? "100%" : "auto", opacity: selectedIncomeIds.length === 0 ? 0.55 : 1, cursor: selectedIncomeIds.length === 0 ? "not-allowed" : "pointer" }}
               >
                 Delete Selected ({selectedIncomeIds.length})
               </button>
@@ -1568,90 +1859,75 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
             <EmptyBlock>No income records match your filters.</EmptyBlock>
           ) : (
             <>
-              <TableResultsText>
-                Showing {pagedIncomeRows.length} of {incomeRows.length} income records
-              </TableResultsText>
+              <TableResultsText>Showing {pagedIncomeRows.length} of {incomeRows.length} income records</TableResultsText>
               {isMobile ? (
                 <MobileDataList>
                   <MobileDataCard>
                     <MobileDataSelection>
-                      <input
-                        type="checkbox"
-                        checked={allIncomeOnPageSelected}
-                        onChange={toggleSelectAllIncomeOnPage}
-                        aria-label="Select all income rows on this page"
-                      />
+                      <input type="checkbox" checked={allIncomeOnPageSelected} onChange={toggleSelectAllIncomeOnPage} aria-label="Select all income rows on this page" />
                       <span>Select all items on this page</span>
                     </MobileDataSelection>
                   </MobileDataCard>
-                  {pagedIncomeRows.map((income) => (
-                    <MobileRecordCard
-                      key={income.id}
-                      title={income.name}
-                      badge="Income"
-                      selected={selectedIncomeIds.includes(income.id)}
-                      onToggleSelect={() => toggleIncomeSelection(income.id)}
-                      selectLabel={`Select ${income.name}`}
-                      fields={[
-                        { label: "Amount", value: formatCurrency(income.amount, income.currency || currency), fullWidth: true },
-                      ]}
-                      actions={(
-                        <button onClick={() => handleEdit(income)} style={{ ...buttonStyles.secondary, padding: "8px 12px", fontSize: 12, width: "100%" }}>
-                          Modify
-                        </button>
-                      )}
-                    />
-                  ))}
+                  {pagedIncomeRows.map((income) => {
+                    const itype = INCOME_TYPES.find((t) => t.id === income.incomeType);
+                    return (
+                      <MobileRecordCard
+                        key={income.id}
+                        title={income.name}
+                        badge={`${itype?.icon || ""} ${itype?.label || "Income"}`}
+                        selected={selectedIncomeIds.includes(income.id)}
+                        onToggleSelect={() => toggleIncomeSelection(income.id)}
+                        selectLabel={`Select ${income.name}`}
+                        fields={[
+                          { label: "Amount", value: formatCurrency(income.amount, income.currency || currency), fullWidth: true },
+                          { label: "Month", value: income.month || "—" },
+                          income.notes ? { label: "Notes", value: income.notes } : null,
+                        ].filter(Boolean)}
+                        actions={<button onClick={() => handleEdit(income)} style={{ ...buttonStyles.secondary, padding: "8px 12px", fontSize: 12, width: "100%" }}>Modify</button>}
+                      />
+                    );
+                  })}
                 </MobileDataList>
               ) : (
                 <TableWrap>
                   <DataTable>
                     <thead>
                       <tr>
-                        <TableHead style={{ width: "5%" }}>
-                          <input
-                            type="checkbox"
-                            checked={allIncomeOnPageSelected}
-                            onChange={toggleSelectAllIncomeOnPage}
-                            aria-label="Select all income rows on this page"
-                          />
+                        <TableHead style={{ width: "4%" }}>
+                          <input type="checkbox" checked={allIncomeOnPageSelected} onChange={toggleSelectAllIncomeOnPage} aria-label="Select all income rows on this page" />
                         </TableHead>
-                        <TableHead style={{ width: "50%" }}>Source</TableHead>
-                        <TableHead style={{ width: "30%" }}>Amount</TableHead>
-                        <TableHead style={{ width: "15%" }}>Actions</TableHead>
+                        <TableHead style={{ width: "28%" }}>Source</TableHead>
+                        <TableHead style={{ width: "15%" }}>Type</TableHead>
+                        <TableHead style={{ width: "13%" }}>Month</TableHead>
+                        <TableHead style={{ width: "20%" }}>Amount</TableHead>
+                        <TableHead style={{ width: "13%" }}>Notes</TableHead>
+                        <TableHead style={{ width: "7%" }}>Actions</TableHead>
                       </tr>
                     </thead>
                     <tbody>
-                      {pagedIncomeRows.map((income) => (
-                        <tr key={income.id}>
-                          <TableCell>
-                            <input
-                              type="checkbox"
-                              checked={selectedIncomeIds.includes(income.id)}
-                              onChange={() => toggleIncomeSelection(income.id)}
-                              aria-label={`Select ${income.name}`}
-                            />
-                          </TableCell>
-                          <TableCell title={income.name}>{income.name}</TableCell>
-                          <TableCell title={formatCurrency(income.amount, income.currency || currency)}>
-                            {formatCurrency(income.amount, income.currency || currency)}
-                          </TableCell>
-                          <TableCell>
-                            <button onClick={() => handleEdit(income)} style={{...buttonStyles.secondary, padding: '4px 8px', fontSize: 12}}>
-                              Modify
-                            </button>
-                          </TableCell>
-                        </tr>
-                      ))}
+                      {pagedIncomeRows.map((income) => {
+                        const itype = INCOME_TYPES.find((t) => t.id === income.incomeType);
+                        return (
+                          <tr key={income.id}>
+                            <TableCell>
+                              <input type="checkbox" checked={selectedIncomeIds.includes(income.id)} onChange={() => toggleIncomeSelection(income.id)} aria-label={`Select ${income.name}`} />
+                            </TableCell>
+                            <TableCell title={income.name}><span style={{ fontWeight: 600 }}>{income.name}</span></TableCell>
+                            <TableCell>{itype?.icon || ""} {itype?.label || "Other"}</TableCell>
+                            <TableCell style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>{income.month || "—"}</TableCell>
+                            <TableCell style={{ fontWeight: 700, color: "#22c55e" }}>{formatCurrency(income.amount, income.currency || currency)}</TableCell>
+                            <TableCell style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{income.notes || "—"}</TableCell>
+                            <TableCell>
+                              <button onClick={() => handleEdit(income)} style={{ ...buttonStyles.secondary, padding: "4px 8px", fontSize: 12 }}>Modify</button>
+                            </TableCell>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </DataTable>
                 </TableWrap>
               )}
-              <DataTablePagination
-                totalRows={incomeRows.length}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
+              <DataTablePagination totalRows={incomeRows.length} currentPage={currentPage} onPageChange={setCurrentPage} />
             </>
           )}
         </LiquidGlassCard>
@@ -1659,6 +1935,7 @@ export function IncomePage({ incomes, currency, onAdd, onUpdate, onDelete, onImp
     </PageSection>
   );
 }
+
 
 export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
@@ -2125,153 +2402,298 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
   );
 }
 
-export function GoalsPage({ assets, currency }) {
+/* ─── GOAL TEMPLATES ───────────────────────────────────────────────────── */
+const GOAL_TEMPLATES = [
+  { id: "emergency_fund", label: "Emergency Fund", icon: "🛡️", suggestedAmount: 300000, horizonMonths: 12 },
+  { id: "retirement", label: "Retirement", icon: "🏖️", suggestedAmount: 10000000, horizonMonths: 240 },
+  { id: "house", label: "House Down Payment", icon: "🏠", suggestedAmount: 2000000, horizonMonths: 60 },
+  { id: "car", label: "Car", icon: "🚗", suggestedAmount: 800000, horizonMonths: 24 },
+  { id: "vacation", label: "Vacation", icon: "✈️", suggestedAmount: 150000, horizonMonths: 12 },
+  { id: "education", label: "Education", icon: "🎓", suggestedAmount: 1000000, horizonMonths: 48 },
+  { id: "wedding", label: "Wedding", icon: "💍", suggestedAmount: 1500000, horizonMonths: 24 },
+  { id: "custom", label: "Custom", icon: "🎯", suggestedAmount: 0, horizonMonths: 12 },
+];
+
+/* ─── GOAL STATUS HELPERS ───────────────────────────────────────────────── */
+function getGoalStatus(pct) {
+  if (pct >= 100) return { label: "Achieved!", color: "#22c55e", bg: "rgba(34,197,94,0.12)" };
+  if (pct >= 60) return { label: "On Track", color: "#22c55e", bg: "rgba(34,197,94,0.08)" };
+  if (pct >= 25) return { label: "In Progress", color: "#f97316", bg: "rgba(249,115,22,0.08)" };
+  return { label: "Just Started", color: "#ef4444", bg: "rgba(239,68,68,0.08)" };
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr) - new Date();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function formatDaysRemaining(days) {
+  if (days == null) return "—";
+  if (days <= 0) return "Overdue";
+  if (days < 30) return `${days}d left`;
+  if (days < 365) return `${Math.ceil(days / 30)}mo left`;
+  const y = Math.floor(days / 365);
+  const m = Math.ceil((days % 365) / 30);
+  return m > 0 ? `${y}y ${m}mo left` : `${y}y left`;
+}
+
+export function GoalsPage({ assets, goals, setGoals, currency }) {
   const isMobile = useIsMobile();
-  const [goals, setGoals] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
+
+  // Form state
+  const [templateId, setTemplateId] = useState("custom");
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
-  const [icon, setIcon] = useState("\u{1F3AF}");
+  const [targetDate, setTargetDate] = useState("");
+  const [startingAmount, setStartingAmount] = useState("0");
+  const [trackBy, setTrackBy] = useState("manual"); // "manual" | "asset" | "savings"
+  const [linkedAssetId, setLinkedAssetId] = useState("");
+  const [manualCurrent, setManualCurrent] = useState("0");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("progress_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGoalIds, setSelectedGoalIds] = useState([]);
-  const netWorth = assets.reduce((s, a) => s + a.value, 0);
 
-  const closeAddModal = () => {
-    setShowAdd(false);
-    setName("");
-    setTarget("");
+  /* Resolve current progress for a goal */
+  const resolveCurrentValue = (goal) => {
+    if (goal.trackBy === "asset" && goal.linkedAssetId) {
+      const asset = assets.find((a) => a.id === goal.linkedAssetId);
+      return asset ? asset.value : goal.manualCurrent || goal.current || 0;
+    }
+    return goal.manualCurrent ?? goal.current ?? 0;
   };
 
-  const addGoal = () => {
-    // Security: Validate and sanitize inputs
-    const sanitizedName = sanitizeInput(name, 'text');
-    const sanitizedTarget = sanitizeInput(target, 'number');
-    
-    if (!sanitizedName || sanitizedTarget <= 0) {
-      notifyApp("Please enter valid goal name and positive target amount.", "error");
+  /* Pre-fill when template changes */
+  const handleTemplateChange = (tid) => {
+    setTemplateId(tid);
+    const tpl = GOAL_TEMPLATES.find((t) => t.id === tid);
+    if (!tpl) return;
+    if (tpl.id !== "custom") {
+      setName(tpl.label);
+      if (tpl.suggestedAmount > 0) setTarget(String(tpl.suggestedAmount));
+      if (tpl.horizonMonths > 0) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + tpl.horizonMonths);
+        setTargetDate(d.toISOString().split("T")[0]);
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setTemplateId("custom"); setName(""); setTarget(""); setTargetDate("");
+    setStartingAmount("0"); setTrackBy("manual"); setLinkedAssetId(""); setManualCurrent("0");
+    setEditingGoal(null);
+  };
+
+  const closeAddModal = () => { setShowAdd(false); resetForm(); };
+
+  const handleEdit = (goal) => {
+    setEditingGoal(goal);
+    setTemplateId(goal.templateId || "custom");
+    setName(goal.name || "");
+    setTarget(String(goal.target || ""));
+    setTargetDate(goal.targetDate || "");
+    setStartingAmount(String(goal.startingAmount || 0));
+    setTrackBy(goal.trackBy || "manual");
+    setLinkedAssetId(goal.linkedAssetId || "");
+    setManualCurrent(String(goal.manualCurrent || 0));
+    setShowAdd(true);
+  };
+
+  const saveGoal = () => {
+    const n = sanitizeInput(name, "text");
+    const t = sanitizeInput(target, "number");
+    if (!n || t <= 0) {
+      notifyApp("Enter a valid goal name and target amount.", "error");
       return;
     }
-    
-    setGoals([...goals, { id: Date.now(), name: sanitizedName, target: sanitizedTarget, icon, current: netWorth }]);
+    const tpl = GOAL_TEMPLATES.find((tp) => tp.id === templateId);
+    const payload = {
+      id: editingGoal?.id || Date.now(),
+      templateId, name: n, target: t,
+      targetDate, icon: tpl?.icon || "🎯",
+      startingAmount: sanitizeInput(startingAmount, "number") || 0,
+      trackBy, linkedAssetId,
+      manualCurrent: sanitizeInput(manualCurrent, "number") || 0,
+      current: sanitizeInput(manualCurrent, "number") || 0,
+      createdAt: editingGoal?.createdAt || new Date().toISOString(),
+    };
+    if (editingGoal) {
+      setGoals((prev) => prev.map((g) => g.id === editingGoal.id ? payload : g));
+    } else {
+      setGoals((prev) => [...prev, payload]);
+    }
     closeAddModal();
   };
 
-  const goalIcons = GOAL_ICONS; // use shared constant
-
   const goalRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-
-    let rows = goals.filter((goal) => {
-      if (!query) return true;
-      return String(goal.name || "").toLowerCase().includes(query);
-    });
-
+    let rows = goals.filter((g) => !query || String(g.name || "").toLowerCase().includes(query));
     rows = [...rows].sort((a, b) => {
-      const progressA = a.target > 0 ? (a.current / a.target) * 100 : 0;
-      const progressB = b.target > 0 ? (b.current / b.target) * 100 : 0;
-      if (sortBy === "progress_asc") return progressA - progressB;
-      if (sortBy === "progress_desc") return progressB - progressA;
+      const pa = a.target > 0 ? (resolveCurrentValue(a) / a.target) * 100 : 0;
+      const pb = b.target > 0 ? (resolveCurrentValue(b) / b.target) * 100 : 0;
+      if (sortBy === "progress_asc") return pa - pb;
+      if (sortBy === "progress_desc") return pb - pa;
       if (sortBy === "target_asc") return a.target - b.target;
       if (sortBy === "target_desc") return b.target - a.target;
       if (sortBy === "name_desc") return String(b.name || "").localeCompare(String(a.name || ""));
       return String(a.name || "").localeCompare(String(b.name || ""));
     });
-
     return rows;
-  }, [goals, searchQuery, sortBy]);
+  }, [goals, searchQuery, sortBy, assets]);
 
-  const pagedGoalRows = useMemo(
-    () => getPaginatedRows(goalRows, currentPage),
-    [goalRows, currentPage]
-  );
+  const pagedGoalRows = useMemo(() => getPaginatedRows(goalRows, currentPage), [goalRows, currentPage]);
 
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, sortBy]);
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, sortBy]);
-
-  useEffect(() => {
-    const totalPages = getTotalPages(goalRows.length);
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    const tp = getTotalPages(goalRows.length);
+    if (currentPage > tp) setCurrentPage(tp);
   }, [goalRows.length, currentPage]);
-
   useEffect(() => {
-    setSelectedGoalIds((prev) => prev.filter((id) => goalRows.some((goal) => goal.id === id)));
+    setSelectedGoalIds((prev) => prev.filter((id) => goalRows.some((g) => g.id === id)));
   }, [goalRows]);
 
-  const goalPageIds = pagedGoalRows.map((goal) => goal.id);
+  const goalPageIds = pagedGoalRows.map((g) => g.id);
   const allGoalsOnPageSelected = goalPageIds.length > 0 && goalPageIds.every((id) => selectedGoalIds.includes(id));
+  const toggleGoalSelection = (id) => setSelectedGoalIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  const toggleSelectAllGoalsOnPage = () => setSelectedGoalIds((prev) => {
+    if (allGoalsOnPageSelected) return prev.filter((id) => !goalPageIds.includes(id));
+    const next = [...prev];
+    goalPageIds.forEach((id) => { if (!next.includes(id)) next.push(id); });
+    return next;
+  });
+  const deleteSelectedGoals = () => { setGoals((prev) => prev.filter((g) => !selectedGoalIds.includes(g.id))); setSelectedGoalIds([]); };
 
-  const toggleGoalSelection = (goalId) => {
-    setSelectedGoalIds((prev) =>
-      prev.includes(goalId) ? prev.filter((id) => id !== goalId) : [...prev, goalId]
-    );
-  };
-
-  const toggleSelectAllGoalsOnPage = () => {
-    setSelectedGoalIds((prev) => {
-      if (allGoalsOnPageSelected) {
-        return prev.filter((id) => !goalPageIds.includes(id));
-      }
-      const next = [...prev];
-      goalPageIds.forEach((id) => {
-        if (!next.includes(id)) {
-          next.push(id);
-        }
-      });
-      return next;
-    });
-  };
-
-  const deleteSelectedGoals = () => {
-    setGoals((prev) => prev.filter((goal) => !selectedGoalIds.includes(goal.id)));
-    setSelectedGoalIds([]);
-  };
+  const selectedTemplate = GOAL_TEMPLATES.find((t) => t.id === templateId);
 
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Financial Goals</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Set targets and track your progress</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255,255,255,0.95)" }}>Financial Goals</h2>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>{goals.length} goal{goals.length !== 1 ? "s" : ""} · Set targets and track your progress</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <button onClick={() => setShowAdd(true)} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ New Goal</button>
         </PageHeaderActions>
       </PageHeader>
 
+      {/* Add / Edit Modal */}
       {showAdd && (
         <ModalBackdrop onClick={closeAddModal}>
-          <ModalCard $maxWidth={560} onClick={(event) => event.stopPropagation()}>
-            <ModalTitle>Create Goal</ModalTitle>
-            <ModalText>Set a target and track progress against your current net worth.</ModalText>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-              {goalIcons.map((goalIcon) => (
-                <button
-                  key={goalIcon}
-                  onClick={() => setIcon(goalIcon)}
-                  style={{ fontSize: 24, background: icon === goalIcon ? "#f0fdf4" : "none", border: icon === goalIcon ? "2px solid #16a34a" : "2px solid transparent", borderRadius: 8, padding: 6, cursor: "pointer" }}
-                >
-                  {goalIcon}
-                </button>
-              ))}
+          <ModalCard $maxWidth={560} onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>{editingGoal ? "Edit Goal" : "Create Goal"}</ModalTitle>
+
+            {/* Template selector */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Template</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+                {GOAL_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    onClick={() => handleTemplateChange(tpl.id)}
+                    style={{
+                      padding: "8px 4px",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      border: templateId === tpl.id ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.12)",
+                      background: templateId === tpl.id ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.04)",
+                      color: templateId === tpl.id ? "#38bdf8" : "rgba(255,255,255,0.75)",
+                      fontSize: 11, textAlign: "center", fontWeight: templateId === tpl.id ? 700 : 400,
+                    }}
+                  >
+                    <div style={{ fontSize: 20, marginBottom: 2 }}>{tpl.icon}</div>
+                    {tpl.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "grid", gap: 12 }}>
+
+            <div style={{ display: "grid", gap: 10 }}>
               <div>
                 <label style={labelStyle}>Goal Name</label>
-                <input style={inputStyle} placeholder="e.g. Buy a House, Emergency Fund" value={name} onChange={(e) => setName(e.target.value)} />
+                <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Emergency Fund, Buy a Car" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <label style={labelStyle}>Target Amount (₹)</label>
+                  <input style={inputStyle} type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder={selectedTemplate?.suggestedAmount > 0 ? `Suggested: ${selectedTemplate.suggestedAmount.toLocaleString("en-IN")}` : "0"} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Target Date</label>
+                  <input style={inputStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+                </div>
               </div>
               <div>
-                <label style={labelStyle}>Target Amount ({currency})</label>
-                <input style={inputStyle} type="number" placeholder="e.g. 5000000" value={target} onChange={(e) => setTarget(e.target.value)} />
+                <label style={labelStyle}>Starting Amount (₹)</label>
+                <input style={inputStyle} type="number" value={startingAmount} onChange={(e) => setStartingAmount(e.target.value)} placeholder="0" />
               </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10, marginTop: 16 }}>
-              <button onClick={closeAddModal} style={{ ...btnStyle, background: "var(--muted-bg, #f1f5f9)", color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
-              <button onClick={addGoal} style={btnStyle}>Create Goal</button>
+
+              {/* Track Progress By */}
+              <div>
+                <label style={labelStyle}>Track Progress By</label>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                  {[
+                    { key: "manual", label: "✍️ Manual" },
+                    { key: "asset", label: "🏛️ Link to Asset" },
+                    { key: "savings", label: "💸 Link to Savings" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setTrackBy(opt.key)}
+                      style={{
+                        padding: "6px 14px", fontSize: 12, borderRadius: 99, cursor: "pointer",
+                        border: trackBy === opt.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
+                        background: trackBy === opt.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+                        color: trackBy === opt.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+                        fontWeight: trackBy === opt.key ? 700 : 400,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {trackBy === "manual" && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={labelStyle}>Current Amount Saved (₹)</label>
+                    <input style={inputStyle} type="number" value={manualCurrent} onChange={(e) => setManualCurrent(e.target.value)} placeholder="0" />
+                  </div>
+                )}
+
+                {trackBy === "asset" && (
+                  <div style={{ marginTop: 10 }}>
+                    <label style={labelStyle}>Link to Asset (uses its current value as progress)</label>
+                    <select style={inputStyle} value={linkedAssetId} onChange={(e) => setLinkedAssetId(e.target.value)}>
+                      <option value="">— Select Asset —</option>
+                      {assets.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({formatCurrency(a.value, currency)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {trackBy === "savings" && (
+                  <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(56,189,248,0.08)", borderRadius: 8, fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+                    💡 Savings tracking auto-sums your income entries for this goal's period. Enter a manual current value for now.
+                    <div style={{ marginTop: 8 }}>
+                      <label style={labelStyle}>Current Savings (₹)</label>
+                      <input style={inputStyle} type="number" value={manualCurrent} onChange={(e) => setManualCurrent(e.target.value)} placeholder="0" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+                <button onClick={closeAddModal} style={{ ...buttonStyles.secondary, padding: "10px 14px" }}>Cancel</button>
+                <button onClick={saveGoal} style={{ ...btnStyle, padding: "10px 14px" }}>{editingGoal ? "Update Goal" : "Create Goal"}</button>
+              </div>
             </div>
           </ModalCard>
         </ModalBackdrop>
@@ -2279,42 +2701,28 @@ export function GoalsPage({ assets, currency }) {
 
       {goals.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F3AF}"}</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255, 255, 255, 0.65)" }}>No goals yet</div>
-          <div>Set financial goals to track your progress</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{"🎯"}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: "rgba(255,255,255,0.65)" }}>No goals yet</div>
+          <div>Set a financial goal to track your savings progress</div>
         </LiquidGlassCard>
       ) : (
-        <LiquidGlassCard>
-          <div style={{ marginBottom: 12, padding: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(170px, 210px)", gap: 8 }}>
-              <Field
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search goals"
-              />
-              <Select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                <option value="progress_desc">Sort: Progress High-Low</option>
-                <option value="progress_asc">Sort: Progress Low-High</option>
-                <option value="target_desc">Sort: Target High-Low</option>
-                <option value="target_asc">Sort: Target Low-High</option>
-                <option value="name_asc">Sort: Name A-Z</option>
-                <option value="name_desc">Sort: Name Z-A</option>
+        <>
+          {/* Filter / sort bar */}
+          <div style={{ ...cardStyle, marginBottom: 12, padding: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px,1fr) minmax(180px,220px)", gap: 8 }}>
+              <Field value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search goals" />
+              <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="progress_desc">Sort: Progress High→Low</option>
+                <option value="progress_asc">Sort: Progress Low→High</option>
+                <option value="target_desc">Sort: Target High→Low</option>
+                <option value="target_asc">Sort: Target Low→High</option>
+                <option value="name_asc">Sort: Name A→Z</option>
+                <option value="name_desc">Sort: Name Z→A</option>
               </Select>
             </div>
             <div style={{ display: "flex", justifyContent: isMobile ? "flex-start" : "flex-end", marginTop: 8 }}>
-              <button
-                onClick={deleteSelectedGoals}
-                disabled={selectedGoalIds.length === 0}
-                style={{
-                  ...btnStyle,
-                  background: "var(--error, #f97316)",
-                  padding: "8px 12px",
-                  fontSize: 12,
-                  width: isMobile ? "100%" : "auto",
-                  opacity: selectedGoalIds.length === 0 ? 0.55 : 1,
-                  cursor: selectedGoalIds.length === 0 ? "not-allowed" : "pointer",
-                }}
-              >
+              <button onClick={deleteSelectedGoals} disabled={selectedGoalIds.length === 0}
+                style={{ ...btnStyle, background: "var(--error, #f97316)", padding: "8px 12px", fontSize: 12, width: isMobile ? "100%" : "auto", opacity: selectedGoalIds.length === 0 ? 0.55 : 1, cursor: selectedGoalIds.length === 0 ? "not-allowed" : "pointer" }}>
                 Delete Selected ({selectedGoalIds.length})
               </button>
             </div>
@@ -2324,103 +2732,112 @@ export function GoalsPage({ assets, currency }) {
             <EmptyBlock>No goals match your filters.</EmptyBlock>
           ) : (
             <>
-              <TableResultsText>
-                Showing {pagedGoalRows.length} of {goalRows.length} goals
-              </TableResultsText>
-              {isMobile ? (
-                <MobileDataList>
-                  <MobileDataCard>
-                    <MobileDataSelection>
+              <TableResultsText>Showing {pagedGoalRows.length} of {goalRows.length} goals</TableResultsText>
+
+              {/* 7.2 Goal Cards — rich card grid */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px,1fr))", gap: 14, marginBottom: 12 }}>
+                {pagedGoalRows.map((goal) => {
+                  const current = resolveCurrentValue(goal);
+                  const pct = goal.target > 0 ? Math.min((current / goal.target) * 100, 100) : 0;
+                  const status = getGoalStatus(pct);
+                  const days = daysUntil(goal.targetDate);
+                  const monthsLeft = days != null && days > 0 ? Math.max(1, Math.ceil(days / 30)) : null;
+                  const remaining = Math.max(0, goal.target - current);
+                  const monthlyRequired = monthsLeft ? remaining / monthsLeft : null;
+                  const linkedAsset = goal.trackBy === "asset" && goal.linkedAssetId ? assets.find((a) => a.id === goal.linkedAssetId) : null;
+
+                  return (
+                    <div
+                      key={goal.id}
+                      style={{
+                        background: status.bg,
+                        border: `1px solid ${status.color}22`,
+                        borderRadius: 16,
+                        padding: "18px 20px",
+                        position: "relative",
+                      }}
+                    >
+                      {/* Selection checkbox */}
                       <input
                         type="checkbox"
-                        checked={allGoalsOnPageSelected}
-                        onChange={toggleSelectAllGoalsOnPage}
-                        aria-label="Select all goals on this page"
+                        checked={selectedGoalIds.includes(goal.id)}
+                        onChange={() => toggleGoalSelection(goal.id)}
+                        aria-label={`Select ${goal.name}`}
+                        style={{ position: "absolute", top: 14, right: 14 }}
                       />
-                      <span>Select all items on this page</span>
-                    </MobileDataSelection>
-                  </MobileDataCard>
-                  {pagedGoalRows.map((goal) => {
-                    const pct = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0;
-                    return (
-                      <MobileRecordCard
-                        key={goal.id}
-                        title={`${goal.icon} ${goal.name}`}
-                        badge={`${pct.toFixed(1)}%`}
-                        selected={selectedGoalIds.includes(goal.id)}
-                        onToggleSelect={() => toggleGoalSelection(goal.id)}
-                        selectLabel={`Select ${goal.name}`}
-                        fields={[
-                          { label: "Current", value: formatCurrency(goal.current, currency) },
-                          { label: "Target", value: formatCurrency(goal.target, currency) },
-                          {
-                            label: "Progress",
-                            value: (
-                              <div style={{ display: "grid", gap: 6 }}>
-                                <span>{pct.toFixed(1)}%</span>
-                                <div style={{ height: 6, borderRadius: 99, background: "var(--muted-bg, #f1f5f9)" }}>
-                                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: pct >= 100 ? "#16a34a" : "var(--primary, #38bdf8)" }} />
-                                </div>
-                              </div>
-                            ),
-                            fullWidth: true,
-                          },
-                        ]}
-                      />
-                    );
-                  })}
-                </MobileDataList>
-              ) : (
-                <TableWrap>
-                  <DataTable>
-                    <thead>
-                      <tr>
-                        <TableHead style={{ width: "8%" }}>
-                          <input
-                            type="checkbox"
-                            checked={allGoalsOnPageSelected}
-                            onChange={toggleSelectAllGoalsOnPage}
-                            aria-label="Select all goals on this page"
-                          />
-                        </TableHead>
-                        <TableHead style={{ width: "30%" }}>Goal</TableHead>
-                        <TableHead style={{ width: "21%" }}>Current</TableHead>
-                        <TableHead style={{ width: "21%" }}>Target</TableHead>
-                        <TableHead style={{ width: "20%" }}>Progress</TableHead>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pagedGoalRows.map((goal) => {
-                        const pct = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0;
-                        return (
-                          <tr key={goal.id}>
-                            <TableCell>
-                              <input
-                                type="checkbox"
-                                checked={selectedGoalIds.includes(goal.id)}
-                                onChange={() => toggleGoalSelection(goal.id)}
-                                aria-label={`Select ${goal.name}`}
-                              />
-                            </TableCell>
-                            <TableCell title={goal.name}>{goal.icon} {goal.name}</TableCell>
-                            <TableCell>{formatCurrency(goal.current, currency)}</TableCell>
-                            <TableCell>{formatCurrency(goal.target, currency)}</TableCell>
-                            <TableCell>{pct.toFixed(1)}%</TableCell>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </DataTable>
-                </TableWrap>
-              )}
-              <DataTablePagination
-                totalRows={goalRows.length}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
+
+                      {/* Title row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                        <span style={{ fontSize: 28 }}>{goal.icon}</span>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.95)" }}>{goal.name}</div>
+                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: status.color, background: `${status.color}18`, padding: "2px 8px", borderRadius: 99 }}>
+                            {status.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress bar */}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 12 }}>
+                          <span style={{ color: "rgba(255,255,255,0.65)" }}>{formatCurrency(current, currency)}</span>
+                          <span style={{ color: "rgba(255,255,255,0.45)" }}>{formatCurrency(goal.target, currency)}</span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,0.1)" }}>
+                          <div style={{
+                            height: "100%", borderRadius: 99,
+                            background: pct >= 100 ? "#22c55e" : pct >= 60 ? "#22c55e" : pct >= 25 ? "#f97316" : "#ef4444",
+                            width: `${pct}%`, transition: "width 0.4s",
+                          }} />
+                        </div>
+                        <div style={{ textAlign: "right", fontSize: 11, color: status.color, marginTop: 4, fontWeight: 700 }}>{pct.toFixed(1)}%</div>
+                      </div>
+
+                      {/* Stats grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                        <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.7, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>REMAINING</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>{formatCurrency(remaining, currency)}</div>
+                        </div>
+                        <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.7, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>TIME LEFT</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: days != null && days <= 0 ? "#ef4444" : "rgba(255,255,255,0.85)" }}>{formatDaysRemaining(days)}</div>
+                        </div>
+                        <div style={{ background: "rgba(0,0,0,0.2)", borderRadius: 8, padding: "8px 10px" }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.7, color: "rgba(255,255,255,0.4)", marginBottom: 3 }}>NEED / MO</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#38bdf8" }}>
+                            {monthlyRequired != null ? formatCurrency(monthlyRequired, currency) : "—"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Linked asset */}
+                      {linkedAsset && (
+                        <div style={{ marginTop: 8, fontSize: 11, color: "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", gap: 4 }}>
+                          🏛️ Tracking: <span style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>{linkedAsset.name}</span>
+                        </div>
+                      )}
+
+                      {/* Target date */}
+                      {goal.targetDate && (
+                        <div style={{ marginTop: 6, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                          Target: {new Date(goal.targetDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </div>
+                      )}
+
+                      {/* Edit button */}
+                      <button onClick={() => handleEdit(goal)} style={{ ...buttonStyles.secondary, padding: "6px 12px", fontSize: 12, marginTop: 10, width: "100%" }}>
+                        Edit Goal
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <DataTablePagination totalRows={goalRows.length} currentPage={currentPage} onPageChange={setCurrentPage} />
             </>
           )}
-        </LiquidGlassCard>
+        </>
       )}
     </PageSection>
   );
@@ -3217,5 +3634,322 @@ function DataTablePagination({ totalRows, currentPage, onPageChange, pageLength 
         )}
       </TablePagerActions>
     </TablePager>
+  );
+}
+/* ══════════════════════════════════════════════════════════════
+   SECTION 6 — INSIGHTS PAGE
+══════════════════════════════════════════════════════════════ */
+export function InsightsPage({ incomes = [], expenses = [], currency }) {
+  const isMobile = useIsMobile();
+
+  const DATE_FILTERS = [
+    { key: "this_month", label: "This Month" },
+    { key: "last_month", label: "Last Month" },
+    { key: "3m", label: "3M" },
+    { key: "6m", label: "6M" },
+    { key: "12m", label: "12M" },
+    { key: "all", label: "All" },
+  ];
+  const [dateFilter, setDateFilter] = useState("3m");
+  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
+
+  // Apply date filter
+  const filteredIncomes = useMemo(() => filterByRange(incomes, dateRange), [incomes, dateRange]);
+  const filteredExpenses = useMemo(() => filterByRange(expenses, dateRange), [expenses, dateRange]);
+
+  // Stat calculations
+  const totalIncome = filteredIncomes.reduce((s, i) => s + (i.amount || 0), 0);
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const gap = totalIncome - totalExpenses;
+
+  // Unique months in range for monthly averages
+  const uniqueIncomeMonths = useMemo(() => {
+    const months = new Set(filteredIncomes.map((i) => {
+      const d = parseEntryDate(i);
+      return d ? `${d.getFullYear()}-${d.getMonth()}` : null;
+    }).filter(Boolean));
+    return Math.max(1, months.size);
+  }, [filteredIncomes]);
+
+  const uniqueExpenseMonths = useMemo(() => {
+    const months = new Set(filteredExpenses.map((e) => {
+      const d = parseEntryDate(e);
+      return d ? `${d.getFullYear()}-${d.getMonth()}` : null;
+    }).filter(Boolean));
+    return Math.max(1, months.size);
+  }, [filteredExpenses]);
+
+  const avgMonthlyIncome = totalIncome / uniqueIncomeMonths;
+  const avgMonthlyExpense = totalExpenses / uniqueExpenseMonths;
+
+  // Highest single expense
+  const highestExpense = useMemo(() => {
+    if (filteredExpenses.length === 0) return null;
+    return filteredExpenses.reduce((max, e) => (e.amount || 0) > (max.amount || 0) ? e : max);
+  }, [filteredExpenses]);
+
+  // Last expense (most recent)
+  const lastExpense = useMemo(() => {
+    if (filteredExpenses.length === 0) return null;
+    return [...filteredExpenses].sort((a, b) => {
+      const da = parseEntryDate(a) || new Date(0);
+      const db = parseEntryDate(b) || new Date(0);
+      return db - da;
+    })[0];
+  }, [filteredExpenses]);
+
+  // Monthly trend chart
+  const trendData = useMemo(
+    () => buildMonthlyTrendData(incomes, expenses, dateRange),
+    [incomes, expenses, dateRange]
+  );
+
+  const fmtK = (v) =>
+    Math.abs(v) >= 100000
+      ? `${(v / 100000).toFixed(1)}L`
+      : Math.abs(v) >= 1000
+      ? `${(v / 1000).toFixed(0)}K`
+      : `${v}`;
+
+  const statTiles = [
+    {
+      label: "TOTAL INCOME",
+      value: formatCurrency(totalIncome, currency),
+      sub: `${filteredIncomes.length} entries`,
+      color: "#22c55e",
+      icon: "💸",
+    },
+    {
+      label: "TOTAL EXPENSES",
+      value: formatCurrency(totalExpenses, currency),
+      sub: `${filteredExpenses.length} entries`,
+      color: "#ef4444",
+      icon: "🧾",
+    },
+    {
+      label: "GAP (INCOME − EXP)",
+      value: `${gap >= 0 ? "+" : ""}${formatCurrency(gap, currency)}`,
+      sub: gap >= 0 ? "Surplus" : "Deficit",
+      color: gap >= 0 ? "#22c55e" : "#ef4444",
+      icon: gap >= 0 ? "✅" : "⚠️",
+    },
+    {
+      label: "AVG MONTHLY INCOME",
+      value: formatCurrency(avgMonthlyIncome, currency),
+      sub: "per month",
+      color: "#38bdf8",
+      icon: "📅",
+    },
+    {
+      label: "AVG MONTHLY EXPENSE",
+      value: formatCurrency(avgMonthlyExpense, currency),
+      sub: "per month",
+      color: "#f97316",
+      icon: "📆",
+    },
+    highestExpense
+      ? {
+          label: "HIGHEST EXPENSE",
+          value: formatCurrency(highestExpense.amount, currency),
+          sub: `${highestExpense.name || "—"}${highestExpense.month ? " · " + highestExpense.month : ""}`,
+          color: "#a78bfa",
+          icon: "📌",
+        }
+      : null,
+    lastExpense
+      ? {
+          label: "LAST EXPENSE",
+          value: formatCurrency(lastExpense.amount, currency),
+          sub: `${lastExpense.name || "—"}${lastExpense.month ? " · " + lastExpense.month : ""}`,
+          color: "#fb923c",
+          icon: "🕐",
+        }
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <PageSection $isMobile={isMobile}>
+      {/* Header */}
+      <PageHeader $isMobile={isMobile}>
+        <div>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255,255,255,0.95)" }}>
+            Insights
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>
+            {DATE_FILTERS.find((f) => f.key === dateFilter)?.label} · Savings rate:{" "}
+            <span style={{ color: gap >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>
+              {totalIncome > 0 ? `${((gap / totalIncome) * 100).toFixed(1)}%` : "N/A"}
+            </span>
+          </p>
+        </div>
+      </PageHeader>
+
+      {/* 6.2 Date Filter Tabs */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+        {DATE_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setDateFilter(f.key)}
+            style={{
+              padding: "6px 18px",
+              fontSize: 13,
+              borderRadius: 99,
+              cursor: "pointer",
+              border:
+                dateFilter === f.key
+                  ? "1px solid rgba(56,189,248,0.6)"
+                  : "1px solid rgba(255,255,255,0.15)",
+              background:
+                dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+              color: dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+              fontWeight: dateFilter === f.key ? 700 : 400,
+              transition: "all 0.2s",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 6.1 Stat Tiles grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        {statTiles.map((tile) => (
+          <div
+            key={tile.label}
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: `1px solid ${tile.color}25`,
+              borderRadius: 14,
+              padding: "14px 16px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 20 }}>{tile.icon}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.9, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" }}>
+                {tile.label}
+              </span>
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: tile.color, lineHeight: 1.2 }}>
+              {tile.value}
+            </div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 4 }}>
+              {tile.sub}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 6.3 Monthly Trend Chart */}
+      <div style={{ ...cardStyle, padding: "16px 16px 8px", marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 14 }}>
+          Monthly Income vs Expenses
+        </div>
+        {trendData.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "32px 0", color: "rgba(255,255,255,0.35)", fontSize: 13 }}>
+            No data for the selected period
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart data={trendData} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <XAxis
+                dataKey="month"
+                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={fmtK}
+                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "rgba(15,23,42,0.97)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  borderRadius: 10,
+                  fontSize: 12,
+                }}
+                formatter={(v, name) => [formatCurrency(v, currency), name]}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }} />
+              <Bar
+                dataKey="income"
+                name="Income"
+                fill="#22c55e"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={36}
+                fillOpacity={0.85}
+              />
+              <Bar
+                dataKey="expense"
+                name="Expenses"
+                fill="#ef4444"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={36}
+                fillOpacity={0.85}
+              />
+              <Line
+                dataKey="net"
+                name="Net"
+                type="monotone"
+                stroke="#38bdf8"
+                strokeWidth={2.5}
+                dot={{ r: 3, fill: "#38bdf8" }}
+                activeDot={{ r: 5 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* Monthly breakdown table */}
+      {trendData.length > 0 && (
+        <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            Monthly Breakdown
+          </div>
+          <TableWrap>
+            <DataTable>
+              <thead>
+                <tr>
+                  <TableHead>Month</TableHead>
+                  <TableHead>Income</TableHead>
+                  <TableHead>Expenses</TableHead>
+                  <TableHead>Net</TableHead>
+                  <TableHead>Savings %</TableHead>
+                </tr>
+              </thead>
+              <tbody>
+                {[...trendData].reverse().map((row) => {
+                  const savingsPct = row.income > 0 ? ((row.net / row.income) * 100).toFixed(1) : "—";
+                  return (
+                    <tr key={row.month}>
+                      <TableCell style={{ fontWeight: 600 }}>{row.month}</TableCell>
+                      <TableCell style={{ color: "#22c55e" }}>{formatCurrency(row.income, currency)}</TableCell>
+                      <TableCell style={{ color: "#ef4444" }}>{formatCurrency(row.expense, currency)}</TableCell>
+                      <TableCell style={{ fontWeight: 700, color: row.net >= 0 ? "#22c55e" : "#ef4444" }}>
+                        {row.net >= 0 ? "+" : ""}{formatCurrency(row.net, currency)}
+                      </TableCell>
+                      <TableCell style={{ color: parseFloat(savingsPct) >= 20 ? "#22c55e" : parseFloat(savingsPct) >= 0 ? "#f97316" : "#ef4444" }}>
+                        {savingsPct !== "—" ? `${savingsPct}%` : "—"}
+                      </TableCell>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </DataTable>
+          </TableWrap>
+        </div>
+      )}
+    </PageSection>
   );
 }
