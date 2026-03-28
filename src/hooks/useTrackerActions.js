@@ -87,6 +87,8 @@ export function useTrackerActions({
             ...existing,
             amount: incoming.amount,
             currency: incoming.currency || existing.currency,
+            date: incoming.date || existing.date,
+            month: incoming.month || existing.month,
           };
         } else {
           next.push({
@@ -94,6 +96,8 @@ export function useTrackerActions({
             name: incoming.name,
             amount: incoming.amount,
             currency: incoming.currency,
+            date: incoming.date || "",
+            month: incoming.month || "",
           });
         }
       });
@@ -124,6 +128,8 @@ export function useTrackerActions({
             ...existing,
             amount: incoming.amount,
             currency: incoming.currency || existing.currency,
+            date: incoming.date || existing.date,
+            month: incoming.month || existing.month,
           };
         } else {
           next.push({
@@ -131,6 +137,8 @@ export function useTrackerActions({
             name: incoming.name,
             amount: incoming.amount,
             currency: incoming.currency,
+            date: incoming.date || "",
+            month: incoming.month || "",
           });
         }
       });

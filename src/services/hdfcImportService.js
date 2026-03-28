@@ -249,22 +249,83 @@ export function buildImportedHdfcEntries(parsedEntries, currency) {
   const baseId = Date.now();
 
   const incomeEntries = creditEntries
-    .map((entry, index) => ({
-      id: baseId + index + 1,
-      name: sanitizeInput(entry.name, "text") || "Imported income",
-      amount: sanitizeInput(entry.amount, "number"),
-      currency,
-    }))
+    .map((entry, index) => {
+      const isoDate = parseDateToISO(entry.date);
+      const month = isoDate ? isoDate.slice(0, 7) : "";
+      return {
+        id: baseId + index + 1,
+        name: sanitizeInput(entry.name, "text") || "Imported income",
+        amount: sanitizeInput(entry.amount, "number"),
+        currency,
+        date: isoDate || new Date().toISOString(),
+        month: month || new Date().toISOString().slice(0, 7),
+      };
+    })
     .filter((entry) => entry.amount > 0);
 
   const expenseEntries = debitEntries
-    .map((entry, index) => ({
-      id: baseId + incomeEntries.length + index + 1,
-      name: sanitizeInput(entry.name, "text") || "Imported expense",
-      amount: sanitizeInput(entry.amount, "number"),
-      currency,
-    }))
+    .map((entry, index) => {
+      const isoDate = parseDateToISO(entry.date);
+      const month = isoDate ? isoDate.slice(0, 7) : "";
+      return {
+        id: baseId + incomeEntries.length + index + 1,
+        name: sanitizeInput(entry.name, "text") || "Imported expense",
+        amount: sanitizeInput(entry.amount, "number"),
+        currency,
+        date: isoDate || new Date().toISOString(),
+        month: month || new Date().toISOString().slice(0, 7),
+      };
+    })
     .filter((entry) => entry.amount > 0);
 
   return { incomeEntries, expenseEntries };
 }
+
+/**
+ * Parse common HDFC statement date formats into an ISO string.
+ * Handles: "29/03/2026", "29-03-2026", "29/03/26", "29 Mar 2026",
+ *          and Excel serial numbers (e.g. 46111).
+ */
+function parseDateToISO(rawDate) {
+  if (!rawDate) return "";
+  const value = String(rawDate).trim();
+  if (!value) return "";
+
+  // Already ISO-like: "2026-03-29" or "2026-03-29T..."
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+  }
+
+  // dd/mm/yyyy or dd-mm-yyyy (2 or 4 digit year)
+  const slashMatch = value.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (slashMatch) {
+    const day = parseInt(slashMatch[1], 10);
+    const month = parseInt(slashMatch[2], 10) - 1; // 0-indexed
+    let year = parseInt(slashMatch[3], 10);
+    if (year < 100) year += 2000;
+    const d = new Date(year, month, day);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+  }
+
+  // "29 Mar 2026" or "29 March 2026"
+  const textMatch = value.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})$/);
+  if (textMatch) {
+    const d = new Date(`${textMatch[2]} ${textMatch[1]}, ${textMatch[3]}`);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+  }
+
+  // Excel serial number
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue) && numericValue > 20000 && numericValue < 80000) {
+    // Excel epoch: 1 Jan 1900 (with the 29 Feb 1900 bug adjustment)
+    const excelEpoch = new Date(1899, 11, 30);
+    const d = new Date(excelEpoch.getTime() + numericValue * 86400000);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : "";
+  }
+
+  // Last resort: try native Date parsing
+  const fallback = new Date(value);
+  return Number.isFinite(fallback.getTime()) ? fallback.toISOString() : "";
+}
+

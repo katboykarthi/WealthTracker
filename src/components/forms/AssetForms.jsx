@@ -335,11 +335,86 @@ function StocksForm({ onSave, onCancel, editData }) {
 /* ─── MutualFundForm (typeId = "mutual_funds") ──────────────────────────── */
 function MutualFundForm({ onSave, onCancel, editData }) {
   const [fundName, setFundName] = useState(editData?.name || "");
-  const [ticker, setTicker] = useState(editData?.symbol || "");
+  const [schemeCode, setSchemeCode] = useState(editData?.schemeCode || editData?.symbol || "");
   const [units, setUnits] = useState(editData?.units?.toString() || "");
   const [avgNav, setAvgNav] = useState(editData?.avgNav?.toString() || "");
   const [currentNav, setCurrentNav] = useState(editData?.cmp?.toString() || "");
   const [notes, setNotes] = useState(editData?.notes || "");
+  const [showDetails, setShowDetails] = useState(false);
+
+  // Live search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [navLoading, setNavLoading] = useState(false);
+  const searchTimerRef = useRef(null);
+
+  // FIX 5: Re-fetch live NAV on edit when schemeCode exists
+  useEffect(() => {
+    if (editData?.schemeCode && editData.schemeCode) {
+      setNavLoading(true);
+      fetch(`https://api.mfapi.in/mf/${editData.schemeCode}/latest`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.data?.[0]?.nav) {
+            setCurrentNav(data.data[0].nav);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setNavLoading(false));
+    }
+  }, [editData?.schemeCode]);
+
+  // Debounced search
+  const handleSearchInput = (query) => {
+    setSearchQuery(query);
+    setFundName(query);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (!query || query.trim().length < 3) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    setSearchLoading(true);
+    setShowDropdown(true);
+    searchTimerRef.current = setTimeout(() => {
+      fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(query.trim())}`)
+        .then((r) => r.json())
+        .then((results) => {
+          if (Array.isArray(results)) {
+            setSearchResults(results.slice(0, 15));
+          } else {
+            setSearchResults([]);
+          }
+        })
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearchLoading(false));
+    }, 400);
+  };
+
+  // On select a fund from dropdown
+  const selectFund = (fund) => {
+    setFundName(fund.schemeName || fund.name || "");
+    setSchemeCode(String(fund.schemeCode || ""));
+    setSearchQuery("");
+    setShowDropdown(false);
+    setSearchResults([]);
+
+    // Fetch latest NAV
+    if (fund.schemeCode) {
+      setNavLoading(true);
+      fetch(`https://api.mfapi.in/mf/${fund.schemeCode}/latest`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.data?.[0]?.nav) {
+            setCurrentNav(data.data[0].nav);
+          }
+        })
+        .catch(() => notifyApp("Could not fetch NAV. Enter manually.", "error"))
+        .finally(() => setNavLoading(false));
+    }
+  };
 
   const unitsNum = parseFloat(units) || 0;
   const avgNavNum = parseFloat(avgNav) || 0;
@@ -347,20 +422,21 @@ function MutualFundForm({ onSave, onCancel, editData }) {
   const invested = unitsNum * avgNavNum;
   const currentValue = unitsNum * currentNavNum;
 
-  const save = () => {
+  const buildPayload = () => {
     const sanitizedName = sanitizeInput(fundName, "text");
     if (!sanitizedName || unitsNum <= 0 || currentNavNum <= 0) {
       notifyApp("Please enter fund name, units held, and current NAV.", "error");
-      return;
+      return null;
     }
-    if (currentNavNum > 0 && ticker) {
-      setCachedPrice(ticker, "MUTUALFUND", currentNavNum);
+    if (currentNavNum > 0 && schemeCode) {
+      setCachedPrice(schemeCode, "MUTUALFUND", currentNavNum);
     }
-    onSave({
+    return {
       id: editData?.id || Date.now(),
       typeId: "mutual_funds",
       name: sanitizedName,
-      symbol: ticker,
+      symbol: schemeCode,
+      schemeCode,
       exchange: "MUTUALFUND",
       units: unitsNum,
       avgNav: avgNavNum,
@@ -372,10 +448,31 @@ function MutualFundForm({ onSave, onCancel, editData }) {
       currency: "INR",
       notes: sanitizeInput(notes, "text"),
       priceUpdatedAt: new Date().toISOString(),
-    });
+    };
+  };
+
+  const save = () => { const p = buildPayload(); if (p) onSave(p); };
+  const saveAndAdd = () => {
+    const p = buildPayload();
+    if (p) {
+      onSave(p);
+      // Reset form for next entry
+      setFundName(""); setSchemeCode(""); setUnits(""); setAvgNav(""); setCurrentNav(""); setNotes("");
+    }
   };
 
   const fieldRow = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 };
+
+  // Detect plan tags from fund name
+  const getTags = (name) => {
+    const tags = [];
+    const n = (name || "").toLowerCase();
+    if (n.includes("direct")) tags.push({ label: "Direct", color: "#14b8a6" });
+    else if (n.includes("regular")) tags.push({ label: "Regular", color: "#94a3b8" });
+    if (n.includes("growth")) tags.push({ label: "Growth", color: "#22c55e" });
+    else if (n.includes("idcw") || n.includes("dividend")) tags.push({ label: "IDCW", color: "#f59e0b" });
+    return tags;
+  };
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -383,27 +480,103 @@ function MutualFundForm({ onSave, onCancel, editData }) {
         🏦 Mutual Fund
       </div>
 
-      {/* Fund Name */}
-      <div>
-        <label style={labelStyle}>Fund Name</label>
-        <input
-          value={fundName}
-          onChange={(e) => setFundName(e.target.value)}
-          style={inputStyle}
-          placeholder="e.g. Mirae Asset Large Cap Fund"
-        />
+      {/* Live search typeahead */}
+      <div style={{ position: "relative" }}>
+        <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: 8 }}>
+          Link to Live Price
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 99,
+            background: "rgba(245,158,11,0.18)", color: "#f59e0b", letterSpacing: 0.4,
+          }}>BETA</span>
+        </label>
+        <div style={{ position: "relative" }}>
+          <span style={{
+            position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
+            fontSize: 14, color: "rgba(255,255,255,0.4)", pointerEvents: "none", zIndex: 1,
+          }}>🔍</span>
+          <input
+            value={fundName}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+            style={{ ...inputStyle, paddingLeft: 36 }}
+            placeholder="Search fund or stock name..."
+            autoComplete="off"
+          />
+        </div>
+
+        {/* Dropdown */}
+        {showDropdown && (
+          <div style={{
+            position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
+            background: "rgba(15,23,42,0.97)", backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10,
+            marginTop: 4, maxHeight: 280, overflowY: "auto",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          }}>
+            {searchLoading ? (
+              <div style={{ padding: "14px 16px", display: "flex", gap: 8, alignItems: "center" }}>
+                {[0,1,2].map((i) => (
+                  <div key={i} style={{
+                    height: 12, borderRadius: 4, flex: 1,
+                    background: "rgba(255,255,255,0.08)",
+                    animation: "pulse 1.2s ease-in-out infinite",
+                    animationDelay: `${i * 0.15}s`,
+                  }} />
+                ))}
+                <style>{`@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }`}</style>
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div style={{ padding: "14px 16px", fontSize: 13, color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
+                No results found
+              </div>
+            ) : (
+              searchResults.map((fund) => {
+                const tags = getTags(fund.schemeName);
+                return (
+                  <button
+                    key={fund.schemeCode}
+                    type="button"
+                    onMouseDown={() => selectFund(fund)}
+                    style={{
+                      width: "100%", padding: "10px 14px", background: "transparent",
+                      border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)",
+                      cursor: "pointer", color: "rgba(255,255,255,0.9)",
+                      fontSize: 13, textAlign: "left", display: "block",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 3, lineHeight: 1.35, whiteSpace: "normal" }}>
+                      {fund.schemeName}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                        #{fund.schemeCode}
+                      </span>
+                      {tags.map((t) => (
+                        <span key={t.label} style={{
+                          fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 99,
+                          background: `${t.color}22`, color: t.color, letterSpacing: 0.3,
+                        }}>{t.label}</span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Ticker (optional) */}
-      <div>
-        <label style={labelStyle}>Fund Ticker / ISIN (optional, for Google Finance lookup)</label>
-        <input
-          value={ticker}
-          onChange={(e) => setTicker(e.target.value.toUpperCase())}
-          style={inputStyle}
-          placeholder="e.g. 0P00001234"
-        />
-      </div>
+      {/* Scheme code display */}
+      {schemeCode && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+          <span style={{
+            padding: "2px 8px", borderRadius: 6, fontSize: 11,
+            background: "rgba(56,189,248,0.12)", color: "#38bdf8", fontWeight: 600,
+          }}>Scheme #{schemeCode}</span>
+          {navLoading && <span style={{ color: "#f59e0b" }}>Fetching NAV…</span>}
+        </div>
+      )}
 
       {/* Units + Avg NAV */}
       <div style={fieldRow}>
@@ -413,61 +586,93 @@ function MutualFundForm({ onSave, onCancel, editData }) {
             value={units}
             onChange={(e) => setUnits(e.target.value)}
             style={inputStyle}
-            type="number"
-            min="0"
-            step="0.001"
+            type="number" min="0" step="0.001"
             placeholder="e.g. 1250.456"
           />
         </div>
         <div>
-          <label style={labelStyle}>Avg NAV (₹)</label>
+          <label style={labelStyle}>Avg Purchase NAV (₹)</label>
           <input
             value={avgNav}
             onChange={(e) => setAvgNav(e.target.value)}
             style={inputStyle}
-            type="number"
-            min="0"
+            type="number" min="0"
             placeholder="per unit"
           />
         </div>
       </div>
 
-      {/* Current NAV + Fetch */}
+      {/* Current NAV (auto-filled or manual) */}
       <div>
-        <label style={labelStyle}>Current NAV (₹)</label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
-          <input
-            value={currentNav}
-            onChange={(e) => { const v = e.target.value; setCurrentNav(v); if (ticker && parseFloat(v) > 0) setCachedPrice(ticker, "MUTUALFUND", parseFloat(v)); }}
-            style={inputStyle}
-            type="number"
-            min="0"
-            placeholder="Enter manually or fetch"
-          />
-          {ticker ? (
-            <FetchPriceButton
-              symbol={ticker}
-              exchange="MUTUALFUND"
-              onPriceSet={(p) => setCurrentNav(p.toString())}
-            />
-          ) : (
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Add ticker above to enable Google Finance lookup</span>
-          )}
-        </div>
+        <label style={labelStyle}>
+          Current NAV (₹) {navLoading && <span style={{ color: "#f59e0b", fontWeight: 400 }}>— fetching…</span>}
+        </label>
+        <input
+          value={currentNav}
+          onChange={(e) => setCurrentNav(e.target.value)}
+          style={{
+            ...inputStyle,
+            ...(schemeCode && currentNavNum > 0 ? { borderColor: "rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.06)" } : {}),
+          }}
+          type="number" min="0"
+          placeholder={schemeCode ? "Auto-fetched from mfapi.in" : "Enter manually"}
+        />
       </div>
+
+      {/* Total Invested auto-calculated */}
+      {unitsNum > 0 && currentNavNum > 0 && (
+        <div style={{
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 10, padding: "10px 14px",
+        }}>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 }}>
+            Total Value = {unitsNum.toFixed(3)} units × ₹{currentNavNum.toFixed(2)} NAV
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#22c55e" }}>
+            ₹{currentValue.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+            Auto-calculated from units × NAV
+          </div>
+        </div>
+      )}
 
       {/* P&L preview */}
       <PnlPreview invested={invested} currentValue={currentValue} currency="INR" />
 
-      {/* Notes */}
+      {/* Collapsible details */}
       <div>
-        <label style={labelStyle}>Notes (optional)</label>
-        <input value={notes} onChange={(e) => setNotes(e.target.value)} style={inputStyle} placeholder="Scheme type, folio number, etc." />
+        <button
+          type="button"
+          onClick={() => setShowDetails((p) => !p)}
+          style={{
+            background: "none", border: "none", color: "rgba(255,255,255,0.55)",
+            cursor: "pointer", fontSize: 12, fontWeight: 600, padding: 0,
+            display: "flex", alignItems: "center", gap: 6,
+          }}
+        >
+          <span style={{
+            display: "inline-block", transition: "transform 0.2s",
+            transform: showDetails ? "rotate(90deg)" : "rotate(0deg)",
+          }}>›</span>
+          Add details (geography, tags, notes)
+        </button>
+        {showDetails && (
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}>Notes (optional)</label>
+            <input value={notes} onChange={(e) => setNotes(e.target.value)} style={inputStyle} placeholder="Folio number, plan type, etc." />
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
         <button onClick={onCancel} style={{ ...buttonStyles.secondary, padding: "10px 14px" }}>Cancel</button>
-        <button onClick={save} style={{ ...btnStyle, padding: "10px 14px" }}>{editData ? "Update" : "Save Fund"}</button>
+        <button onClick={save} style={{ ...btnStyle, padding: "10px 14px" }}>{editData ? "Update" : "Save"}</button>
+        {!editData && (
+          <button onClick={saveAndAdd} style={{ ...btnStyle, padding: "10px 14px", background: "rgba(34,197,94,0.25)", border: "1px solid rgba(34,197,94,0.4)" }}>
+            Save & Add
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import WealthPage from "./pages/Wealth/Wealth";
+import AssetAllocation from "./pages/Allocation/AssetAllocation";
 import PlanPage from "./pages/Plan/Plan";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import AssetsPage from "./pages/Assets/Assets";
@@ -100,7 +100,7 @@ export function renderAppRoute({
     case "goals":
       return <GoalsPage assets={assets} goals={goals} setGoals={setGoals} currency={currency} />;
     case "allocation":
-      return <WealthPage assets={assets} currency={currency} isMobile={isMobile} />;
+      return <AssetAllocation assets={assets} currency={currency} isMobile={isMobile} />;
     case "income":
       return (
         <IncomePage

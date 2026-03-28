@@ -1939,11 +1939,23 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
 
 export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
-  const total = expenses.reduce((s, e) => s + e.amount, 0);
   const [showAdd, setShowAdd] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [expenseMonth, setExpenseMonth] = useState(() => {
+    const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const DATE_FILTERS = [
+    { key: "this_month", label: "This Month" },
+    { key: "last_month", label: "Last Month" },
+    { key: "3m", label: "3M" },
+    { key: "6m", label: "6M" },
+    { key: "12m", label: "12M" },
+    { key: "all", label: "All" },
+  ];
+  const [dateFilter, setDateFilter] = useState("this_month");
+  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("amount_desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1954,16 +1966,20 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
     if (editingExpense) {
       setName(editingExpense.name || "");
       setAmount(editingExpense.amount || "");
+      setExpenseMonth(editingExpense.month || expenseMonth);
     } else {
       setName("");
       setAmount("");
     }
   }, [editingExpense]);
 
+  const filteredExpenses = useMemo(() => filterByRange(expenses, dateRange), [expenses, dateRange]);
+  const total = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+
   const expenseRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    let rows = expenses.filter((expense) => {
+    let rows = filteredExpenses.filter((expense) => {
       if (!query) return true;
       return String(expense.name || "").toLowerCase().includes(query);
     });
@@ -1976,7 +1992,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
     });
 
     return rows;
-  }, [expenses, searchQuery, sortBy]);
+  }, [filteredExpenses, searchQuery, sortBy]);
 
   const pagedExpenseRows = useMemo(
     () => getPaginatedRows(expenseRows, currentPage),
@@ -1985,7 +2001,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, sortBy]);
+  }, [searchQuery, sortBy, dateFilter]);
 
   useEffect(() => {
     const totalPages = getTotalPages(expenseRows.length);
@@ -2049,7 +2065,9 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
       id: editingExpense?.id || Date.now(),
       name: n,
       amount: a,
-      currency
+      currency,
+      month: expenseMonth,
+      date: new Date(expenseMonth + "-01").toISOString(),
     };
 
     if (editingExpense) {
@@ -2096,7 +2114,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
       <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Expenses</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Total: {formatCurrency(total, currency)}</p>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{DATE_FILTERS.find((filter) => filter.key === dateFilter)?.label} total: {formatCurrency(total, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input
@@ -2130,6 +2148,10 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                 <label style={labelStyle}>Amount</label>
                 <input style={inputStyle} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
               </div>
+              <div>
+                <label style={labelStyle}>Month</label>
+                <input style={inputStyle} type="month" value={expenseMonth} onChange={(e) => setExpenseMonth(e.target.value)} />
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 10 }}>
                 <button onClick={closeAddModal} style={{ ...btnStyle, background: 'var(--muted-bg, #f1f5f9)', color: "rgba(255, 255, 255, 0.65)" }}>Cancel</button>
                 <button onClick={handleSave} style={{ ...btnStyle, background: "var(--error, #f97316)" }}>{editingExpense ? "Update" : "Save"}</button>
@@ -2138,6 +2160,28 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
           </ModalCard>
         </ModalBackdrop>
       )}
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+        {DATE_FILTERS.map((filter) => (
+          <button
+            key={filter.key}
+            onClick={() => setDateFilter(filter.key)}
+            style={{
+              padding: "6px 16px",
+              fontSize: 13,
+              borderRadius: 99,
+              cursor: "pointer",
+              border: dateFilter === filter.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
+              background: dateFilter === filter.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+              color: dateFilter === filter.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+              fontWeight: dateFilter === filter.key ? 700 : 400,
+              transition: "all 0.2s",
+            }}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
 
       {expenses.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
@@ -2210,6 +2254,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                       selectLabel={`Select ${expense.name}`}
                       fields={[
                         { label: "Amount", value: formatCurrency(expense.amount, expense.currency || currency), fullWidth: true },
+                        { label: "Month", value: expense.month || "—" },
                       ]}
                       actions={(
                         <button onClick={() => handleEdit(expense)} style={{ ...buttonStyles.secondary, padding: "8px 12px", fontSize: 12, width: "100%" }}>
@@ -2224,7 +2269,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                   <DataTable>
                     <thead>
                       <tr>
-                        <TableHead style={{ width: "5%" }}>
+                        <TableHead style={{ width: "4%" }}>
                           <input
                             type="checkbox"
                             checked={allExpensesOnPageSelected}
@@ -2232,9 +2277,10 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                             aria-label="Select all expense rows on this page"
                           />
                         </TableHead>
-                        <TableHead style={{ width: "50%" }}>Expense</TableHead>
-                        <TableHead style={{ width: "30%" }}>Amount</TableHead>
-                        <TableHead style={{ width: "15%" }}>Actions</TableHead>
+                        <TableHead style={{ width: "40%" }}>Expense</TableHead>
+                        <TableHead style={{ width: "15%" }}>Month</TableHead>
+                        <TableHead style={{ width: "25%" }}>Amount</TableHead>
+                        <TableHead style={{ width: "10%" }}>Actions</TableHead>
                       </tr>
                     </thead>
                     <tbody>
@@ -2249,6 +2295,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
                             />
                           </TableCell>
                           <TableCell title={expense.name}>{expense.name}</TableCell>
+                          <TableCell style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}>{expense.month || "—"}</TableCell>
                           <TableCell title={formatCurrency(expense.amount, expense.currency || currency)}>
                             {formatCurrency(expense.amount, expense.currency || currency)}
                           </TableCell>
