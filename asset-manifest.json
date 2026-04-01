@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/WealthTracker/static/css/main.afb50526.css",
-    "main.js": "/WealthTracker/static/js/main.af4d5d8d.js",
+    "main.js": "/WealthTracker/static/js/main.ec42027f.js",
     "index.html": "/WealthTracker/index.html",
     "main.afb50526.css.map": "/WealthTracker/static/css/main.afb50526.css.map",
-    "main.af4d5d8d.js.map": "/WealthTracker/static/js/main.af4d5d8d.js.map"
+    "main.ec42027f.js.map": "/WealthTracker/static/js/main.ec42027f.js.map"
   },
   "entrypoints": [
     "static/css/main.afb50526.css",
-    "static/js/main.af4d5d8d.js"
+    "static/js/main.ec42027f.js"
   ]
 }
