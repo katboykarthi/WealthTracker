@@ -1,6 +1,12 @@
 import { useCallback } from "react";
 import { ASSET_TYPES } from "../constants";
 
+function stripUndefinedFields(record) {
+  return Object.fromEntries(
+    Object.entries(record || {}).filter(([, value]) => value !== undefined)
+  );
+}
+
 export function useTrackerActions({
   assets,
   liabilities,
@@ -161,6 +167,8 @@ export function useTrackerActions({
           return;
         }
 
+        const normalizedIncoming = stripUndefinedFields(incoming);
+
         const existingIndex = next.findIndex(
           (asset) =>
             String(asset.name || "").trim().toLowerCase() === incomingName &&
@@ -171,18 +179,20 @@ export function useTrackerActions({
           const existing = next[existingIndex];
           next[existingIndex] = {
             ...existing,
-            value: incoming.value,
+            ...normalizedIncoming,
+            id: existing.id,
+            typeId: incomingTypeId,
             currency: incoming.currency || existing.currency,
-            notes: incoming.notes || existing.notes || "",
+            notes: incoming.notes ?? existing.notes ?? "",
           };
         } else {
           next.push({
             id: Date.now() + Math.random(),
+            ...normalizedIncoming,
             typeId: incomingTypeId,
             name: incoming.name,
-            value: incoming.value,
             currency: incoming.currency,
-            notes: incoming.notes || "",
+            notes: incoming.notes ?? "",
           });
         }
       });

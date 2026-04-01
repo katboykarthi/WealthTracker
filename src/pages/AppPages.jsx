@@ -1513,6 +1513,20 @@ const INCOME_TYPES = [
 ];
 
 /* ─── DATE FILTER HELPERS ───────────────────────────────────────────────── */
+const MONEY_DATE_FILTERS = [
+  { key: "this_month", label: "This Month" },
+  { key: "last_month", label: "Last Month" },
+  { key: "3m", label: "3M" },
+  { key: "6m", label: "6M" },
+  { key: "12m", label: "12M" },
+  { key: "all", label: "All" },
+];
+
+function getCurrentMonthValue() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 function getDateRangeForFilter(filterKey) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1532,6 +1546,16 @@ function getDateRangeForFilter(filterKey) {
   }
 }
 
+function getDateRangeForMonth(monthValue) {
+  const [year, month] = String(monthValue || "").split("-").map(Number);
+  if (!year || !month) return null;
+
+  return {
+    start: new Date(year, month - 1, 1),
+    end: new Date(year, month, 0),
+  };
+}
+
 function parseEntryDate(entry) {
   // entries may have a `month` field like "2026-03" or a `date` ISO string
   if (entry.month) {
@@ -1542,11 +1566,42 @@ function parseEntryDate(entry) {
   return null;
 }
 
-function filterByRange(entries, range) {
+function getMonthValueFromEntry(entry) {
+  const date = parseEntryDate(entry);
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(monthValue) {
+  const range = getDateRangeForMonth(monthValue);
+  if (!range) return String(monthValue || "");
+  return range.start.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+}
+
+function buildMonthOptions(entries = []) {
+  const monthValues = Array.from(
+    new Set(entries.map((entry) => getMonthValueFromEntry(entry)).filter(Boolean))
+  ).sort((a, b) => b.localeCompare(a));
+
+  if (monthValues.length === 0) {
+    monthValues.push(getCurrentMonthValue());
+  }
+
+  return [
+    { value: "all", label: "All Months" },
+    ...monthValues.map((value) => ({
+      value,
+      label: formatMonthLabel(value),
+    })),
+  ];
+}
+
+function filterByRange(entries, range, options = {}) {
+  const { includeUndated = true } = options;
   if (!range) return entries;
   return entries.filter((e) => {
     const d = parseEntryDate(e);
-    if (!d) return true; // no date → include for backward compat
+    if (!d) return includeUndated; // no date → include for backward compat
     return d >= range.start && d <= range.end;
   });
 }
@@ -1580,23 +1635,22 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [incomeType, setIncomeType] = useState("salary");
-  const [incomeMonth, setIncomeMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const [incomeMonth, setIncomeMonth] = useState(() => getCurrentMonthValue());
   const [incomeNotes, setIncomeNotes] = useState("");
 
-  // Date filter
-  const DATE_FILTERS = [
-    { key: "this_month", label: "This Month" },
-    { key: "last_month", label: "Last Month" },
-    { key: "3m", label: "3M" },
-    { key: "6m", label: "6M" },
-    { key: "12m", label: "12M" },
-    { key: "all", label: "All" },
-  ];
   const [dateFilter, setDateFilter] = useState("this_month");
-  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const monthOptions = useMemo(
+    () => buildMonthOptions([...(incomes || []), ...(expenses || [])]),
+    [incomes, expenses]
+  );
+  const effectiveDateRange = useMemo(
+    () => (selectedMonth !== "all" ? getDateRangeForMonth(selectedMonth) : getDateRangeForFilter(dateFilter)),
+    [dateFilter, selectedMonth]
+  );
+  const activePeriodLabel = selectedMonth !== "all"
+    ? formatMonthLabel(selectedMonth)
+    : MONEY_DATE_FILTERS.find((filter) => filter.key === dateFilter)?.label || "All";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("amount_desc");
@@ -1616,15 +1670,24 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
     }
   }, [editingIncome]);
 
+  useEffect(() => {
+    if (selectedMonth !== "all" && !monthOptions.some((option) => option.value === selectedMonth)) {
+      setSelectedMonth("all");
+    }
+  }, [monthOptions, selectedMonth]);
+
   // Filtered income & expenses
-  const filteredIncomes = useMemo(() => filterByRange(incomes, dateRange), [incomes, dateRange]);
-  const filteredExpenses = useMemo(() => filterByRange(expenses || [], dateRange), [expenses, dateRange]);
+  const filteredIncomes = useMemo(
+    () => filterByRange(incomes, effectiveDateRange, { includeUndated: selectedMonth === "all" }),
+    [incomes, effectiveDateRange, selectedMonth]
+  );
+  const filteredExpenses = useMemo(
+    () => filterByRange(expenses || [], effectiveDateRange, { includeUndated: selectedMonth === "all" }),
+    [expenses, effectiveDateRange, selectedMonth]
+  );
   const totalIncome = filteredIncomes.reduce((s, i) => s + (i.amount || 0), 0);
   const totalExpenses = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const netCashflow = totalIncome - totalExpenses;
-
-  // Monthly trend chart data
-  const trendData = useMemo(() => buildMonthlyTrendData(incomes, expenses || [], dateRange), [incomes, expenses, dateRange]);
 
   const incomeRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -1644,7 +1707,7 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
 
   const pagedIncomeRows = useMemo(() => getPaginatedRows(incomeRows, currentPage), [incomeRows, currentPage]);
 
-  useEffect(() => { setCurrentPage(1); }, [searchQuery, sortBy, dateFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, sortBy, dateFilter, selectedMonth]);
   useEffect(() => {
     const totalPages = getTotalPages(incomeRows.length);
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -1699,14 +1762,12 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
     finally { event.target.value = ""; }
   };
 
-  const fmtK = (v) => Math.abs(v) >= 100000 ? `${(v / 100000).toFixed(1)}L` : Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}K` : `${v}`;
-
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Income & Cashflow</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{DATE_FILTERS.find(f => f.key === dateFilter)?.label} — Net: <span style={{ color: netCashflow >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>{formatCurrency(netCashflow, currency)}</span></p>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{activePeriodLabel} — Net: <span style={{ color: netCashflow >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>{formatCurrency(netCashflow, currency)}</span></p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input ref={importInputRef} type="file" accept=".csv,.xls,.xlsx" onChange={handleCsvImport} style={{ display: "none" }} />
@@ -1755,23 +1816,38 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
       )}
 
       {/* Date Filter Tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        {DATE_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setDateFilter(f.key)}
-            style={{
-              padding: "6px 16px", fontSize: 13, borderRadius: 99, cursor: "pointer",
-              border: dateFilter === f.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
-              background: dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
-              color: dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
-              fontWeight: dateFilter === f.key ? 700 : 400,
-              transition: "all 0.2s",
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(220px, 240px)", gap: 12, marginBottom: 16, alignItems: "start" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {MONEY_DATE_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => {
+                setDateFilter(f.key);
+                setSelectedMonth("all");
+              }}
+              style={{
+                padding: "6px 16px", fontSize: 13, borderRadius: 99, cursor: "pointer",
+                border: selectedMonth === "all" && dateFilter === f.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
+                background: selectedMonth === "all" && dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+                color: selectedMonth === "all" && dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+                fontWeight: selectedMonth === "all" && dateFilter === f.key ? 700 : 400,
+                transition: "all 0.2s",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 6 }}>
+            View Month
+          </div>
+          <Select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {/* 2.2 Stat Tiles replacing cash balance chart */}
@@ -1805,27 +1881,6 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
       </div>
 
       {/* Monthly Trend Chart — grouped Income vs Expense bars + net line */}
-      {trendData.length > 0 && (
-        <div style={{ ...cardStyle, marginBottom: 20, padding: "16px 16px 8px" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 12 }}>Monthly Income vs Expenses</div>
-          <ResponsiveContainer width="100%" height={220}>
-            <ComposedChart data={trendData} margin={{ top: 4, right: 16, bottom: 4, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-              <XAxis dataKey="month" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tickFormatter={fmtK} tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip
-                contentStyle={{ background: "rgba(15,23,42,0.97)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontSize: 12 }}
-                formatter={(v, name) => [formatCurrency(v, currency), name]}
-              />
-              <Legend wrapperStyle={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }} />
-              <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} fillOpacity={0.85} />
-              <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} fillOpacity={0.85} />
-              <Line dataKey="net" name="Net" type="monotone" stroke="#38bdf8" strokeWidth={2} dot={{ r: 3, fill: "#38bdf8" }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
       {incomes.length === 0 ? (
         <LiquidGlassCard style={{ textAlign: "center", padding: 60, color: "#94a3b8" }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>{"💼"}</div>
@@ -1833,7 +1888,7 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
           <div>Add recurring or one-time income to track cashflow</div>
         </LiquidGlassCard>
       ) : (
-        <LiquidGlassCard>
+        <LiquidGlassCard disableTilt>
           <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search income records" />
@@ -1937,25 +1992,26 @@ export function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, 
 }
 
 
-export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
+export function ExpensesPage({ incomes = [], expenses, currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
   const isMobile = useIsMobile();
   const [showAdd, setShowAdd] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [expenseMonth, setExpenseMonth] = useState(() => {
-    const now = new Date(); return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const DATE_FILTERS = [
-    { key: "this_month", label: "This Month" },
-    { key: "last_month", label: "Last Month" },
-    { key: "3m", label: "3M" },
-    { key: "6m", label: "6M" },
-    { key: "12m", label: "12M" },
-    { key: "all", label: "All" },
-  ];
+  const [expenseMonth, setExpenseMonth] = useState(() => getCurrentMonthValue());
   const [dateFilter, setDateFilter] = useState("this_month");
-  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const monthOptions = useMemo(
+    () => buildMonthOptions([...(incomes || []), ...(expenses || [])]),
+    [incomes, expenses]
+  );
+  const effectiveDateRange = useMemo(
+    () => (selectedMonth !== "all" ? getDateRangeForMonth(selectedMonth) : getDateRangeForFilter(dateFilter)),
+    [dateFilter, selectedMonth]
+  );
+  const activePeriodLabel = selectedMonth !== "all"
+    ? formatMonthLabel(selectedMonth)
+    : MONEY_DATE_FILTERS.find((filter) => filter.key === dateFilter)?.label || "All";
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("amount_desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1973,7 +2029,16 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
     }
   }, [editingExpense]);
 
-  const filteredExpenses = useMemo(() => filterByRange(expenses, dateRange), [expenses, dateRange]);
+  useEffect(() => {
+    if (selectedMonth !== "all" && !monthOptions.some((option) => option.value === selectedMonth)) {
+      setSelectedMonth("all");
+    }
+  }, [monthOptions, selectedMonth]);
+
+  const filteredExpenses = useMemo(
+    () => filterByRange(expenses, effectiveDateRange, { includeUndated: selectedMonth === "all" }),
+    [expenses, effectiveDateRange, selectedMonth]
+  );
   const total = filteredExpenses.reduce((s, e) => s + (e.amount || 0), 0);
 
   const expenseRows = useMemo(() => {
@@ -2001,7 +2066,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, sortBy, dateFilter]);
+  }, [searchQuery, sortBy, dateFilter, selectedMonth]);
 
   useEffect(() => {
     const totalPages = getTotalPages(expenseRows.length);
@@ -2114,7 +2179,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
       <PageHeader $isMobile={isMobile}>
         <div>
           <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)" }}>Expenses</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{DATE_FILTERS.find((filter) => filter.key === dateFilter)?.label} total: {formatCurrency(total, currency)}</p>
+          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>{activePeriodLabel} total: {formatCurrency(total, currency)}</p>
         </div>
         <PageHeaderActions $isMobile={isMobile}>
           <input
@@ -2161,26 +2226,41 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
         </ModalBackdrop>
       )}
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        {DATE_FILTERS.map((filter) => (
-          <button
-            key={filter.key}
-            onClick={() => setDateFilter(filter.key)}
-            style={{
-              padding: "6px 16px",
-              fontSize: 13,
-              borderRadius: 99,
-              cursor: "pointer",
-              border: dateFilter === filter.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
-              background: dateFilter === filter.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
-              color: dateFilter === filter.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
-              fontWeight: dateFilter === filter.key ? 700 : 400,
-              transition: "all 0.2s",
-            }}
-          >
-            {filter.label}
-          </button>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(220px, 240px)", gap: 12, marginBottom: 16, alignItems: "start" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {MONEY_DATE_FILTERS.map((filter) => (
+            <button
+              key={filter.key}
+              onClick={() => {
+                setDateFilter(filter.key);
+                setSelectedMonth("all");
+              }}
+              style={{
+                padding: "6px 16px",
+                fontSize: 13,
+                borderRadius: 99,
+                cursor: "pointer",
+                border: selectedMonth === "all" && dateFilter === filter.key ? "1px solid rgba(56,189,248,0.6)" : "1px solid rgba(255,255,255,0.15)",
+                background: selectedMonth === "all" && dateFilter === filter.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+                color: selectedMonth === "all" && dateFilter === filter.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+                fontWeight: selectedMonth === "all" && dateFilter === filter.key ? 700 : 400,
+                transition: "all 0.2s",
+              }}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 6 }}>
+            View Month
+          </div>
+          <Select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {expenses.length === 0 ? (
@@ -2190,7 +2270,7 @@ export function ExpensesPage({ expenses, currency, onAdd, onUpdate, onDelete, on
           <div>Add your expenses to track cashflow</div>
         </LiquidGlassCard>
       ) : (
-        <LiquidGlassCard>
+        <LiquidGlassCard disableTilt>
           <div style={{ marginBottom: 12, padding: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(220px, 1fr) minmax(160px, 190px)", gap: 8 }}>
               <Field
@@ -2395,7 +2475,7 @@ export function NetWorthPage({ assets, liabilities, currency, snapshots, onSnaps
       </LiquidGlassCard>
 
       {snapshots.length > 0 && (
-        <LiquidGlassCard style={{ marginTop: 16 }}>
+        <LiquidGlassCard disableTilt style={{ marginTop: 16 }}>
           <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 16 }}>Snapshot History</div>
           <TableResultsText>
             Showing {pagedSnapshotRows.length} of {snapshotRows.length} snapshots
@@ -3689,20 +3769,29 @@ function DataTablePagination({ totalRows, currentPage, onPageChange, pageLength 
 export function InsightsPage({ incomes = [], expenses = [], currency }) {
   const isMobile = useIsMobile();
 
-  const DATE_FILTERS = [
-    { key: "this_month", label: "This Month" },
-    { key: "last_month", label: "Last Month" },
-    { key: "3m", label: "3M" },
-    { key: "6m", label: "6M" },
-    { key: "12m", label: "12M" },
-    { key: "all", label: "All" },
-  ];
   const [dateFilter, setDateFilter] = useState("3m");
-  const dateRange = useMemo(() => getDateRangeForFilter(dateFilter), [dateFilter]);
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const monthOptions = useMemo(
+    () => buildMonthOptions([...(incomes || []), ...(expenses || [])]),
+    [incomes, expenses]
+  );
+  const effectiveDateRange = useMemo(
+    () => (selectedMonth !== "all" ? getDateRangeForMonth(selectedMonth) : getDateRangeForFilter(dateFilter)),
+    [dateFilter, selectedMonth]
+  );
+  const activePeriodLabel = selectedMonth !== "all"
+    ? formatMonthLabel(selectedMonth)
+    : MONEY_DATE_FILTERS.find((filter) => filter.key === dateFilter)?.label || "All";
 
   // Apply date filter
-  const filteredIncomes = useMemo(() => filterByRange(incomes, dateRange), [incomes, dateRange]);
-  const filteredExpenses = useMemo(() => filterByRange(expenses, dateRange), [expenses, dateRange]);
+  const filteredIncomes = useMemo(
+    () => filterByRange(incomes, effectiveDateRange, { includeUndated: selectedMonth === "all" }),
+    [incomes, effectiveDateRange, selectedMonth]
+  );
+  const filteredExpenses = useMemo(
+    () => filterByRange(expenses, effectiveDateRange, { includeUndated: selectedMonth === "all" }),
+    [expenses, effectiveDateRange, selectedMonth]
+  );
 
   // Stat calculations
   const totalIncome = filteredIncomes.reduce((s, i) => s + (i.amount || 0), 0);
@@ -3726,6 +3815,12 @@ export function InsightsPage({ incomes = [], expenses = [], currency }) {
     return Math.max(1, months.size);
   }, [filteredExpenses]);
 
+  useEffect(() => {
+    if (selectedMonth !== "all" && !monthOptions.some((option) => option.value === selectedMonth)) {
+      setSelectedMonth("all");
+    }
+  }, [monthOptions, selectedMonth]);
+
   const avgMonthlyIncome = totalIncome / uniqueIncomeMonths;
   const avgMonthlyExpense = totalExpenses / uniqueExpenseMonths;
 
@@ -3747,8 +3842,8 @@ export function InsightsPage({ incomes = [], expenses = [], currency }) {
 
   // Monthly trend chart
   const trendData = useMemo(
-    () => buildMonthlyTrendData(incomes, expenses, dateRange),
-    [incomes, expenses, dateRange]
+    () => buildMonthlyTrendData(incomes, expenses, effectiveDateRange),
+    [incomes, expenses, effectiveDateRange]
   );
 
   const fmtK = (v) =>
@@ -3823,7 +3918,7 @@ export function InsightsPage({ incomes = [], expenses = [], currency }) {
             Insights
           </h2>
           <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>
-            {DATE_FILTERS.find((f) => f.key === dateFilter)?.label} · Savings rate:{" "}
+            {activePeriodLabel} · Savings rate:{" "}
             <span style={{ color: gap >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>
               {totalIncome > 0 ? `${((gap / totalIncome) * 100).toFixed(1)}%` : "N/A"}
             </span>
@@ -3832,30 +3927,45 @@ export function InsightsPage({ incomes = [], expenses = [], currency }) {
       </PageHeader>
 
       {/* 6.2 Date Filter Tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-        {DATE_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setDateFilter(f.key)}
-            style={{
-              padding: "6px 18px",
-              fontSize: 13,
-              borderRadius: 99,
-              cursor: "pointer",
-              border:
-                dateFilter === f.key
-                  ? "1px solid rgba(56,189,248,0.6)"
-                  : "1px solid rgba(255,255,255,0.15)",
-              background:
-                dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
-              color: dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
-              fontWeight: dateFilter === f.key ? 700 : 400,
-              transition: "all 0.2s",
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1fr) minmax(220px, 240px)", gap: 12, marginBottom: 20, alignItems: "start" }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {MONEY_DATE_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => {
+                setDateFilter(f.key);
+                setSelectedMonth("all");
+              }}
+              style={{
+                padding: "6px 18px",
+                fontSize: 13,
+                borderRadius: 99,
+                cursor: "pointer",
+                border:
+                  selectedMonth === "all" && dateFilter === f.key
+                    ? "1px solid rgba(56,189,248,0.6)"
+                    : "1px solid rgba(255,255,255,0.15)",
+                background:
+                  selectedMonth === "all" && dateFilter === f.key ? "rgba(56,189,248,0.18)" : "rgba(255,255,255,0.06)",
+                color: selectedMonth === "all" && dateFilter === f.key ? "#38bdf8" : "rgba(255,255,255,0.7)",
+                fontWeight: selectedMonth === "all" && dateFilter === f.key ? 700 : 400,
+                transition: "all 0.2s",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: "rgba(255,255,255,0.45)", marginBottom: 6 }}>
+            View Month
+          </div>
+          <Select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+            {monthOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </Select>
+        </div>
       </div>
 
       {/* 6.1 Stat Tiles grid */}

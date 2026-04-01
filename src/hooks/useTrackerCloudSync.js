@@ -90,7 +90,7 @@ export function useTrackerCloudSync({
           setExpenses(Array.isArray(cloud.expenses) ? cloud.expenses : []);
           setGoals(Array.isArray(cloud.goals) ? cloud.goals : []);
           setSnapshots(Array.isArray(cloud.snapshots) ? cloud.snapshots : []);
-          setActiveNav(typeof cloud.activeNav === "string" ? cloud.activeNav : "dashboard");
+          setActiveNav("dashboard");
         } else {
           resetTrackerState();
           await setDoc(

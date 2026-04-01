@@ -1,8 +1,9 @@
 ﻿import React from "react";
 import { useTilt } from "../hooks/useTilt";
 
-export default function LiquidGlassCard({ children, style, className = "", maxTilt = 5 }) {
+export default function LiquidGlassCard({ children, style, className = "", maxTilt = 5, disableTilt = false }) {
   const { ref, onMouseMove, onMouseLeave } = useTilt(maxTilt);
+  const tiltEnabled = !disableTilt && maxTilt > 0;
 
   return (
     <>
@@ -48,9 +49,9 @@ export default function LiquidGlassCard({ children, style, className = "", maxTi
       <div className="tilt-scene">
         <div
           className={`lg-card ${className}`}
-          ref={ref}
-          onMouseMove={onMouseMove}
-          onMouseLeave={onMouseLeave}
+          ref={tiltEnabled ? ref : null}
+          onMouseMove={tiltEnabled ? onMouseMove : undefined}
+          onMouseLeave={tiltEnabled ? onMouseLeave : undefined}
           style={{ padding: "26px 22px 22px", ...style }}
         >
           <div className="lg-sheen" />

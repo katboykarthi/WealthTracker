@@ -117,7 +117,7 @@ function FetchPriceButton({ symbol, exchange, onPriceSet }) {
 
 /* ─── StocksForm (typeId = "stocks") ───────────────────────────────────── */
 function StocksForm({ onSave, onCancel, editData }) {
-  const [stockName, setStockName] = useState(editData?.stockName || "");
+  const [stockName, setStockName] = useState(editData?.stockName || editData?.name || "");
   const [symbol, setSymbol] = useState(editData?.symbol || "");
   const [exchange, setExchange] = useState(editData?.exchange || "NSE");
   const [shares, setShares] = useState(editData?.shares?.toString() || "");

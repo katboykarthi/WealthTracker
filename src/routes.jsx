@@ -118,6 +118,7 @@ export function renderAppRoute({
     case "expenses":
       return (
         <ExpensesPage
+          incomes={incomes}
           expenses={expenses}
           currency={currency}
           onAdd={addExpense}

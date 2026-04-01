@@ -34,6 +34,16 @@ function parseAmountValue(rawValue) {
   return Math.abs(parsed);
 }
 
+function parseOptionalAmount(rawValue) {
+  const parsed = parseAmountValue(rawValue);
+  return parsed > 0 ? parsed : undefined;
+}
+
+function normalizeExchange(rawValue) {
+  const value = String(rawValue || "").trim().toUpperCase();
+  return value || undefined;
+}
+
 function resolveAssetTypeId(rawType) {
   const text = String(rawType || "").toLowerCase();
 
@@ -143,11 +153,23 @@ function parseAngelOneRows(rawRows) {
     "stock name",
   ]);
 
+  const symbolIndex = findHeaderIndex(headers, [
+    "symbol",
+    "trading symbol",
+    "trading symbol / security name",
+    "tradingsymbol",
+    "ticker",
+  ]);
   const typeIndex = findHeaderIndex(headers, [
     "type",
     "segment",
     "product",
     "asset type",
+  ]);
+  const exchangeIndex = findHeaderIndex(headers, [
+    "exchange",
+    "exch",
+    "market",
   ]);
 
   let valueIndex = findHeaderIndex(headers, [
@@ -157,6 +179,22 @@ function parseAngelOneRows(rawRows) {
     "current value (rs.)",
     "market value",
     "value",
+  ]);
+  const ltpIndex = findHeaderIndex(headers, [
+    "ltp",
+    "last traded price",
+    "last traded price (rs)",
+    "current price",
+    "cmp",
+    "market price",
+  ]);
+  const avgPriceIndex = findHeaderIndex(headers, [
+    "avg cost",
+    "average cost",
+    "avg price",
+    "avg purchase price",
+    "buy avg",
+    "cost price",
   ]);
 
   const isinIndex = findHeaderIndex(headers, ["isin"]);
@@ -234,6 +272,12 @@ function parseAngelOneRows(rawRows) {
     const name = sanitizeInput(rawName || "", "text");
     const notes = sanitizeInput(buildNotes(row, indices), "text");
     const value = sanitizeInput(parseAmountValue(rawValue), "number");
+    const quantity = qtyIndex >= 0 ? parseOptionalAmount(row[qtyIndex]) : undefined;
+    const currentPrice = ltpIndex >= 0 ? parseOptionalAmount(row[ltpIndex]) : undefined;
+    const avgPrice = avgPriceIndex >= 0 ? parseOptionalAmount(row[avgPriceIndex]) : undefined;
+    const rawSymbol = symbolIndex >= 0 ? row[symbolIndex] : rawName;
+    const symbol = sanitizeInput(String(rawSymbol || "").trim().toUpperCase(), "text") || undefined;
+    const exchange = normalizeExchange(exchangeIndex >= 0 ? row[exchangeIndex] : "");
 
     if (!name || value <= 0) continue;
 
@@ -242,6 +286,11 @@ function parseAngelOneRows(rawRows) {
       rawType,
       notes,
       value,
+      quantity,
+      symbol,
+      exchange,
+      cmp: currentPrice,
+      avgPrice,
     });
   }
 
@@ -292,8 +341,19 @@ export function buildAngelOneAssetEntries(parsedRows, currency) {
 
   return parsedRows.map((row, index) => {
     const typeId = resolveAssetTypeId(row.rawType);
+    const quantity = row.quantity && row.quantity > 0 ? row.quantity : undefined;
+    const cmp = row.cmp && row.cmp > 0
+      ? row.cmp
+      : quantity
+        ? Number((row.value / quantity).toFixed(2))
+        : undefined;
+    const invested = quantity && row.avgPrice && row.avgPrice > 0
+      ? Number((quantity * row.avgPrice).toFixed(2))
+      : undefined;
+    const pnl = invested && invested > 0 ? Number((row.value - invested).toFixed(2)) : undefined;
+    const pnlPct = invested && invested > 0 ? ((row.value - invested) / invested) * 100 : undefined;
 
-    return {
+    const baseEntry = {
       // id will be re-assigned/upserted in the store; this is a temporary stable key
       id: baseId + index + 1,
       typeId,
@@ -303,6 +363,38 @@ export function buildAngelOneAssetEntries(parsedRows, currency) {
       notes: row.notes || "",
       source: "angelone",
     };
+
+    if (typeId === "stocks") {
+      return {
+        ...baseEntry,
+        symbol: row.symbol,
+        exchange: row.exchange || "NSE",
+        shares: quantity,
+        avgPrice: row.avgPrice,
+        cmp,
+        invested,
+        pnl,
+        pnlPct,
+        priceUpdatedAt: cmp ? new Date(baseId).toISOString() : undefined,
+      };
+    }
+
+    if (typeId === "mutual_funds") {
+      return {
+        ...baseEntry,
+        symbol: row.symbol,
+        exchange: row.exchange || "MUTUALFUND",
+        units: quantity,
+        avgNav: row.avgPrice,
+        cmp,
+        invested,
+        pnl,
+        pnlPct,
+        priceUpdatedAt: cmp ? new Date(baseId).toISOString() : undefined,
+      };
+    }
+
+    return baseEntry;
   });
 }
 
