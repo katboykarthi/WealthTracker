@@ -1,47 +1,49 @@
+/**
+ * pages/Wealth/Wealth.jsx
+ * Import fix: PageSection and PageHeader now come from shared/ui (not AppPages).
+ */
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
-import { ASSET_TYPES } from "../../constants";
+import { ASSET_TYPES }    from "../../constants";
 import { serifFontFamily } from "../../styles";
-import { formatCurrency } from "../../utils/formatCurrency";
-import StatCard from "../../components/cards/StatCard";
-import LiquidGlassCard from "../../components/LiquidGlassCard";
-import { PageSection, PageHeader } from "../AppPages";
+import { formatCurrency }  from "../../utils/formatCurrency";
+import StatCard            from "../../components/cards/StatCard";
+import LiquidGlassCard     from "../../components/LiquidGlassCard";
+import { PageSection, PageHeader } from "../../components/shared/ui";
 
 export default function Wealth({ assets, currency, isMobile = false }) {
-  const totalAssets = assets.reduce((s, a) => s + a.value, 0);
-  const grouped = ASSET_TYPES.map((type) => ({
-    ...type,
-    value: assets.filter((a) => a.typeId === type.id).reduce((s, a) => s + a.value, 0),
-  })).filter((g) => g.value > 0);
+  const totalAssets       = assets.reduce((s, a) => s + a.value, 0);
+  const grouped           = ASSET_TYPES
+    .map((type) => ({ ...type, value: assets.filter((a) => a.typeId === type.id).reduce((s, a) => s + a.value, 0) }))
+    .filter((g) => g.value > 0);
   const currenciesTracked = new Set(assets.map((a) => a.currency)).size;
 
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
         <div>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 4 }}>Allocation</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255,255,255,0.95)", marginBottom: 4 }}>Allocation</h2>
+          <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 14 }}>Understand diversification across asset classes and currencies.</p>
         </div>
       </PageHeader>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 20 }}>
-        <StatCard icon={"\u{1F3DB}"} label="TOTAL ASSETS" value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`} color="#22c55e" animated />
-        <StatCard icon={"\u{1F9E9}"} label="ASSET CLASSES" value={`${grouped.length}`} sub="Diversified buckets" color="#3b82f6" animated />
-        <StatCard icon={"\u{1F30D}"} label="CURRENCIES" value={`${currenciesTracked || 1}`} sub="Tracked across holdings" color="#8b5cf6" animated />
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(220px,1fr))", gap: 16, marginBottom: 20 }}>
+        <StatCard icon="🏛️" label="TOTAL ASSETS"  value={formatCurrency(totalAssets, currency)} sub={`${assets.length} assets`}       color="#22c55e" animated />
+        <StatCard icon="🧩" label="ASSET CLASSES" value={`${grouped.length}`}                    sub="Diversified buckets"             color="#3b82f6" animated />
+        <StatCard icon="🌍" label="CURRENCIES"    value={`${currenciesTracked || 1}`}             sub="Tracked across holdings"         color="#8b5cf6" animated />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(280px,1fr))", gap: 16 }}>
+        {/* Pie chart */}
         <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
-          <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 12 }}>Allocation Mix</div>
+          <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.95)", marginBottom: 12 }}>Allocation Mix</div>
           {grouped.length === 0 ? (
-            <div style={{ textAlign: "center", color: "rgba(255, 255, 255, 0.65)", padding: "36px 0" }}>Add assets to view allocation.</div>
+            <div style={{ textAlign: "center", color: "rgba(255,255,255,0.65)", padding: "36px 0" }}>Add assets to view allocation.</div>
           ) : (
             <>
               <ResponsiveContainer width="100%" height={isMobile ? 200 : 220}>
                 <PieChart>
                   <Pie data={grouped} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={82} innerRadius={45}>
-                    {grouped.map((item, i) => (
-                      <Cell key={i} fill={item.color} />
-                    ))}
+                    {grouped.map((item, i) => <Cell key={i} fill={item.color} />)}
                   </Pie>
                   <Tooltip formatter={(v) => formatCurrency(v, currency)} />
                 </PieChart>
@@ -52,8 +54,8 @@ export default function Wealth({ assets, currency, isMobile = false }) {
                   return (
                     <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.color }} />
-                      <span style={{ flex: 1, fontSize: 13, color: "rgba(255, 255, 255, 0.65)" }}>{item.label}</span>
-                      <span style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.95)", fontWeight: 700 }}>{pct.toFixed(1)}%</span>
+                      <span style={{ flex: 1, fontSize: 13, color: "rgba(255,255,255,0.65)" }}>{item.label}</span>
+                      <span style={{ fontSize: 12, color: "rgba(255,255,255,0.95)", fontWeight: 700 }}>{pct.toFixed(1)}%</span>
                     </div>
                   );
                 })}
@@ -62,25 +64,27 @@ export default function Wealth({ assets, currency, isMobile = false }) {
           )}
         </LiquidGlassCard>
 
+        {/* Value breakdown */}
         <LiquidGlassCard style={{ padding: isMobile ? 18 : 22 }}>
-          <div style={{ fontWeight: 700, color: "rgba(255, 255, 255, 0.95)", marginBottom: 12 }}>By Value</div>
+          <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.95)", marginBottom: 12 }}>By Value</div>
           {grouped.length === 0 ? (
-            <div style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 13 }}>No allocation data available.</div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>No allocation data available.</div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
-              {grouped
-                .sort((a, b) => b.value - a.value)
-                .map((item) => (
-                  <div key={item.id} style={{ border: "1px solid rgba(255, 255, 255, 0.15)", borderRadius: 10, padding: "10px 12px" }}>
+              {[...grouped].sort((a, b) => b.value - a.value).map((item) => {
+                const pct = totalAssets > 0 ? (item.value / totalAssets) * 100 : 0;
+                return (
+                  <div key={item.id} style={{ border: "1px solid rgba(255,255,255,0.15)", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                      <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.95)", fontWeight: 600 }}>{item.icon} {item.label}</span>
-                      <span style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.95)", fontWeight: 700 }}>{formatCurrency(item.value, currency)}</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.95)", fontWeight: 600 }}>{item.icon} {item.label}</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.95)", fontWeight: 700 }}>{formatCurrency(item.value, currency)}</span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 99, background: "rgba(255, 255, 255, 0.15)" }}>
-                      <div style={{ height: "100%", borderRadius: 99, background: item.color, width: `${totalAssets > 0 ? (item.value / totalAssets) * 100 : 0}%` }} />
+                    <div style={{ height: 6, borderRadius: 99, background: "rgba(255,255,255,0.15)" }}>
+                      <div style={{ height: "100%", borderRadius: 99, background: item.color, width: `${pct}%` }} />
                     </div>
                   </div>
-                ))}
+                );
+              })}
             </div>
           )}
         </LiquidGlassCard>

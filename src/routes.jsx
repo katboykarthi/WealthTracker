@@ -1,16 +1,21 @@
-import AssetAllocation from "./pages/Allocation/AssetAllocation";
-import PlanPage from "./pages/Plan/Plan";
-import Dashboard from "./pages/Dashboard/Dashboard";
-import AssetsPage from "./pages/Assets/Assets";
-import LiabilitiesPage from "./pages/Liabilities/Liabilities";
-import IncomePage from "./pages/Income/Income";
-import ExpensesPage from "./pages/Expenses/Expenses";
-import NetWorthPage from "./pages/NetWorth/NetWorth";
-import GoalsPage from "./pages/Goals/Goals";
-import InsightsPage from "./pages/Insights/Insights";
-import { cardStyle as sharedCardStyle, serifFontFamily } from "./styles";
+/**
+ * routes.jsx
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Maps activeNav → rendered page component.
+ * All page imports now come from their own dedicated files (no more AppPages.jsx).
+ */
 
-const cardStyle = sharedCardStyle;
+import AssetAllocation from "./pages/Allocation/AssetAllocation";
+import PlanPage        from "./pages/Plan/Plan";
+import Dashboard       from "./pages/Dashboard/Dashboard";
+import AssetsPage      from "./pages/Assets/Assets";
+import LiabilitiesPage from "./pages/Liabilities/Liabilities";
+import IncomePage      from "./pages/Income/Income";
+import ExpensesPage    from "./pages/Expenses/Expenses";
+import NetWorthPage    from "./pages/NetWorth/NetWorth";
+import GoalsPage       from "./pages/Goals/Goals";
+import InsightsPage    from "./pages/Insights/Insights";
+import { cardStyle, serifFontFamily } from "./styles";
 
 export function renderAppRoute({
   activeNav,
@@ -63,6 +68,7 @@ export function renderAppRoute({
           onNavigate={setActiveNav}
         />
       );
+
     case "assets":
       return (
         <AssetsPage
@@ -76,6 +82,7 @@ export function renderAppRoute({
           onConsumeAssetComposerRequest={() => setAssetComposerRequest(null)}
         />
       );
+
     case "liabilities":
       return (
         <LiabilitiesPage
@@ -86,6 +93,7 @@ export function renderAppRoute({
           onDelete={deleteLiability}
         />
       );
+
     case "networth":
       return (
         <NetWorthPage
@@ -97,10 +105,26 @@ export function renderAppRoute({
           isMobile={isMobile}
         />
       );
+
     case "goals":
-      return <GoalsPage assets={assets} goals={goals} setGoals={setGoals} currency={currency} />;
+      return (
+        <GoalsPage
+          assets={assets}
+          goals={goals}
+          setGoals={setGoals}
+          currency={currency}
+        />
+      );
+
     case "allocation":
-      return <AssetAllocation assets={assets} currency={currency} isMobile={isMobile} />;
+      return (
+        <AssetAllocation
+          assets={assets}
+          currency={currency}
+          isMobile={isMobile}
+        />
+      );
+
     case "income":
       return (
         <IncomePage
@@ -113,8 +137,8 @@ export function renderAppRoute({
           onImportIncome={importIncomeEntries}
           onImportExpense={importExpenseEntries}
         />
-
       );
+
     case "expenses":
       return (
         <ExpensesPage
@@ -128,6 +152,7 @@ export function renderAppRoute({
           onImportExpense={importExpenseEntries}
         />
       );
+
     case "insights":
       return (
         <InsightsPage
@@ -136,26 +161,28 @@ export function renderAppRoute({
           currency={currency}
         />
       );
+
     case "settings":
       return (
         <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255, 255, 255, 0.95)", marginBottom: 8 }}>Settings</h2>
-          <p style={{ color: "rgba(255, 255, 255, 0.65)", marginBottom: 24 }}>Manage your preferences</p>
+          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255,255,255,0.95)", marginBottom: 8 }}>Settings</h2>
+          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: 24 }}>Manage your preferences</p>
           <div style={{ display: "grid", gap: 16, maxWidth: 500 }}>
             <div style={cardStyle}>
-              <div style={{ fontWeight: 600, marginBottom: 6, color: "rgba(255, 255, 255, 0.95)" }}>Display</div>
-              <div style={{ color: "rgba(255, 255, 255, 0.65)", fontSize: 13 }}>
-                Liquid glass dark theme is enabled by default.
-              </div>
+              <div style={{ fontWeight: 600, marginBottom: 6, color: "rgba(255,255,255,0.95)" }}>Display</div>
+              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>Liquid glass dark theme is enabled by default.</div>
             </div>
           </div>
         </div>
       );
+
     default:
       return (
         <div style={{ padding: "28px 32px", color: "#94a3b8", textAlign: "center", paddingTop: 80 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>{"\u{1F6A7}"}</div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: "rgba(255, 255, 255, 0.65)" }}>{activeNav.charAt(0).toUpperCase() + activeNav.slice(1)}</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🚧</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.65)" }}>
+            {activeNav.charAt(0).toUpperCase() + activeNav.slice(1)}
+          </div>
           <div style={{ marginTop: 8, fontSize: 14 }}>Coming soon...</div>
         </div>
       );
