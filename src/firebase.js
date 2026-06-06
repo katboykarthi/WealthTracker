@@ -23,7 +23,6 @@ if (isFirebaseConfigured) {
   auth = getAuth(app);
   db = getFirestore(app);
   googleProvider = new GoogleAuthProvider();
-  googleProvider.addScope("https://www.googleapis.com/auth/gmail.readonly");
   googleProvider.setCustomParameters({ prompt: "select_account" });
 }
 
