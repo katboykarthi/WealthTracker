@@ -378,10 +378,10 @@ export default function AutoImportPage({
         <SectionLabel>How It Works</SectionLabel>
         <div style={{ display: "grid", gap: 12 }}>
           {[
-            { step: "1", icon: "🔐", title: "One-time permission", desc: "Click "Connect Gmail" — Google shows a consent screen. You grant read-only Gmail access. No extra login required since you're already signed in with Google." },
+            { step: "1", icon: "🔐", title: "One-time permission", desc: "Click Connect Gmail below. Google shows a consent screen. Grant read-only Gmail access. No extra login needed since you are already signed in with Google." },
             { step: "2", icon: "📧", title: "Automatic email scanning", desc: "WealthTracker searches your Gmail for HDFC statements and Angel One reports using Gmail API. Only matching emails are read." },
             { step: "3", icon: "⚙️", title: "Smart parsing & categorisation", desc: "Transactions are extracted, categorised (Salary, Food, Shopping, Bills, Fuel, Transfer…), and deduplicated so nothing is imported twice." },
-            { step: "4", icon: "🔄", title: "Syncs every 24 hours", desc: "Once connected, your data stays current automatically. Use "Sync Now" to trigger an immediate update any time." },
+            { step: "4", icon: "🔄", title: "Syncs every 24 hours", desc: "Once connected, data stays current automatically. Use the Sync Now button to trigger an immediate update any time." },
           ].map(({ step, icon, title, desc }) => (
             <div key={step} style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
               <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
