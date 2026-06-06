@@ -16,6 +16,7 @@ import NetWorthPage    from "./pages/NetWorth/NetWorth";
 import GoalsPage       from "./pages/Goals/Goals";
 import InsightsPage    from "./pages/Insights/Insights";
 import { cardStyle, serifFontFamily } from "./styles";
+import AutoImportPage from "./pages/AutoImport/AutoImport";
 
 export function renderAppRoute({
   activeNav,
@@ -49,6 +50,19 @@ export function renderAppRoute({
   importIncomeEntries,
   importExpenseEntries,
   importAssetHoldings,
+  // Gmail auto-import
+  authUser,
+  gmailConnected,
+  syncStatus,
+  syncError,
+  lastSyncLabel,
+  lastSyncSummary,
+  hdfcEnabled,
+  setHdfcEnabled,
+  angelEnabled,
+  setAngelEnabled,
+  connectGmail,
+  syncNow,
 }) {
   switch (activeNav) {
     case "dashboard":
@@ -159,6 +173,25 @@ export function renderAppRoute({
           incomes={incomes}
           expenses={expenses}
           currency={currency}
+        />
+      );
+
+    case "autoimport":
+      return (
+        <AutoImportPage
+          authUser={authUser}
+          isMobile={isMobile}
+          gmailConnected={gmailConnected}
+          syncStatus={syncStatus}
+          syncError={syncError}
+          lastSyncLabel={lastSyncLabel}
+          lastSyncSummary={lastSyncSummary}
+          hdfcEnabled={hdfcEnabled}
+          setHdfcEnabled={setHdfcEnabled}
+          angelEnabled={angelEnabled}
+          setAngelEnabled={setAngelEnabled}
+          connectGmail={connectGmail}
+          syncNow={syncNow}
         />
       );
 
