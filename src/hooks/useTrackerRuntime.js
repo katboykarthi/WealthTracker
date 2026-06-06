@@ -7,6 +7,7 @@ import { useGlobalToast } from "./useGlobalToast";
 import { useTrackerActions } from "./useTrackerActions";
 import { useTrackerState } from "./useTrackerState";
 import { useWindowClickClose } from "./useWindowClickClose";
+import { useGmailSync } from "./useGmailSync";
 
 const TOAST_EVENT_NAME = "wealthtracker:toast";
 
@@ -141,6 +142,30 @@ export function useTrackerRuntime() {
   useAppShellTheme(phase);
   useWindowClickClose(mobileProfileMenuOpen, () => setMobileProfileMenuOpen(false));
 
+  const {
+    gmailConnected,
+    syncStatus,
+    syncError,
+    lastSyncLabel,
+    lastSyncSummary,
+    hdfcEnabled,
+    setHdfcEnabled,
+    angelEnabled,
+    setAngelEnabled,
+    connectGmail,
+    syncNow,
+  } = useGmailSync({
+    authUser,
+    incomes,
+    expenses,
+    assets,
+    currency,
+    importIncomeEntries,
+    importExpenseEntries,
+    importAssetHoldings,
+    pushToast,
+  });
+
   const syncMessage = authError
     ? {
         text: authError,
@@ -217,5 +242,16 @@ export function useTrackerRuntime() {
     handleMainScroll,
     syncMessage,
     auroraStyles,
+    gmailConnected,
+    syncStatus,
+    syncError,
+    lastSyncLabel,
+    lastSyncSummary,
+    hdfcEnabled,
+    setHdfcEnabled,
+    angelEnabled,
+    setAngelEnabled,
+    connectGmail,
+    syncNow,
   };
 }
