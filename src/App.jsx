@@ -125,6 +125,18 @@ export default function App() {
     importIncomeEntries,
     importExpenseEntries,
     importAssetHoldings,
+    authUser,
+    gmailConnected,
+    syncStatus,
+    syncError,
+    lastSyncLabel,
+    lastSyncSummary,
+    hdfcEnabled,
+    setHdfcEnabled,
+    angelEnabled,
+    setAngelEnabled,
+    connectGmail,
+    syncNow,
   });
 
   return (
