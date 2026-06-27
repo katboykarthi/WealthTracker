@@ -297,27 +297,7 @@ function parseAngelOneRows(rawRows) {
   return entries;
 }
 
-export async function parseAngelOneHoldingsFile(file) {
-  const fileName = String(file?.name || "").toLowerCase();
-  if (!file) return [];
-
-  if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
-    try {
-      const fileBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(fileBuffer, { type: "array" });
-      const firstSheetName = workbook.SheetNames[0];
-      if (!firstSheetName) return [];
-
-      const firstSheet = workbook.Sheets[firstSheetName];
-      const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
-      return parseAngelOneRows(rows);
-    } catch (error) {
-      // If Excel parsing fails, fall through and try treating it as text/CSV below.
-    }
-  }
-
-  // Fallback: try CSV text if user uploads a CSV instead of Excel
-  const text = await file.text();
+function parseAngelOneText(text) {
   if (!text) return [];
 
   try {
@@ -327,13 +307,45 @@ export async function parseAngelOneHoldingsFile(file) {
     const firstSheet = workbook.Sheets[firstSheetName];
     const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
     return parseAngelOneRows(rows);
-  } catch (error) {
-    // As a last resort, attempt a very naive CSV split if it's plain text
+  } catch {
     const lines = text.split(/\r?\n/).filter((line) => line && line.trim().length > 0);
     if (lines.length < 2) return [];
     const rows = lines.map((line) => line.split(","));
     return parseAngelOneRows(rows);
   }
+}
+
+export async function parseAngelOneHoldingsBuffer(buffer, fileName = "") {
+  const lower = String(fileName || "").toLowerCase();
+
+  if (lower.endsWith(".xls") || lower.endsWith(".xlsx") || !lower.endsWith(".csv")) {
+    try {
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      if (firstSheetName) {
+        const firstSheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
+        const parsed = parseAngelOneRows(rows);
+        if (parsed.length) return parsed;
+      }
+    } catch {
+      // Fall through to text parsing.
+    }
+  }
+
+  const text = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buffer));
+  return parseAngelOneText(text);
+}
+
+export async function parseAngelOneHoldingsFile(file) {
+  const fileName = String(file?.name || "").toLowerCase();
+  if (!file) return [];
+
+  if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
+    return parseAngelOneHoldingsBuffer(await file.arrayBuffer(), fileName);
+  }
+
+  return parseAngelOneText(await file.text());
 }
 
 export function buildAngelOneAssetEntries(parsedRows, currency) {

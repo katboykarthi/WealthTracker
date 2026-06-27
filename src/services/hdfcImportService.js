@@ -225,18 +225,34 @@ function parseHdfcStatementCsv(csvText) {
   return parseHdfcStatementRows(rows);
 }
 
+export async function parseHdfcStatementBuffer(buffer, fileName = "") {
+  const lower = String(fileName || "").toLowerCase();
+
+  if (lower.endsWith(".xls") || lower.endsWith(".xlsx") || !lower.endsWith(".csv")) {
+    try {
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      if (firstSheetName) {
+        const firstSheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
+        const parsed = parseHdfcStatementRows(rows);
+        if (parsed.length) return parsed;
+      }
+    } catch {
+      // Fall through to CSV/text parsing.
+    }
+  }
+
+  const csvText = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buffer));
+  return parseHdfcStatementCsv(csvText);
+}
+
 export async function parseHdfcStatementFile(file) {
   const fileName = String(file?.name || "").toLowerCase();
   if (!file) return [];
 
   if (fileName.endsWith(".xls") || fileName.endsWith(".xlsx")) {
-    const fileBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(fileBuffer, { type: "array" });
-    const firstSheetName = workbook.SheetNames[0];
-    if (!firstSheetName) return [];
-    const firstSheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "", raw: false });
-    return parseHdfcStatementRows(rows);
+    return parseHdfcStatementBuffer(await file.arrayBuffer(), fileName);
   }
 
   const csvText = await file.text();

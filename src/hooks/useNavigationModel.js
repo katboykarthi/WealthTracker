@@ -17,17 +17,7 @@ export function useNavigationModel({
   const mobileNavButtonRefs = useRef({});
   const mobileBubbleReadyRef = useRef(false);
 
-  const navSections = useMemo(
-    () =>
-      NAV_ITEMS
-        .filter((section) => section.section.toLowerCase() !== "data")
-        .map((section) => ({
-          ...section,
-          items: section.items.filter((item) => item.id !== "settings"),
-        }))
-        .filter((section) => section.items.length > 0),
-    []
-  );
+  const navSections = useMemo(() => NAV_ITEMS, []);
 
   const activeSectionData = useMemo(
     () => navSections.find((section) => section.items.some((item) => item.id === activeNav)) || null,

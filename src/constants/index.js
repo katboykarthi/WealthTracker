@@ -44,13 +44,7 @@ export const NAV_ITEMS = [
       { id: "insights", label: "Insights", icon: "📊" },
     ],
   },
-  {
-    section: "Data",
-    items: [
-      { id: "autoimport", label: "Auto Import", icon: "📥" },
-      { id: "settings",   label: "Settings",    icon: "⚙️" },
-    ],
-  },
+
   {
     section: "Plan",
     items: [

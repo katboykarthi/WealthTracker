@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="2a9c5c88-d3d9-4a3b-9ba7-ff721384b5a4" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/Acct_Statement_XXXXXXXX6296_02032026.xls" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/asset-manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/asset-manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/static/css/main.afb50526.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/static/css/main.afb50526.css.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/static/js/main.9ae94181.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/static/js/main.9ae94181.js.LICENSE.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/static/js/main.9ae94181.js.map" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dump.html" beforeDir="false" afterPath="$PROJECT_DIR$/dump.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/background.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/background.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/LiquidGlassCard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/LiquidGlassCard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/auth/LoadingScreen.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/auth/LoadingScreen.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/auth/LoginScreen.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/auth/LoginScreen.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/cards/StatCard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/cards/StatCard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/forms/AssetForms.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/forms/AssetForms.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/AppWorkspace.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/AppWorkspace.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/BottomTabbar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/BottomTabbar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/PageContainer.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/PageContainer.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/layout/TopNavbar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/layout/TopNavbar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/onboarding/OnboardingScreen.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/onboarding/OnboardingScreen.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hooks/useAppShellTheme.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useAppShellTheme.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/hooks/useNavigationModel.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/hooks/useNavigationModel.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/liquid-glass.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/liquid-glass.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Allocation/AllocationInsights.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Allocation/AllocationInsights.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Allocation/CurrentAllocation.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Allocation/CurrentAllocation.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/Allocation/TargetAllocation.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/Allocation/TargetAllocation.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/pages/AppPages.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/AppPages.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/styles/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/styles/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/styles/variables.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/styles/variables.css" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_D:/Projects/WealthTracker" value="3EaXf3zvpIQZqh9vdUbvYQxs9OZ" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedChatMode">
+    <option name="chatModeId" value="Agent" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "Tejaswini-kadiyala"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/katboykarthi/WealthTracker.git",
+    "accountId": "af3b108b-a583-43eb-84d2-2083aacd885c"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
+  <component name="ProjectId" id="3EaXf3zvpIQZqh9vdUbvYQxs9OZ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/Projects/WealthTracker"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2a9c5c88-d3d9-4a3b-9ba7-ff721384b5a4" name="Changes" comment="" />
+      <created>1780417754194</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1780417754194</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>

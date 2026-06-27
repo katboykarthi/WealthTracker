@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider, isFirebaseConfigured } from "../firebase";
 import { getFirestoreErrorMessage } from "../services/firestoreErrors";
@@ -40,7 +40,7 @@ export function useTrackerCloudSync({
     try {
       setSignInBusy(true);
       setAuthError("");
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
     } catch (error) {
       setAuthError("Google sign-in failed. Please try again.");
     } finally {

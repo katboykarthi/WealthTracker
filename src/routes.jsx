@@ -16,7 +16,6 @@ import NetWorthPage    from "./pages/NetWorth/NetWorth";
 import GoalsPage       from "./pages/Goals/Goals";
 import InsightsPage    from "./pages/Insights/Insights";
 import { cardStyle, serifFontFamily } from "./styles";
-import AutoImportPage from "./pages/AutoImport/AutoImport";
 
 export function renderAppRoute({
   activeNav,
@@ -50,19 +49,6 @@ export function renderAppRoute({
   importIncomeEntries,
   importExpenseEntries,
   importAssetHoldings,
-  // Gmail auto-import
-  authUser,
-  gmailConnected,
-  syncStatus,
-  syncError,
-  lastSyncLabel,
-  lastSyncSummary,
-  hdfcEnabled,
-  setHdfcEnabled,
-  angelEnabled,
-  setAngelEnabled,
-  connectGmail,
-  syncNow,
 }) {
   switch (activeNav) {
     case "dashboard":
@@ -176,38 +162,9 @@ export function renderAppRoute({
         />
       );
 
-    case "autoimport":
-      return (
-        <AutoImportPage
-          authUser={authUser}
-          isMobile={isMobile}
-          gmailConnected={gmailConnected}
-          syncStatus={syncStatus}
-          syncError={syncError}
-          lastSyncLabel={lastSyncLabel}
-          lastSyncSummary={lastSyncSummary}
-          hdfcEnabled={hdfcEnabled}
-          setHdfcEnabled={setHdfcEnabled}
-          angelEnabled={angelEnabled}
-          setAngelEnabled={setAngelEnabled}
-          connectGmail={connectGmail}
-          syncNow={syncNow}
-        />
-      );
 
-    case "settings":
-      return (
-        <div style={{ padding: "28px 32px", maxWidth: 900 }}>
-          <h2 style={{ fontFamily: serifFontFamily, fontSize: 28, color: "rgba(255,255,255,0.95)", marginBottom: 8 }}>Settings</h2>
-          <p style={{ color: "rgba(255,255,255,0.65)", marginBottom: 24 }}>Manage your preferences</p>
-          <div style={{ display: "grid", gap: 16, maxWidth: 500 }}>
-            <div style={cardStyle}>
-              <div style={{ fontWeight: 600, marginBottom: 6, color: "rgba(255,255,255,0.95)" }}>Display</div>
-              <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}>Liquid glass dark theme is enabled by default.</div>
-            </div>
-          </div>
-        </div>
-      );
+
+
 
     default:
       return (
