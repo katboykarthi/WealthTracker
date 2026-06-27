@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { onAuthStateChanged, signInWithPopup, signOut, getRedirectResult } from "firebase/auth";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider, isFirebaseConfigured } from "../firebase";
@@ -63,6 +64,9 @@ export function useTrackerCloudSync({
       setAuthLoading(false);
       return;
     }
+
+    // Recover any pending redirect (e.g. from OAuth consent on mobile)
+    getRedirectResult(auth).catch(() => { });
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setAuthUser(user);
