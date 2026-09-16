@@ -12,7 +12,6 @@ import {
   DataTablePagination, getPaginatedRows, getTotalPages, notifyApp,
 } from "../../components/shared/ui";
 import { buttonStyles, cardStyle } from "../../styles";
-import { parseAngelOneHoldingsFile, buildAngelOneAssetEntries } from "../../services/angelOneImportService";
 import { AddAssetForm } from "../../components/forms/AssetForms";
 import { useIsMobile } from "../../hooks/useWindowSize";
 
@@ -21,7 +20,6 @@ export default function AssetsPage({
   onImportHoldings, openAssetComposerRequest, onConsumeAssetComposerRequest,
 }) {
   const isMobile  = useIsMobile();
-  const importRef = useRef(null);
   const btnStyle  = buttonStyles.primary;
 
   const [showAdd,      setShowAdd]      = useState(false);
@@ -72,18 +70,6 @@ export default function AssetsPage({
   const handleEdit = (a) => { setEditing(a); setSelectedType(a.typeId); setPickingType(false); setShowAdd(true); };
   const handleSave = (a) => { editing ? onUpdate(a) : onAdd(a); closeAdd(); };
 
-  const handleImport = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const entries = buildAngelOneAssetEntries(await parseAngelOneHoldingsFile(file), currency);
-      if (!entries?.length) { notifyApp("No valid holdings found.", "warning"); return; }
-      onImportHoldings?.(entries);
-      notifyApp(`Imported ${entries.length} holding${entries.length !== 1 ? "s" : ""}.`, "success");
-    } catch { notifyApp("Unable to import. Please upload a valid AngelOne .xls/.xlsx file.", "error"); }
-    finally { e.target.value = ""; }
-  };
-
   useEffect(() => {
     if (!openAssetComposerRequest) return;
     const typeId = ASSET_TYPES.some((t) => t.id === openAssetComposerRequest.typeId) ? openAssetComposerRequest.typeId : "stocks";
@@ -96,10 +82,6 @@ export default function AssetsPage({
       <PageHeader $isMobile={isMobile}>
         <PageTitle title="Assets" subtitle={`Total: ${formatCurrency(totalValue, currency)}`} />
         <PageHeaderActions $isMobile={isMobile}>
-          <input ref={importRef} type="file" accept=".xls,.xlsx" onChange={handleImport} style={{ display: "none" }} />
-          <button onClick={() => importRef.current?.click()} style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}>
-            Import AngelOne Holdings
-          </button>
           <button onClick={() => { setEditing(null); setShowAdd(true); setPickingType(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>
             + Add Asset
           </button>

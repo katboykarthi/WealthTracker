@@ -153,7 +153,7 @@ export function useTrackerActions({
     });
   }, [setExpenses]);
 
-  const importAssetHoldings = useCallback((entries) => {
+  const importAssetHoldings = useCallback((entries, importMode = "update") => {
     if (!Array.isArray(entries) || entries.length === 0) return;
 
     setAssets((prev) => {
@@ -169,7 +169,7 @@ export function useTrackerActions({
 
         const normalizedIncoming = stripUndefinedFields(incoming);
 
-        const existingIndex = next.findIndex(
+        const existingIndex = importMode === "append" ? -1 : next.findIndex(
           (asset) =>
             String(asset.name || "").trim().toLowerCase() === incomingName &&
             asset.typeId === incomingTypeId

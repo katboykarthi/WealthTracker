@@ -13,7 +13,6 @@ import {
   getPaginatedRows, getTotalPages, notifyApp,
 } from "../../components/shared/ui";
 import { buttonStyles, inputStyle, labelStyle } from "../../styles";
-import { parseHdfcStatementFile, buildImportedHdfcEntries } from "../../services/hdfcImportService";
 import { useIsMobile } from "../../hooks/useWindowSize";
 import {
   getCurrentMonthValue, getDateRangeForFilter, getDateRangeForMonth,
@@ -30,9 +29,8 @@ const INCOME_TYPES = [
   { id: "other",     label: "Other",     icon: "💰" },
 ];
 
-export default function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, onDelete, onImportIncome, onImportExpense }) {
+export default function IncomePage({ incomes, expenses = [], currency, onAdd, onUpdate, onDelete }) {
   const isMobile  = useIsMobile();
-  const importRef = useRef(null);
   const btnStyle  = buttonStyles.primary;
 
   const [showAdd,       setShowAdd]       = useState(false);
@@ -100,20 +98,6 @@ export default function IncomePage({ incomes, expenses = [], currency, onAdd, on
     closeAdd();
   };
 
-  const handleCsvImport = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const parsed = await parseHdfcStatementFile(file);
-      const { incomeEntries, expenseEntries } = buildImportedHdfcEntries(parsed, currency);
-      if (!incomeEntries.length && !expenseEntries.length) { notifyApp("No valid transactions found.", "warning"); return; }
-      if (incomeEntries.length)  onImportIncome(incomeEntries);
-      if (expenseEntries.length) onImportExpense(expenseEntries);
-      notifyApp(`Imported ${incomeEntries.length} income and ${expenseEntries.length} expense entries.`, "success");
-    } catch { notifyApp("Unable to import. Please upload a valid HDFC statement.", "error"); }
-    finally { e.target.value = ""; }
-  };
-
   return (
     <PageSection $isMobile={isMobile}>
       <PageHeader $isMobile={isMobile}>
@@ -121,8 +105,6 @@ export default function IncomePage({ incomes, expenses = [], currency, onAdd, on
           subtitle={<>{periodLabel} — Net: <span style={{ color: netCashflow >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700 }}>{formatCurrency(netCashflow, currency)}</span></>}
         />
         <PageHeaderActions $isMobile={isMobile}>
-          <input ref={importRef} type="file" accept=".csv,.xls,.xlsx" onChange={handleCsvImport} style={{ display: "none" }} />
-          <button onClick={() => importRef.current?.click()} style={{ ...buttonStyles.secondary, padding: "10px 14px", fontSize: 13, width: isMobile ? "100%" : "auto" }}>Import HDFC Statement</button>
           <button onClick={() => { setEditing(null); setShowAdd(true); }} style={{ ...btnStyle, width: isMobile ? "100%" : "auto" }}>+ Add Income</button>
         </PageHeaderActions>
       </PageHeader>

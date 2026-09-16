@@ -52,6 +52,12 @@ export const NAV_ITEMS = [
       { id: "allocation", label: "Allocation", icon: "🕐" },
     ],
   },
+  {
+    section: "Tools",
+    items: [
+      { id: "import", label: "Import", icon: "📥" },
+    ],
+  },
 ];
 
 export const GOAL_ICONS = ["🎯", "🏠", "🚗", "✈️", "🎓", "💍", "🌏", "💼", "🏖️"];

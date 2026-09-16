@@ -15,6 +15,7 @@ import ExpensesPage    from "./pages/Expenses/Expenses";
 import NetWorthPage    from "./pages/NetWorth/NetWorth";
 import GoalsPage       from "./pages/Goals/Goals";
 import InsightsPage    from "./pages/Insights/Insights";
+import ImportPage      from "./pages/Import/Import";
 import { cardStyle, serifFontFamily } from "./styles";
 
 export function renderAppRoute({
@@ -163,9 +164,16 @@ export function renderAppRoute({
         />
       );
 
-
-
-
+    case "import":
+      return (
+        <ImportPage
+          currency={currency}
+          isMobile={isMobile}
+          onImportHoldings={importAssetHoldings}
+          onImportIncome={importIncomeEntries}
+          onImportExpense={importExpenseEntries}
+        />
+      );
 
     default:
       return (
