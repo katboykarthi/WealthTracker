@@ -125,6 +125,7 @@ export default function App() {
     importIncomeEntries,
     importExpenseEntries,
     importAssetHoldings,
+    onToast: pushToast,
   });
 
   return (

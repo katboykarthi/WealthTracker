@@ -49,6 +49,7 @@ export function renderAppRoute({
   importIncomeEntries,
   importExpenseEntries,
   importAssetHoldings,
+  onToast,
 }) {
   switch (activeNav) {
     case "dashboard":

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, signOut, getRedirectResult } from "firebase/auth";
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, getRedirectResult } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db, googleProvider, isFirebaseConfigured } from "../firebase";
 import { getFirestoreErrorMessage } from "../services/firestoreErrors";
